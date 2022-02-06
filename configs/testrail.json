@@ -1,0 +1,51 @@
+{
+  "requests_per_second": 2,
+  "base_path": "index.php?",
+  "data_key": "{endpoint}",
+  "denormalized_keys": {
+    "cases": {
+      "projects": {
+        "suites": "project_id"
+       }
+    }
+  },
+  "paging": {
+    "location": "response",
+    "link_key": "_links.next"
+  },
+  "auth": {
+    "type": "basic"
+  },
+  "source": {
+    "projects": {
+      "target": "projects",
+      "path": "/api/v2/get_projects",
+      "identifier": "id"
+    },
+    "suites": {
+      "target": "suites",
+      "path": "/api/v2/get_suites/{projects.identifier}",
+      "identifier": "id"
+    },
+    "cases": {
+      "target": "cases",
+      "path": "/api/v2/get_cases/{projects.identifier}&suite_id={suites.identifier}",
+      "identifier": "id"
+    },
+    "plans": {
+      "target": "plans",
+      "path": "/api/v2/get_plans/{projects.identifier}",
+      "identifier": "id"
+    },
+    "runs": {
+      "target": "runs",
+      "path": "/api/v2/get_runs/{projects.identifier}",
+      "identifier": "id"
+    },
+    "tests": {
+      "target": "tests",
+      "path": "/api/v2/get_tests/{runs.identifier}",
+      "identifier": "id"
+    }
+  }
+}

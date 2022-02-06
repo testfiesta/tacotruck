@@ -1,0 +1,20 @@
+{
+  "name": "YATTPipe",
+  "version": "1.0.0",
+  "description": "Test/QA data pipeline by YATT",
+  "main": "index.js",
+  "author": "YATT",
+  "license": "MIT",
+  "dependencies": {
+    "argparse": "^2.0.1",
+    "cli-progress": "^3.10.0"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.16.5",
+    "eslint": "^7.32.0",
+    "eslint-config-standard": "^16.0.3",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^5.2.0"
+  }
+}
