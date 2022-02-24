@@ -92,13 +92,17 @@ async function pullData(config) {
                         response.data );
         for( const record of dataSet ) {
           let dataPoint = new models.modelTypes[response.type];
-          dataPoint.build(
-            config.sourceTypeConfig.source[response.type].mapping, record
+          let built = dataPoint.build(
+            config.sourceTypeConfig.source[response.type].mapping,
+            record,
+            ( config.ignoreConfig ? config.ignoreConfig[response.type] : {} )
           );
           if( !data[response.type] ) {
             data[response.type] = [];
           }
-          data[response.type].push(dataPoint);
+          if (built) {
+            data[response.type].push(dataPoint);
+          }
         }
       }
       //config.progressBar.update(config.sourceProgressIncrement);
@@ -109,6 +113,7 @@ async function pullData(config) {
 }
 
 function pushData(conf, data) {
+  console.log(JSON.stringify(data, null, 2));
   // Parse target config and build dependency graph to determine push order
   /*targetEndpointOrder = [];
   for (const name in targetApi.target) {

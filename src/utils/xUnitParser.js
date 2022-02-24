@@ -55,7 +55,7 @@ function collapse(inputData) {
   return data;
 }
 
-function parseJSONData(data) {
+function parseJSONData(data, ignoreConfig) {
   let parsedData = { suites: [], executions: [] };
   let suiteData = data.testsuites || (data.testsuite || []);
   if (data.testsuites && !data.testsuites.testsuite) {
@@ -72,18 +72,30 @@ function parseJSONData(data) {
     }
     delete suite.testcase;
     let newTestSuite = new models.TestSuite()
-    newTestSuite.build(xUnitParser.TEST_SUITES_MAPPING, suite);
+    let suiteBuilt = newTestSuite.build(
+      xUnitParser.TEST_SUITES_MAPPING,
+      suite,
+     ( ignoreConfig ? ignoreConfig["testsuites"] : {} )
+    );
 
-    if (!newTestSuite.external_id) {
-      newTestSuite.external_id = "yatt-pipe_" + crypto.randomBytes(12).toString('hex');
-    }
-    parsedData.suites.push(newTestSuite);
+    if (suiteBuilt) {
+      if (!newTestSuite.external_id) {
+        newTestSuite.external_id = "yatt-pipe_" + crypto.randomBytes(12).toString('hex');
+      }
+      parsedData.suites.push(newTestSuite);
 
-    for (tcase of caseData) {
-      let newTestCase = new models.TestCase()
-      newTestCase.custom_fields["test_suite_id"] = newTestSuite.external_id;
-      newTestCase.build(xUnitParser.TEST_CASES_MAPPING, tcase);
-      parsedData.executions.push(newTestCase);
+      for (tcase of caseData) {
+        let newTestCase = new models.TestCase()
+        newTestCase.custom_fields["test_suite_id"] = newTestSuite.external_id;
+        let caseBuilt = newTestCase.build(
+          xUnitParser.TEST_CASES_MAPPING,
+          tcase,
+          ( ignoreConfig ? ignoreConfig["testcases"] : {} )
+        );
+        if (caseBuilt) {
+          parsedData.executions.push(newTestCase);
+        }
+      }
     }
   }
 
@@ -101,17 +113,8 @@ class xUnitParser {
         name: "name",
   };
 
-  parseFile(path) {  //TODO Remove promise
-    return new Promise((resolve, reject) => {
-      fs.readFile(path, 'utf8', (err, file) => {
-        if (err) {
-          reject(err);
-        } else {
-          parseJSONData(collapse(xmlParser(file)));
-          resolve(collapse(xmlParser(file)));
-        }
-      });
-    });
+  parseFile(path, ignoreConfig) {
+    return parseJSONData(collapse(xmlParser(fs.readFileSync(path))), ignoreConfig);
   }
 
 }

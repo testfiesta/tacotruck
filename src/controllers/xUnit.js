@@ -9,7 +9,7 @@ async function pullData(config) {
 
   // Pull data
   let data = new xUnitParser()
-    .parseFile(config.sourceLocation);
+    .parseFile(config.sourceLocation, config.ignoreConfig);
 
    
   return data;

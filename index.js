@@ -29,6 +29,10 @@ parser.add_argument('-i', '--incremental', {
    action: 'store_true',
    help: 'Only pull incremental data based on the last ID uploaded to target'
 });
+parser.add_argument('-I', '--ignore', {
+   required: false,
+   help: 'Path to a config file specifying source records to ignore.'
+});
 parser.add_argument('-o', '--overwrite', {
    help: 'JSON including configs to include or overwrite'
 });

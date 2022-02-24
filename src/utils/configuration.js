@@ -6,6 +6,7 @@ const validSourceTypes = ['api', 'junit'];
 const validTargetTypes = ['api'];
 
 class PipeConfig {
+  ignoreConfig;
   sourceAuthSchema;
   sourceAuthPayload;
   sourceBaseUrl;
@@ -39,6 +40,17 @@ class PipeConfig {
         console.error('Invalid target type: ' + args.target_type);
         process.exit();
       }
+    }
+
+    try {
+      if (args.ignore) {
+        if (fs.existsSync(args.ignore)) {
+          // Check if this is a custom type
+          this.ignoreConfig = JSON.parse(fs.readFileSync(args.ignore));
+        }
+      }
+    } catch (err) {
+      console.error('Invalid ignore config: ' + err);
     }
 
     // Parse the source config files.
