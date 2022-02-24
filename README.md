@@ -1,4 +1,4 @@
-YATTPipe
+yatt-pipe
 ========
 A tool for moving testing/quality data.
 

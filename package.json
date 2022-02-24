@@ -7,7 +7,11 @@
   "license": "MIT",
   "dependencies": {
     "argparse": "^2.0.1",
-    "cli-progress": "^3.10.0"
+    "axios": "^0.25.0",
+    "cli-progress": "^3.10.0",
+    "crypto": "^1.0.1",
+    "delay": "^5.0.0",
+    "xml2js-parser": "^1.1.1"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.16.5",

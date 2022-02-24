@@ -5,4 +5,8 @@ const authSchemas = {
     "key": "Authorization",
     "payload": "Basic {base64Credentials}"
   }
-}
+};
+
+module.exports = {
+  authSchemas
+}; 

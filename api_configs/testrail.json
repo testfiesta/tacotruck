@@ -18,34 +18,69 @@
   },
   "source": {
     "projects": {
+      "key": "projects",
       "target": "projects",
       "path": "/api/v2/get_projects",
-      "identifier": "id"
+      "identifier": "id",
+      "mapping": {
+	"id": "external_id",
+	"name": "name"
+      }
     },
     "suites": {
+      "key": "suites",
       "target": "suites",
       "path": "/api/v2/get_suites/{projects.identifier}",
-      "identifier": "id"
+      "identifier": "id",
+      "mapping": {
+        "id": "external_id",
+        "name": "name"
+      }
     },
     "cases": {
+      "key": "cases",
       "target": "cases",
       "path": "/api/v2/get_cases/{projects.identifier}&suite_id={suites.identifier}",
-      "identifier": "id"
+      "identifier": "id",
+      "mapping": {
+        "created_on": "created_at",
+        "id": "external_id",
+        "title": "name",
+        "updated_on": "updated_at"
+      }
     },
     "plans": {
+      "key": "plans",
       "target": "plans",
       "path": "/api/v2/get_plans/{projects.identifier}",
-      "identifier": "id"
+      "identifier": "id",
+      "mapping": {
+	"created_on": "created_on",
+	"id": "external_id",
+	"name": "name"
+      }
     },
     "runs": {
+      "key": "runs",
       "target": "runs",
       "path": "/api/v2/get_runs/{projects.identifier}",
-      "identifier": "id"
+      "identifier": "id",
+      "mapping": {
+	"created_on": "created_at",
+	"id": "external_id",
+	"name": "name",
+	"updated_on": "updated_at"
+      }
     },
     "tests": {
-      "target": "tests",
+      "key": "tests",
+      "target": "executions",
       "path": "/api/v2/get_tests/{runs.identifier}",
-      "identifier": "id"
+      "identifier": "id",
+      "mapping": {
+	"id": "external_id",
+	"title": "name"
+      }
     }
   }
 }
