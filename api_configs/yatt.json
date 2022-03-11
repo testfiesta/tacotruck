@@ -1,36 +1,26 @@
 {
   "base_path": "",
   "auth": {
-    "type": "header",
-    "key": "Authorization: token {token}"
+    "type": "bearer"
   },
   "target": { 
-    "offset": {
-      "path": "/offset/all"
-    },
     "projects": {
-      "path": "/data",
-      "external_id": "{identifier}"
+      "path": "api/v1/data"
     },
     "suites": {
-      "path": "/data",
-      "external_id": "{identifier}"
+      "path": "api/v1/data"
     },
     "cases": {
-      "path": "/data",
-      "external_id": "{identifier}"
+      "path": "api/v1/data"
     },
     "plans": {
-      "path": "/data",
-      "external_id": "{identifier}"
+      "path": "api/v1/data"
     },
     "runs": {
-      "path": "/data",
-      "external_id": "{identifier}"
+      "path": "api/v1/data"
     },
     "tests": {
-      "path": "/data",
-      "external_id": "{identifier}"
+      "path": "api/v1/data"
     }
   }
 }

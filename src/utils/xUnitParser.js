@@ -81,7 +81,7 @@ function parseJSONData(data, ignoreConfig) {
     if (suiteBuilt) {
       if (!newTestSuite.external_id) {
         newTestSuite.external_id = "yatt-pipe_" + crypto.randomBytes(12).toString('hex');
-      }
+      } // TODO - Do something with this ID to pull things together.
       parsedData.suites.push(newTestSuite);
 
       for (tcase of caseData) {

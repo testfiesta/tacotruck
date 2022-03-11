@@ -1,4 +1,5 @@
 {
+  "name": "testrail",
   "requests_per_second": 2,
   "base_path": "index.php?",
   "data_key": "{endpoint}",
@@ -18,68 +19,86 @@
   },
   "source": {
     "projects": {
-      "key": "projects",
+      "response_data_key": "projects",
       "target": "projects",
-      "path": "/api/v2/get_projects",
-      "identifier": "id",
+      "path": "api/v2/get_projects",
       "mapping": {
 	"id": "external_id",
 	"name": "name"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
       }
     },
     "suites": {
-      "key": "suites",
+      "response_data_key": "suites",
       "target": "suites",
-      "path": "/api/v2/get_suites/{projects.identifier}",
-      "identifier": "id",
+      "path": "api/v2/get_suites/{projects.id}",
       "mapping": {
         "id": "external_id",
         "name": "name"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
       }
     },
     "cases": {
-      "key": "cases",
+      "response_data_key": "cases",
       "target": "cases",
-      "path": "/api/v2/get_cases/{projects.identifier}&suite_id={suites.identifier}",
-      "identifier": "id",
+      "path": "api/v2/get_cases/{projects.id}&suite_id={suites.id}",
       "mapping": {
         "created_on": "created_at",
         "id": "external_id",
         "title": "name",
         "updated_on": "updated_at"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
       }
     },
     "plans": {
-      "key": "plans",
+      "response_data_key": "plans",
       "target": "plans",
-      "path": "/api/v2/get_plans/{projects.identifier}",
-      "identifier": "id",
+      "path": "api/v2/get_plans/{projects.id}",
       "mapping": {
 	"created_on": "created_on",
 	"id": "external_id",
 	"name": "name"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
       }
     },
     "runs": {
-      "key": "runs",
+      "response_data_key": "runs",
       "target": "runs",
-      "path": "/api/v2/get_runs/{projects.identifier}",
-      "identifier": "id",
+      "path": "api/v2/get_runs/{projects.id}",
       "mapping": {
 	"created_on": "created_at",
 	"id": "external_id",
 	"name": "name",
 	"updated_on": "updated_at"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
       }
     },
     "tests": {
-      "key": "tests",
+      "response_data_key": "tests",
       "target": "executions",
-      "path": "/api/v2/get_tests/{runs.identifier}",
-      "identifier": "id",
+      "path": "api/v2/get_tests/{runs.id}",
       "mapping": {
 	"id": "external_id",
 	"title": "name"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
       }
     }
   }

@@ -19,7 +19,16 @@ class PipeConfig {
   sourceProgressIncrement;
   sourceOffsets = {};
 
-  // TODO Target config
+  targetAuthSchema;
+  targetAuthPayload;
+  targetBaseUrl;
+  targetCredentials;
+  targetThrottleCap = 2;
+  targetType;
+  targetTypeConfig;
+  targetTypeLocation;
+  targetEndpointSet = new Set();
+  targetProgressIncrement;
 
   constructor(args) {
     // If a source type is provided, set it.
@@ -70,6 +79,14 @@ class PipeConfig {
         console.error('Invalid source config: ' + err);
         process.exit();
       }
+    } else {
+      console.error('Invalid source type: ' + this.sourceType);
+      process.exit();
+    }
+
+    if (!this.sourceTypeConfig.name) {
+      console.error('Source configuration file must specify a "name" to identify the service.');
+      process.exit();
     }
 
     // Default target type to api if no config was provided
@@ -99,6 +116,9 @@ class PipeConfig {
         console.error('Invalid target config: ' + err);
         process.exit();
       }
+    } else {
+      console.error('Invalid target type: ' + this.targetType);
+      process.exit();
     }
 
     if (credentialedTypes.includes(this.sourceType)) {
@@ -144,7 +164,50 @@ class PipeConfig {
       }
     }
 
-    // CTODO - Build our target API credentials
+    // Build our target API credentials
+
+    if (credentialedTypes.includes(this.targetType)) {
+      // Parse credentials file and ensure it matches expected data based on type
+      // provided in the config
+      try {
+        let creds = JSON.parse(fs.readFileSync(args.credentials));
+        this.targetCredentials = creds.target;
+        this.targetBaseUrl = creds.target.base_url;
+      } catch (err) {
+        console.error('Issue reading target credentials file: ' + err);
+        process.exit();
+      }
+
+      try {
+        this.targetAuthSchema =
+          auth.authSchemas[this.targetTypeConfig.auth.type];
+      } catch(err) {
+        console.error('Invalid auth configuration: ' + err);
+        process.exit();
+      }
+
+      // Build our target API credentials
+      for (const key of this.targetAuthSchema.inputs) {
+        if (!this.targetCredentials[key]) {
+          console.error('Invalid target credentials.' +
+            '\n Missing input: ' + key);
+          process.exit();
+        } else {
+          let keyIndex = this.targetAuthSchema.payload.indexOf(key);
+          if (keyIndex < 0) {
+            console.error('Key [' + key + '] not found in payload.');
+            process.exit();
+          }
+          // Do our substitutions to build the payload.
+          this.targetAuthPayload =
+            this.targetAuthSchema.payload.substring(0, keyIndex-1)
+            + this.targetCredentials[key]
+            + this.targetAuthSchema.payload.substring(
+              keyIndex+key.length+1, this.targetAuthSchema.payload.length
+            );
+        }
+      }
+    }
 
     if (this.sourceType === 'api') {
       if (this.sourceTypeConfig.requests_per_second) {
@@ -154,7 +217,6 @@ class PipeConfig {
           this.sourceThrottleCap = this.sourceTypeConfig.requests_per_second;
         }
       }
-
 
       // Parse source config and build dependency graph to determine access order
       var sourceEndpointOrder = [];
@@ -179,6 +241,29 @@ class PipeConfig {
         } 
       } 
     } else if (this.sourceType === 'junit') {
+    }
+
+    if (this.targetType === 'api') {
+      if (this.targetTypeConfig.requests_per_second) {
+        if (isNaN(this.targetTypeConfig.requests_per_second)) {
+          console.error('Invalid config "requests_per_second" on target API.');
+        } else {
+          this.targetThrottleCap = this.targetTypeConfig.requests_per_second;
+        }
+      }
+
+      // Parse source config and build dependency graph to determine access order
+      var targetEndpointOrder = [];
+      for (const name in this.targetTypeConfig.target) {
+        targetEndpointOrder.push(...buildDependencyChain(
+          this.targetTypeConfig.target, name
+        ));
+      }
+
+      targetEndpointOrder.forEach(endpoint =>
+        this.targetEndpointSet.add(endpoint)
+      );
+      this.targetProgressIncrement = 100/this.targetEndpointSet.size;
     }
   }
 }
@@ -235,6 +320,7 @@ function bracketSubstitution(baseString, oldKey, newKey) {
 
 
 module.exports = {
+  bracketSubstitution,
   buildDependencyChain,
   findSubstitutionKeys,
   PipeConfig,
