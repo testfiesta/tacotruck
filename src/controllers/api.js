@@ -379,7 +379,9 @@ async function processNetworkPostRequest(config, url, options, type) {
   // Make request
   targetThrottleCounter.push(Date.now());
 
-  return axios.post(url, options).then(response => {
+  const data = options.data;
+  delete options.data;
+  return axios.post(url, data, options).then(response => {
 
     if (response.status >= 200 && response.status < 400) {
       return {
