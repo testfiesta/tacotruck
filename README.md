@@ -18,7 +18,7 @@ The `credis.json` should look something like this:
   }
 }
 ```
-But replace the `base64Credentials` key with your email address, followed by a ":", followed by your TestRail password and then the whole string should be base64 encoded. Ex: `echo "myemail@email.com:mypassword" | base64 -w0`
+But replace the `base64Credentials` key with your email address, followed by a ":", followed by your TestRail password and then the whole string should be base64 encoded. Ex: `echo -n "myemail@email.com:mypassword" | base64 -w0` (*Don't forget the '-n' to remove the default new line added by 'echo'.*)
 
 Then replace the YATT token with a valid YATT token for your YATT user.
 
