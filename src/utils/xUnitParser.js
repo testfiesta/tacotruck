@@ -114,7 +114,7 @@ class xUnitParser {
   };
 
   parseFile(path, ignoreConfig) {
-    return parseJSONData(collapse(xmlParser(fs.readFileSync(path))), ignoreConfig);
+    return parseJSONData(collapse(xmlParser(fs.readFileSync(`${root}/${path}`))), ignoreConfig);
   }
 
 }

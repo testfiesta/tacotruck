@@ -5,6 +5,9 @@
   "main": "index.js",
   "author": "YATT",
   "license": "MIT",
+  "bin": {
+    "yatt-pipe": "./index.js"
+  },
   "dependencies": {
     "argparse": "^2.0.1",
     "axios": "^0.25.0",
