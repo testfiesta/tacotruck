@@ -30,7 +30,7 @@ class PipeConfig {
   targetEndpointSet = new Set();
   targetProgressIncrement;
 
-  constructor(args) {
+  constructor(args, executeFromCLI = true) {
     // If a source type is provided, set it.
     if (validSourceTypes.includes(args.source_type)) {
       this.sourceType = args.source_type;
@@ -53,9 +53,9 @@ class PipeConfig {
 
     try {
       if (args.ignore) {
-        if (fs.existsSync(args.ignore)) {
+        if (fs.existsSync(`${root}/${args.ignore}`)) {
           // Check if this is a custom type
-          this.ignoreConfig = JSON.parse(fs.readFileSync(args.ignore));
+          this.ignoreConfig = JSON.parse(fs.readFileSync(`${root}/${args.ignore}`));
         }
       }
     } catch (err) {
@@ -65,12 +65,14 @@ class PipeConfig {
     // Parse the source config files.
     if (this.sourceType === 'api') {
       try {
-        if (fs.existsSync(args.source)) {
+        if (!executeFromCLI && args.source_configs) {
+          this.sourceTypeConfig = args.source_configs;
+        } else if (fs.existsSync(`${root}/${args.source}`)) {
           // Check if this is a custom type
-          this.sourceTypeConfig = JSON.parse(fs.readFileSync(args.source));
-        } else if (fs.existsSync('./api_configs/' + args.source + '.json')) {
+          this.sourceTypeConfig = JSON.parse(fs.readFileSync(`${root}/${args.source}`));
+        } else if (fs.existsSync(`${root}/api_configs/` + args.source + '.json')) {
           // Fall back to defaults
-          this.sourceTypeConfig = JSON.parse(fs.readFileSync('./api_configs/' + args.source + '.json'));
+          this.sourceTypeConfig = JSON.parse(fs.readFileSync(`${root}/api_configs/` + args.source + '.json'));
         } else if (args.source) {
           console.error('Source config not found: ' + args.source);
           process.exit();
@@ -102,12 +104,14 @@ class PipeConfig {
     // Parse the target config files.
     if (this.targetType === 'api') {
       try {
-        if (fs.existsSync(args.target)) {
+        if (!executeFromCLI && args.target_configs) {
+          this.targetTypeConfig = args.target_configs;
+        } else if (fs.existsSync(`${root}/${args.target}`)) {
           // Check if this is a custom type
-          this.targetTypeConfig = JSON.parse(fs.readFileSync(args.target));
-        } else if (fs.existsSync('./api_configs/' + args.target + '.json')) {
+          this.targetTypeConfig = JSON.parse(fs.readFileSync(`${root}/${args.target}`));
+        } else if (fs.existsSync(`${root}/api_configs/` + args.target + '.json')) {
           // Fall back to defaults
-          this.targetTypeConfig = JSON.parse(fs.readFileSync('./api_configs/' + args.target + '.json'));
+          this.targetTypeConfig = JSON.parse(fs.readFileSync(`${root}/api_configs/` + args.target + '.json'));
         } else {
           console.error('Source config not found: ' + args.target);
           process.exit();
@@ -125,7 +129,14 @@ class PipeConfig {
       // Parse credentials file and ensure it matches expected data based on type
       // provided in the config
       try {
-        let creds = JSON.parse(fs.readFileSync(args.credentials));
+        let creds;
+        if (!executeFromCLI) {
+          creds = args.credentials;
+        } else if (fs.existsSync(args.credentials)) {
+          creds = JSON.parse(fs.readFileSync(args.credentials));
+        } else {
+          creds = JSON.parse(fs.readFileSync(`${root}/${args.credentials}`));
+        }
         this.sourceCredentials = creds.source;
         this.sourceBaseUrl = creds.source.base_url;
       } catch (err) {
@@ -170,7 +181,14 @@ class PipeConfig {
       // Parse credentials file and ensure it matches expected data based on type
       // provided in the config
       try {
-        let creds = JSON.parse(fs.readFileSync(args.credentials));
+        let creds;
+        if (!executeFromCLI) {
+          creds = args.credentials;
+        } else if (fs.existsSync(args.credentials)) {
+          creds = JSON.parse(fs.readFileSync(args.credentials));
+        } else {
+          creds = JSON.parse(fs.readFileSync(`${root}/${args.credentials}`));
+        }
         this.targetCredentials = creds.target;
         this.targetBaseUrl = creds.target.base_url;
       } catch (err) {
