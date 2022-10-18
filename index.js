@@ -11,8 +11,6 @@ const xUnitController = require('./src/controllers/xUnit.js');
 
 global.root = __dirname;
 
-const credentialsFileName = 'creds.json';
- 
 const parser = new ArgumentParser({
   description: 'YATTPipe'
 });
@@ -22,15 +20,11 @@ const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_cla
 let args;
 let config;
 
-let availableConfigs = fs.readdirSync('api_configs')
+let availableConfigs = fs.readdirSync(`${root}/api_configs`)
   .filter(file => !(/(^|\/)\.[^\/\.]/g).test(file))
   .map(file => {
     return file.split('.')[0];
   }).join(', ');
-
-async function configCredentials(data) {
-  return fs.writeFileSync(`${root}/${credentialsFileName}`, JSON.stringify(data));
-}
 
 async function pullThenPushData() {
   config.progressBar = progressBar;
@@ -43,6 +37,8 @@ async function push(
   source = 'testrail',
   source_type = 'api',
   target = 'yatt',
+  source_configs = undefined,
+  target_configs = undefined,
   target_type = undefined,
   verbose = false,
   incremental = false,
@@ -66,14 +62,10 @@ async function push(
   }
 
   try {
-    await configCredentials(credentials);
-
-    if (!fs.existsSync(`${root}/${credentialsFileName}`)) {
-      throw('Not found credentials config');
-    }
-
     args = {
-      credentials: credentialsFileName,
+      credentials,
+      source_configs,
+      target_configs,
       incremental,
       ignore,
       overwrite,

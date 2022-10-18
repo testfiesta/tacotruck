@@ -65,7 +65,9 @@ class PipeConfig {
     // Parse the source config files.
     if (this.sourceType === 'api') {
       try {
-        if (fs.existsSync(`${root}/${args.source}`)) {
+        if (!executeFromCLI && args.source_configs) {
+          this.sourceTypeConfig = args.source_configs;
+        } else if (fs.existsSync(`${root}/${args.source}`)) {
           // Check if this is a custom type
           this.sourceTypeConfig = JSON.parse(fs.readFileSync(`${root}/${args.source}`));
         } else if (fs.existsSync(`${root}/api_configs/` + args.source + '.json')) {
@@ -102,7 +104,9 @@ class PipeConfig {
     // Parse the target config files.
     if (this.targetType === 'api') {
       try {
-        if (fs.existsSync(`${root}/${args.target}`)) {
+        if (!executeFromCLI && args.target_configs) {
+          this.targetTypeConfig = args.target_configs;
+        } else if (fs.existsSync(`${root}/${args.target}`)) {
           // Check if this is a custom type
           this.targetTypeConfig = JSON.parse(fs.readFileSync(`${root}/${args.target}`));
         } else if (fs.existsSync(`${root}/api_configs/` + args.target + '.json')) {
@@ -126,7 +130,9 @@ class PipeConfig {
       // provided in the config
       try {
         let creds;
-        if (executeFromCLI && fs.existsSync(args.credentials)) {
+        if (!executeFromCLI) {
+          creds = args.credentials;
+        } else if (fs.existsSync(args.credentials)) {
           creds = JSON.parse(fs.readFileSync(args.credentials));
         } else {
           creds = JSON.parse(fs.readFileSync(`${root}/${args.credentials}`));
@@ -176,7 +182,9 @@ class PipeConfig {
       // provided in the config
       try {
         let creds;
-        if (executeFromCLI && fs.existsSync(args.credentials)) {
+        if (!executeFromCLI) {
+          creds = args.credentials;
+        } else if (fs.existsSync(args.credentials)) {
           creds = JSON.parse(fs.readFileSync(args.credentials));
         } else {
           creds = JSON.parse(fs.readFileSync(`${root}/${args.credentials}`));
