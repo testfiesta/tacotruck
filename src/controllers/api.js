@@ -1,5 +1,6 @@
 const axios = require('axios');
 const configUtils = require('../utils/configuration.js');
+const auth = require('../utils/auth.js');
 const models = require('../models/core.js');
 
 let sourceRequestsQueue = [];
@@ -394,7 +395,60 @@ async function processNetworkPostRequest(config, url, options, type) {
   });
 }
 
+function buildAuthPayloadService(sourceAuthSchema, sourceCredentials) {
+  let sourceAuthPayload;
+  for (const key of sourceAuthSchema.inputs) {
+    if (!sourceCredentials[key]) {
+      throw(`Credentials missing key ${key}`);
+    } else {
+      let keyIndex = sourceAuthSchema.payload.indexOf(key);
+      if (keyIndex >= 0) {
+        sourceAuthPayload =
+          sourceAuthSchema.payload.substring(0, keyIndex-1)
+          + sourceCredentials[key]
+          + sourceAuthSchema.payload.substring(
+            keyIndex+key.length+1, sourceAuthSchema.payload.length
+          );
+      }
+    }
+  }
+  return sourceAuthPayload;
+}
+
+async function getData(key, sourceConfigs, options) {
+  try {
+    const { base_url: baseUrl } = options.credentials;
+    const { limit, offset, externalId } = options;
+    let url = baseUrl + sourceConfigs.base_path + `/api/v2/get_${key}`;
+    if (externalId) {
+      url += `/${externalId}`;
+    }
+    const sourceAuthSchema = auth.authSchemas[sourceConfigs.auth.type];
+    const serviceOptions = {};
+
+    if (sourceAuthSchema.location === "header") {
+      serviceOptions.headers = {};
+      serviceOptions.headers[sourceAuthSchema.key] = buildAuthPayloadService(sourceAuthSchema, options.credentials);
+    }
+
+    if (limit !== undefined) {
+      url += `&limit=${limit}`;
+    }
+
+    if (offset !== undefined) {
+      url += `&offset=${offset}`;
+    }
+
+    const response = await axios.get(url, serviceOptions);
+
+    return response.data;
+  } catch (err) {
+    throw err;
+  }
+}
+
 module.exports = {
   pullData,
-  pushData
+  pushData,
+  getData,
 };

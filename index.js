@@ -29,7 +29,33 @@ let availableConfigs = fs.readdirSync(`${root}/api_configs`)
 async function pullThenPushData() {
   config.progressBar = progressBar;
   const data = await pullData(config);
-  return pushData(config, data)
+  return pushData(config, data);
+}
+
+async function getData(testType, options) {
+  try {
+    const { limit, offset, externalId, source, credentials } = options;
+
+    if (source !== 'testrail') {
+      throw(`${source} source is not supported! Currently, only testrail source is supported`);
+    }
+
+    if (!credentials) {
+      throw(`You must provide credentials of ${source}`);
+    }
+
+    const sourcePath = `${root}/api_configs/${source}.json`;
+    if (!fs.existsSync(sourcePath)) {
+      throw(`Package still doesn't support ${source} yet`); 
+    }
+    const sourceConfigs = JSON.parse(fs.readFileSync(sourcePath));
+
+    const data = await apiController.getData(testType, sourceConfigs, options);
+
+    return { success: true, data };
+  } catch (err) {
+    throw err;
+  }
 }
 
 async function push(
@@ -161,4 +187,5 @@ function pushData(conf, data) {
 
 module.exports = {
   push,
+  getData,
 };
