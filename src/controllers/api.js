@@ -418,11 +418,34 @@ function buildAuthPayloadService(sourceAuthSchema, sourceCredentials) {
 async function getData(key, sourceConfigs, options) {
   try {
     const { base_url: baseUrl } = options.credentials;
-    const { limit, offset, externalId } = options;
-    let url = baseUrl + sourceConfigs.base_path + `/api/v2/get_${key}`;
+    const { limit, offset, external_id: externalId } = options;
+    let url = baseUrl + sourceConfigs.base_path;
     if (externalId) {
-      url += `/${externalId}`;
+      const { path, require_params, external_id } = sourceConfigs.get_data[key].findOne;
+      url += `/${path}`;
+
+      for (let i = 0; i < require_params.length; i++) {
+        if (require_params[i] !== external_id && options[require_params[i]] === undefined) {
+          throw(`You missing param ${require_params[i]}`);
+        }
+
+        if (require_params[i] === external_id) {
+          url = url.replace(`{${require_params[i]}}`, externalId);
+        }
+      }
+    } else {
+      const { path, require_params } = sourceConfigs.get_data[key].findAll;
+      url += `/${path}`;
+
+      for (let i = 0; i < require_params.length; i++) {
+        if (options[require_params[i]] === undefined) {
+          throw(`You missing param ${require_params[i]}`);
+        } else {
+          url = url.replace(`{${require_params[i]}}`, options[require_params[i]]);
+        }
+      }
     }
+
     const sourceAuthSchema = auth.authSchemas[sourceConfigs.auth.type];
     const serviceOptions = {};
 
@@ -431,15 +454,76 @@ async function getData(key, sourceConfigs, options) {
       serviceOptions.headers[sourceAuthSchema.key] = buildAuthPayloadService(sourceAuthSchema, options.credentials);
     }
 
-    if (limit !== undefined) {
-      url += `&limit=${limit}`;
-    }
-
     if (offset !== undefined) {
       url += `&offset=${offset}`;
     }
 
+    if (limit !== undefined) {
+      url += `&limit=${limit}`;
+    }
+
     const response = await axios.get(url, serviceOptions);
+
+    return response.data;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function putData(key, sourceConfigs, options) {
+  try {
+    const { base_url: baseUrl } = options.credentials;
+    const { external_id: externalId, custom_fields: customFields } = options;
+
+    let url = baseUrl + sourceConfigs.base_path;
+    
+    if (externalId) {
+      const { path, require_params, require_keys, external_id } = sourceConfigs.put_data[key].update;
+      url += `/${path}`;
+
+      for (let i = 0; i < require_params.length; i++) {
+        if (require_params[i] !== external_id && options[require_params[i]] === undefined) {
+          throw(`You missing param ${require_params[i]}`);
+        }
+
+        if (require_params[i] === external_id) {
+          url = url.replace(`{${require_params[i]}}`, externalId);
+        }
+      }
+
+      for (let j = 0; j < require_keys.length; j++) {
+        if (customFields[require_keys[j]] === undefined) {
+          throw(`You missing key ${require_keys[j]}`);
+        }
+      }
+    } else {
+      const { path, require_params, require_keys } = sourceConfigs.put_data[key].add;
+      url += `/${path}`;
+      
+      for (let i = 0; i < require_params.length; i++) {
+        if (options[require_params[i]] === undefined) {
+          throw(`You missing param ${require_params[i]}`);
+        } else {
+          url = url.replace(`{${require_params[i]}}`, options[require_params[i]]);
+        }
+      }
+
+      for (let j = 0; j < require_keys.length; j++) {
+        if (customFields[require_keys[j]] === undefined) {
+          throw(`You missing key ${require_keys[j]}`);
+        }
+      }
+    }
+    
+    const sourceAuthSchema = auth.authSchemas[sourceConfigs.auth.type];
+    const serviceOptions = {};
+
+    if (sourceAuthSchema.location === "header") {
+      serviceOptions.headers = {};
+      serviceOptions.headers[sourceAuthSchema.key] = buildAuthPayloadService(sourceAuthSchema, options.credentials);
+    }
+
+    const response = await axios.post(url, customFields, serviceOptions);
 
     return response.data;
   } catch (err) {
@@ -451,4 +535,5 @@ module.exports = {
   pullData,
   pushData,
   getData,
+  putData,
 };

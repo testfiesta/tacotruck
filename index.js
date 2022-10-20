@@ -32,27 +32,53 @@ async function pullThenPushData() {
   return pushData(config, data);
 }
 
+function getSourceConfigs(source, credentials) {
+  if (source !== 'testrail') {
+    throw(`${source} source is not supported! Currently, only testrail source is supported`);
+  }
+
+  if (!credentials) {
+    throw(`You must provide credentials of ${source}`);
+  }
+
+  const sourcePath = `${root}/api_configs/${source}.json`;
+  if (!fs.existsSync(sourcePath)) {
+    throw(`Package still doesn't support ${source} yet`); 
+  }
+
+  const sourceConfigs = JSON.parse(fs.readFileSync(sourcePath));
+  return sourceConfigs;
+}
+
 async function getData(testType, options) {
   try {
-    const { limit, offset, externalId, source, credentials } = options;
+    const { limit, offset, external_id, source, credentials } = options;
+    const sourceConfigs = getSourceConfigs(source, credentials);
 
-    if (source !== 'testrail') {
-      throw(`${source} source is not supported! Currently, only testrail source is supported`);
+    const availableTestTypes = Object.keys(sourceConfigs.get_data || {});
+    if (!availableTestTypes.includes(testType)) {
+      throw(`Package still doesn't support get ${testType} yet`); 
     }
 
-    if (!credentials) {
-      throw(`You must provide credentials of ${source}`);
+    const response = await apiController.getData(testType, sourceConfigs, options);
+    return { success: true, data: response };
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function putData(testType, data) {
+  try {
+    const { external_id, source, credentials, custom_fields } = data;
+    const sourceConfigs = getSourceConfigs(source, credentials);
+
+    const availableTestTypes = Object.keys(sourceConfigs.put_data || {});
+    if (!availableTestTypes.includes(testType)) {
+      throw(`Package still doesn't support put ${testType} yet`); 
     }
 
-    const sourcePath = `${root}/api_configs/${source}.json`;
-    if (!fs.existsSync(sourcePath)) {
-      throw(`Package still doesn't support ${source} yet`); 
-    }
-    const sourceConfigs = JSON.parse(fs.readFileSync(sourcePath));
-
-    const data = await apiController.getData(testType, sourceConfigs, options);
-
-    return { success: true, data };
+    const response = await apiController.putData(testType, sourceConfigs, data);
+    return { success: true, data: response };
   } catch (err) {
     throw err;
   }
@@ -188,4 +214,5 @@ function pushData(conf, data) {
 module.exports = {
   push,
   getData,
+  putData,
 };

@@ -101,5 +101,140 @@
         "value": "1000"
       }
     }
+  },
+  "get_data": {
+    "projects": {
+      "findOne": {
+        "path": "api/v2/get_project/{project_id}",
+        "require_params": ["project_id"],
+        "external_id": "project_id"
+      },
+      "findAll": {
+        "path": "api/v2/get_projects",
+        "require_params": []
+      }
+    },
+    "suites": {
+      "findOne": {
+        "path": "api/v2/get_suite/{suite_id}",
+        "require_params": ["suite_id"],
+        "external_id": "suite_id"
+      },
+      "findAll": {
+        "path": "api/v2/get_suites/{project_id}",
+        "require_params": ["project_id"]
+      }
+    },
+    "cases": {
+      "findOne": {
+        "path": "api/v2/get_case/{case_id}",
+        "require_params": ["case_id"],
+        "external_id": "case_id"
+      },
+      "findAll": {
+        "path": "api/v2/get_cases/{project_id}",
+        "require_params": ["project_id"]
+      }
+    },
+    "plans": {
+      "findOne": {
+        "path": "api/v2/get_plan/{plan_id}",
+        "require_params": ["plan_id"],
+        "external_id": "plan_id"
+      },
+      "findAll": {
+        "path": "api/v2/get_plans/{project_id}",
+        "require_params": ["project_id"]
+      }
+    },
+    "runs": {
+      "findOne": {
+        "path": "api/v2/get_run/{run_id}",
+        "require_params": ["run_id"],
+        "external_id": "run_id"
+      },
+      "findAll": {
+        "path": "api/v2/get_runs/{project_id}",
+        "require_params": ["project_id"]
+      }
+    },
+    "tests": {
+      "findOne": {
+        "path": "api/v2/get_test/{test_id}",
+        "require_params": ["test_id"],
+        "external_id": "test_id"
+      },
+      "findAll": {
+        "path": "api/v2/get_tests/{run_id}",
+        "require_params": ["run_id"]
+      }
+    }
+  },
+  "put_data": {
+    "projects": {
+      "add": {
+        "path": "api/v2/add_project",
+        "require_params": [],
+        "require_keys": ["name"]
+      },
+      "update": {
+        "path": "api/v2/update_project/{project_id}",
+        "require_params": ["project_id"],
+        "require_keys": ["name"],
+        "external_id": "project_id"
+      }
+    },
+    "suites": {
+      "add": {
+        "path": "api/v2/add_suite/{project_id}",
+        "require_params": ["project_id"],
+        "require_keys": ["name"]
+      },
+      "update": {
+        "path": "api/v2/update_suite/{suite_id}",
+        "require_params": ["suite_id"],
+        "require_keys": ["name"],
+        "external_id": "suite_id"
+      }
+    },
+    "cases": {
+      "add": {
+        "path": "api/v2/add_case/{section_id}",
+        "require_params": ["section_id"],
+        "require_keys": ["title"]
+      },
+      "update": {
+        "path": "api/v2/update_case/{case_id}",
+        "require_params": ["case_id"],
+        "require_keys": ["title"],
+        "external_id": "case_id"
+      }
+    },
+    "plans": {
+      "add": {
+        "path": "api/v2/add_plan/{project_id}",
+        "require_params": ["project_id"],
+        "require_keys": ["name"]
+      },
+      "update": {
+        "path": "api/v2/update_plan/{plan_id}",
+        "require_params": ["plan_id"],
+        "require_keys": ["name"],
+        "external_id": "plan_id"
+      }
+    },
+    "runs": {
+      "add": {
+        "path": "api/v2/add_run/{project_id}",
+        "require_params": ["project_id"],
+        "require_keys": ["name"]
+      },
+      "update": {
+        "path": "api/v2/update_run/{run_id}",
+        "require_params": ["run_id"],
+        "require_keys": ["name"],
+        "external_id": "run_id"
+      }
+    }
   }
 }
