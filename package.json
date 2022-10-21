@@ -11,9 +11,11 @@
   "dependencies": {
     "argparse": "^2.0.1",
     "axios": "^0.25.0",
+    "chai": "^4.3.6",
     "cli-progress": "^3.10.0",
     "crypto": "^1.0.1",
     "delay": "^5.0.0",
+    "mocha": "^10.1.0",
     "xml2js-parser": "^1.1.1"
   },
   "devDependencies": {

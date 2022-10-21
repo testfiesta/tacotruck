@@ -32,36 +32,31 @@ async function pullThenPushData() {
   return pushData(config, data);
 }
 
-function getSourceConfigs(source, credentials) {
-  if (source !== 'testrail') {
-    throw(`${source} source is not supported! Currently, only testrail source is supported`);
-  }
-
+function getConfigs(service, credentials) {
   if (!credentials) {
-    throw(`You must provide credentials of ${source}`);
+    throw(`You must provide your ${service} credentials.`);
   }
 
-  const sourcePath = `${root}/api_configs/${source}.json`;
-  if (!fs.existsSync(sourcePath)) {
-    throw(`Package still doesn't support ${source} yet`); 
+  const servicePath = `${root}/api_configs/${service}.json`;
+  if (!fs.existsSync(servicePath)) {
+    throw(`Service configuration file api_configs/${service}.json is missing.`); 
   }
 
-  const sourceConfigs = JSON.parse(fs.readFileSync(sourcePath));
-  return sourceConfigs;
+  return JSON.parse(fs.readFileSync(servicePath));
 }
 
 async function getData(testType, options) {
   try {
     const { limit, offset, external_id, source, credentials } = options;
-    const sourceConfigs = getSourceConfigs(source, credentials);
+    const sourceConfigs = getConfigs(source, credentials);
 
-    const availableTestTypes = Object.keys(sourceConfigs.get_data || {});
+    const availableTestTypes = Object.keys(sourceConfigs.source || {});
     if (!availableTestTypes.includes(testType)) {
-      throw(`Package still doesn't support get ${testType} yet`); 
+      throw(`Unsupported type for data retrieval: ${testType}. Please check your source config for ${source}.`);
     }
 
-    const response = await apiController.getData(testType, sourceConfigs, options);
-    return { success: true, data: response };
+    const response = await apiController.getDataFromService(testType, sourceConfigs, options);
+    return { data: response };
   } catch (err) {
     throw err;
   }
@@ -69,16 +64,16 @@ async function getData(testType, options) {
 
 async function putData(testType, data) {
   try {
-    const { external_id, source, credentials, custom_fields } = data;
-    const sourceConfigs = getSourceConfigs(source, credentials);
+    const { external_id, target, credentials, custom_fields } = data;
+    const targetConfigs = getConfigs(target, credentials);
 
-    const availableTestTypes = Object.keys(sourceConfigs.put_data || {});
+    const availableTestTypes = Object.keys(targetConfigs.target || {});
     if (!availableTestTypes.includes(testType)) {
-      throw(`Package still doesn't support put ${testType} yet`); 
+      throw(`Unsupported type for data retrieval: ${testType}. Please check your target config for ${target}.`); 
     }
 
-    const response = await apiController.putData(testType, sourceConfigs, data);
-    return { success: true, data: response };
+    const response = await apiController.putDataToService(testType, targetConfigs, data);
+    return { data: response };
   } catch (err) {
     throw err;
   }
@@ -212,7 +207,6 @@ function pushData(conf, data) {
 }
 
 module.exports = {
-  push,
   getData,
   putData,
 };

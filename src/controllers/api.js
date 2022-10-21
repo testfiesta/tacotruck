@@ -18,7 +18,7 @@ async function pullData(config) {
     source: config.sourceTypeConfig.name
   };
   for (const endpoint of config.sourceEndpointSet) {
-    let rawPath = config.sourceTypeConfig.source[endpoint].path;
+    let rawPath = config.sourceTypeConfig.source[endpoint].endpoints.index.path;
     let options = {};
 
     // Add authn to the request
@@ -51,7 +51,7 @@ async function pullData(config) {
       // Loop through the replacement keys (in {}) on this endpoint
       for (const key of keys) {
         // Pull the entity type of the key
-        let splitKey = key.split('.');
+        let splitKey = key.split('_');
         let refEndpoint = splitKey[0];
         let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'external_id' );
 
@@ -143,7 +143,7 @@ async function pushData(config, data) {
 
   for (const endpoint of config.targetEndpointSet) {
     if (data[endpoint]) {
-      let rawPath = config.targetTypeConfig.target[endpoint].path;
+      let rawPath = config.targetTypeConfig.target[endpoint].endpoints.index.path;
       let options = {};
 
       // Add authn to the request
@@ -395,54 +395,41 @@ async function processNetworkPostRequest(config, url, options, type) {
   });
 }
 
-function buildAuthPayloadService(sourceAuthSchema, sourceCredentials) {
-  let sourceAuthPayload;
-  for (const key of sourceAuthSchema.inputs) {
-    if (!sourceCredentials[key]) {
-      throw(`Credentials missing key ${key}`);
+function buildAuthPayload(authSchema, credentials) {
+  let authPayload;
+  for (const key of authSchema.inputs) {
+    if (!credentials[key]) {
+      throw(`Credentials missing key ${key}.`);
     } else {
-      let keyIndex = sourceAuthSchema.payload.indexOf(key);
+      let keyIndex = authSchema.payload.indexOf(key);
       if (keyIndex >= 0) {
-        sourceAuthPayload =
-          sourceAuthSchema.payload.substring(0, keyIndex-1)
-          + sourceCredentials[key]
-          + sourceAuthSchema.payload.substring(
-            keyIndex+key.length+1, sourceAuthSchema.payload.length
+        authPayload =
+        authSchema.payload.substring(0, keyIndex-1)
+          + credentials[key]
+          + authSchema.payload.substring(
+            keyIndex+key.length+1, authSchema.payload.length
           );
       }
     }
   }
-  return sourceAuthPayload;
+  return authPayload;
 }
 
-async function getData(key, sourceConfigs, options) {
+async function getDataFromService(key, sourceConfigs, options) {
   try {
     const { base_url: baseUrl } = options.credentials;
     const { limit, offset, external_id: externalId } = options;
-    let url = baseUrl + sourceConfigs.base_path;
-    if (externalId) {
-      const { path, require_params, external_id } = sourceConfigs.get_data[key].findOne;
-      url += `/${path}`;
+    const endpoints = sourceConfigs.source[key].endpoints;
+    const mapping = sourceConfigs.source[key].mapping;
 
-      for (let i = 0; i < require_params.length; i++) {
-        if (require_params[i] !== external_id && options[require_params[i]] === undefined) {
-          throw(`You missing param ${require_params[i]}`);
-        }
+    const { path, required } = externalId ? endpoints.get : endpoints.index;
+    let url = baseUrl + sourceConfigs.base_path + `/${path}`;
 
-        if (require_params[i] === external_id) {
-          url = url.replace(`{${require_params[i]}}`, externalId);
-        }
-      }
-    } else {
-      const { path, require_params } = sourceConfigs.get_data[key].findAll;
-      url += `/${path}`;
-
-      for (let i = 0; i < require_params.length; i++) {
-        if (options[require_params[i]] === undefined) {
-          throw(`You missing param ${require_params[i]}`);
-        } else {
-          url = url.replace(`{${require_params[i]}}`, options[require_params[i]]);
-        }
+    for (let i = 0; i < required.length; i++) {
+      if (options[mapping[required[i]]] === undefined) {
+        throw(`You missing param ${mapping[required[i]]}.`);
+      } else {
+        url = url.replace(`{${required[i]}}`, options[mapping[required[i]]]);
       }
     }
 
@@ -451,7 +438,7 @@ async function getData(key, sourceConfigs, options) {
 
     if (sourceAuthSchema.location === "header") {
       serviceOptions.headers = {};
-      serviceOptions.headers[sourceAuthSchema.key] = buildAuthPayloadService(sourceAuthSchema, options.credentials);
+      serviceOptions.headers[sourceAuthSchema.key] = buildAuthPayload(sourceAuthSchema, options.credentials);
     }
 
     if (offset !== undefined) {
@@ -470,57 +457,35 @@ async function getData(key, sourceConfigs, options) {
   }
 }
 
-async function putData(key, sourceConfigs, options) {
+async function putDataToService(key, targetConfigs, options) {
   try {
     const { base_url: baseUrl } = options.credentials;
     const { external_id: externalId, custom_fields: customFields } = options;
+    const endpoints = targetConfigs.target[key].endpoints;
+    const mapping = targetConfigs.target[key].mapping;
 
-    let url = baseUrl + sourceConfigs.base_path;
-    
-    if (externalId) {
-      const { path, require_params, require_keys, external_id } = sourceConfigs.put_data[key].update;
-      url += `/${path}`;
+    const { path, required } = externalId ? endpoints.update : endpoints.create;
+    let url = baseUrl + targetConfigs.base_path + `/${path}`;
 
-      for (let i = 0; i < require_params.length; i++) {
-        if (require_params[i] !== external_id && options[require_params[i]] === undefined) {
-          throw(`You missing param ${require_params[i]}`);
-        }
-
-        if (require_params[i] === external_id) {
-          url = url.replace(`{${require_params[i]}}`, externalId);
-        }
+    for (let i = 0; i < required.length; i++) {
+      if (required[i] === 'id' && !options[mapping[required[i]]]) {
+        throw(`You missing param ${mapping[required[i]]}.`);
+      }
+      if (required[i] !== 'id' && customFields[mapping[required[i]]] === undefined) {
+        throw(`You missing param ${mapping[required[i]]}.`);
       }
 
-      for (let j = 0; j < require_keys.length; j++) {
-        if (customFields[require_keys[j]] === undefined) {
-          throw(`You missing key ${require_keys[j]}`);
-        }
-      }
-    } else {
-      const { path, require_params, require_keys } = sourceConfigs.put_data[key].add;
-      url += `/${path}`;
-      
-      for (let i = 0; i < require_params.length; i++) {
-        if (options[require_params[i]] === undefined) {
-          throw(`You missing param ${require_params[i]}`);
-        } else {
-          url = url.replace(`{${require_params[i]}}`, options[require_params[i]]);
-        }
-      }
-
-      for (let j = 0; j < require_keys.length; j++) {
-        if (customFields[require_keys[j]] === undefined) {
-          throw(`You missing key ${require_keys[j]}`);
-        }
-      }
+      url = required[i] === 'id'
+        ? url.replace(`{${required[i]}}`, options[mapping[required[i]]])
+        : url.replace(`{${required[i]}}`, customFields[mapping[required[i]]]);
     }
     
-    const sourceAuthSchema = auth.authSchemas[sourceConfigs.auth.type];
+    const targetAuthSchema = auth.authSchemas[targetConfigs.auth.type];
     const serviceOptions = {};
 
-    if (sourceAuthSchema.location === "header") {
+    if (targetAuthSchema.location === "header") {
       serviceOptions.headers = {};
-      serviceOptions.headers[sourceAuthSchema.key] = buildAuthPayloadService(sourceAuthSchema, options.credentials);
+      serviceOptions.headers[targetAuthSchema.key] = buildAuthPayload(targetAuthSchema, options.credentials);
     }
 
     const response = await axios.post(url, customFields, serviceOptions);
@@ -534,6 +499,6 @@ async function putData(key, sourceConfigs, options) {
 module.exports = {
   pullData,
   pushData,
-  getData,
-  putData,
+  getDataFromService,
+  putDataToService,
 };

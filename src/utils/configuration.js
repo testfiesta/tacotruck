@@ -288,18 +288,20 @@ class PipeConfig {
 
 // Find all dependencies in chain
 function buildDependencyChain(keyMap, name) {
-  if (!keyMap[name] || !keyMap[name].path) {
+  const keyPath = keyMap[name] ? keyMap[name].endpoints.index.path : '';
+
+  if (!keyPath) {
     console.error('Invalid key [' + name + '].');
     process.exit();
   }
-  if (keyMap[name].path.indexOf('{') < 0) {
+  if (keyPath.indexOf('{') < 0) {
     return [name];
   } else {
-    let keys = findSubstitutionKeys(keyMap[name].path);
+    let keys = findSubstitutionKeys(keyPath);
     let dependencyMap = [];
     for (const dependency of keys) {
       dependencyMap.push(
-        ...buildDependencyChain(keyMap, dependency.split('.')[0])
+        ...buildDependencyChain(keyMap, dependency.split('_')[0])
       );
     }
     dependencyMap.push(name);
