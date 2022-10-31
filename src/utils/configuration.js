@@ -4,6 +4,14 @@ const fs = require('fs');
 const credentialedTypes = ['api'];
 const validSourceTypes = ['api', 'junit'];
 const validTargetTypes = ['api'];
+const validDataTypes = [
+  'cases',
+  'plans',
+  'runs',
+  'executions',
+  'projects',
+  'suites'
+];
 
 class PipeConfig {
   ignoreConfig;
@@ -31,6 +39,23 @@ class PipeConfig {
   targetProgressIncrement;
 
   constructor(args) {
+    // If data types are provided, validate them.
+    this.dataTypes = [];
+    if (args.data_types) {
+      this.dataTypes = [];
+      for (const type of args.data_types.split(',')) {
+        if (validDataTypes.includes(type)) {
+          this.dataTypes.push(type);
+        } else {
+          console.error('Invalid data type: ' + type +'. Ignoring...');
+        }
+      }
+      if (this.dataTypes.length === 0) {
+        console.error('No valid data types provided.');
+        process.exit();
+      }
+    }
+
     // If a source type is provided, set it.
     if (validSourceTypes.includes(args.source_type)) {
       this.sourceType = args.source_type;
@@ -220,9 +245,16 @@ class PipeConfig {
 
       // Parse source config and build dependency graph to determine access order
       var sourceEndpointOrder = [];
-      for (const name in this.sourceTypeConfig.source) {
+      var sourceEndpoints = [];
+      if (config.dataTypes.length > 0) {
+        // If data types are specified, only check those endpoints.
+        sourceEndpoints = this.dataTypes;
+      } else {
+        sourceEndpoints = this.sourceTypeConfig.source; 
+      }
+      for (const name in sourceEndpoints) {
         sourceEndpointOrder.push(...buildDependencyChain(
-          this.sourceTypeConfig.source, name
+          this.sourceTypeConfig.source, name, 'index'
         ));
       }
 
@@ -254,9 +286,16 @@ class PipeConfig {
 
       // Parse source config and build dependency graph to determine access order
       var targetEndpointOrder = [];
-      for (const name in this.targetTypeConfig.target) {
+      var targetEndpoints = [];
+      if (config.dataTypes.length > 0) {
+        // If data types are specified, only check those endpoints.
+        targetEndpoints = this.dataTypes;
+      } else {
+        targetEndpoints = this.targetTypeConfig.target;
+      }
+      for (const name in targetEndpoints) {
         targetEndpointOrder.push(...buildDependencyChain(
-          this.targetTypeConfig.target, name
+          this.targetTypeConfig.target, name, 'create'
         ));
       }
 
@@ -269,19 +308,20 @@ class PipeConfig {
 }
 
 // Find all dependencies in chain
-function buildDependencyChain(keyMap, name) {
-  if (!keyMap[name] || !keyMap[name].path) {
+function buildDependencyChain(keyMap, name, endpointSelector) {
+  let path = keyMap[name].endpoints[endpointSelector].path;
+  if (!keyMap[name] || !path) {
     console.error('Invalid key [' + name + '].');
     process.exit();
   }
-  if (keyMap[name].path.indexOf('{') < 0) {
+  if (path.indexOf('{') < 0) {
     return [name];
   } else {
-    let keys = findSubstitutionKeys(keyMap[name].path);
+    let keys = findSubstitutionKeys(path);
     let dependencyMap = [];
     for (const dependency of keys) {
       dependencyMap.push(
-        ...buildDependencyChain(keyMap, dependency.split('.')[0])
+        ...buildDependencyChain(keyMap, dependency.split('.')[0], endpointSelector)
       );
     }
     dependencyMap.push(name);

@@ -9,15 +9,31 @@ let sourceResponseCounter = {};
 let targetRequestsQueue = [];
 let targetThrottleCounter = [];
 
-async function pullData(config) {
+async function pullData(config, ids) {
   //config.progressBar.start(200, 0);
 
   // Pull data
   let data = {
     source: config.sourceTypeConfig.name
   };
-  for (const endpoint of config.sourceEndpointSet) {
-    let rawPath = config.sourceTypeConfig.source[endpoint].path;
+  let endpoints = [];
+  let fetchType = 'index';
+
+  if (Object.keys(ids).length > 0) {
+    // This means we're doing individual 'gets'.
+    endpoints = Object.keys(ids);
+    fetchType = 'get';
+  } else {
+    // Pull our preconstructed endpoint set.
+    endpoints = config.sourceEndpointSet;
+  }
+
+  for (const endpoint of endpoints) {
+    let rawPath = (
+      fetchType === 'index' ?
+        config.sourceTypeConfig.source[endpoint].endpoints.index.path :
+        config.sourceTypeConfig.source[endpoint].endpoints.get.path
+    );
     let options = {};
 
     // Add authn to the request
@@ -34,6 +50,7 @@ async function pullData(config) {
     }
 
     if (rawPath.indexOf('{') < 0) {
+      // No keys means a simple index.
       let url = config.sourceBaseUrl
         + config.sourceTypeConfig.base_path
         + rawPath;
@@ -46,12 +63,11 @@ async function pullData(config) {
                     + config.sourceTypeConfig.base_path
                     + rawPath);
 
-
       // Loop through the replacement keys (in {}) on this endpoint
       for (const key of keys) {
         // Pull the entity type of the key
         let splitKey = key.split('.');
-        let refEndpoint = splitKey[0];
+        let refEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
         let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'external_id' );
 
         if (data[refEndpoint]) {
@@ -69,12 +85,14 @@ async function pullData(config) {
 
                 for (const denormKey in
                   config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
-                  // For poorly designed APIs, you can end up with multiple keys that need to match.  For instance,
-                  //  needing to define both the project and the suite a test belongs to (when the suite belongs to
-                  //  the project as well).
+                  // For poorly designed APIs, you can end up with multiple keys
+                  //  that need to match.  For instance, needing to define both
+                  //  the project and the suite a test belongs to (when the
+                  //  suite belongs to the project as well).
                   denormValue = config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint][denormKey];
-                  // Look for the matching record in the second type (suites) based on the key in the denorm
-                  //  keys table (project_id).  Then pull that record's refLocation for substitution.
+                  // Look for the matching record in the second type (suites)
+                  //  based on the key in the denorm keys table (project_id).
+                  //  Then pull that record's refLocation for substitution.
                   for (const denormRecord of data[denormKey]) {
                     if (denormRecord.custom_fields[denormValue] === record[refLocation]) {
                       urlList.push(configUtils.bracketSubstitution(
@@ -94,8 +112,23 @@ async function pullData(config) {
                   ));
               }
             } // else continue
-            // Remove the original record that has since had variables substituted.
+            // Remove the original record that has since had variables
+            //  substituted.
             urlList.splice(i, 1);
+          }
+        } else if (fetchType === 'get') {
+          let url = config.sourceBaseUrl
+            + config.sourceTypeConfig.base_path
+            + rawPath;
+          for (const record of ids[endpoint]) {
+            // CTODO - Copy above - how are we creating an item for each key in
+            //  the urlList?
+            // Why is above so weird???? Pushing then splicing?
+            urlList.push(configUtils.bracketSubstitution(
+              url,
+              key,
+              record
+            ));
           }
         }
       }
@@ -103,6 +136,7 @@ async function pullData(config) {
         console.log('Pulling: ' + url);
         sourceRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
       }
+    }
     }
 
     // Wait for all calls to this endpoint to finish before proceding
@@ -142,7 +176,7 @@ async function pushData(config, data) {
 
   for (const endpoint of config.targetEndpointSet) {
     if (data[endpoint]) {
-      let rawPath = config.targetTypeConfig.target[endpoint].path;
+      let rawPath = config.targetTypeConfig.target[endpoint].endpoints.create.path;
       let options = {};
 
       // Add authn to the request
