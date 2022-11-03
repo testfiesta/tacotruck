@@ -55,11 +55,11 @@ parser.add_argument('-Y', '--target-type', {
   help: 'One of: '+ configUtils.validTargetTypes.join(', ') + '\nIf not provided, it will try to determine based on the `target` argument.'
 });
 parser.add_argument('-d', '--data-types', {
-  required: true,
+  required: false,
   help: 'One or more of: ' + configUtils.validDataTypes.join(', ') + '. As a comma-delimited list'
 });
 parser.add_argument('-p', '--pipe', {
-  action: 'store_true'
+  action: 'store_true',
   required: false,
   help: 'A complete pipe - pull data from source and push to target.'
 });

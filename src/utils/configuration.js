@@ -246,7 +246,7 @@ class PipeConfig {
       // Parse source config and build dependency graph to determine access order
       var sourceEndpointOrder = [];
       var sourceEndpoints = [];
-      if (config.dataTypes.length > 0) {
+      if (this.dataTypes.length > 0) {
         // If data types are specified, only check those endpoints.
         sourceEndpoints = this.dataTypes;
       } else {
@@ -287,7 +287,7 @@ class PipeConfig {
       // Parse source config and build dependency graph to determine access order
       var targetEndpointOrder = [];
       var targetEndpoints = [];
-      if (config.dataTypes.length > 0) {
+      if (this.dataTypes.length > 0) {
         // If data types are specified, only check those endpoints.
         targetEndpoints = this.dataTypes;
       } else {
@@ -366,4 +366,5 @@ module.exports = {
   PipeConfig,
   validSourceTypes,
   validTargetTypes,
+  validDataTypes,
 }

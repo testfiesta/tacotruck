@@ -54,14 +54,37 @@ async function pullData(config, ids) {
       let url = config.sourceBaseUrl
         + config.sourceTypeConfig.base_path
         + rawPath;
+      console.log('info', `URL 1: ${url}`);
 
       sourceRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
     } else {
-      let keys = configUtils.findSubstitutionKeys(rawPath);
+      let unsortedKeys = configUtils.findSubstitutionKeys(rawPath);
+      let denormalizedConfigKeys =
+        config.sourceTypeConfig.denormalized_keys[endpoint] || {};
+      let keys = [];
+
+      if (Object.keys(denormalizedConfigKeys).length < 1) {
+        keys = unsortedKeys;
+      } else {
+        // Move our denormalized keys to the front of the line for URL building
+        for (let i=Object.keys(denormalizedConfigKeys).length-1; i>-1; i--) {
+          for (const key of unsortedKeys) {
+            if (key.indexOf(Object.keys(denormalizedConfigKeys)[i]) > -1) {
+              keys.unshift(key);
+            } else {
+              keys.push(key);
+            }
+          }
+        }
+      }
+
       let urlList = [];
       urlList.push(config.sourceBaseUrl
                     + config.sourceTypeConfig.base_path
                     + rawPath);
+      let tempURL = config.sourceBaseUrl
+                    + config.sourceTypeConfig.base_path
+                    + rawPath;
 
       // Loop through the replacement keys (in {}) on this endpoint
       for (const key of keys) {
@@ -83,23 +106,44 @@ async function pullData(config, ids) {
                   (refEndpoint in
                     config.sourceTypeConfig.denormalized_keys[endpoint])) {
 
-                for (const denormKey in
-                  config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
+                for (const fullDenormKey in
+                    config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
+                  let splitDenormKey = fullDenormKey.split('.');
+                  let denormEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
+
                   // For poorly designed APIs, you can end up with multiple keys
                   //  that need to match.  For instance, needing to define both
                   //  the project and the suite a test belongs to (when the
                   //  suite belongs to the project as well).
-                  denormValue = config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint][denormKey];
+                  denormValue =
+                    config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint][fullDenormKey];
+
                   // Look for the matching record in the second type (suites)
                   //  based on the key in the denorm keys table (project_id).
                   //  Then pull that record's refLocation for substitution.
-                  for (const denormRecord of data[denormKey]) {
+                  for (const denormRecord of data[denormEndpoint]) {
                     if (denormRecord.custom_fields[denormValue] === record[refLocation]) {
-                      urlList.push(configUtils.bracketSubstitution(
+
+                      // Replace our base key before handing denorm keys.
+                      let newURL = configUtils.bracketSubstitution(
                         url,
                         key,
                         denormRecord[refLocation]
-                      ));
+                      );
+                      for (const [secondaryReplacementKey, secondaryKey] of
+                          Object.entries(denormalizedConfigKeys[refEndpoint])) {
+                        // CTODO - keys can be outside of custom_fields
+                        newURL = configUtils.bracketSubstitution(
+                          newURL,
+                          secondaryReplacementKey,
+                          denormRecord.custom_fields[secondaryKey]
+                        );
+                        let removalIndex = keys.indexOf(secondaryReplacementKey);
+                        if (removalIndex > -1) {
+                          keys.splice(removalIndex, 1);
+                        }
+                      }
+                      urlList.push(newURL);
                     }
                   }
                 }
@@ -129,6 +173,11 @@ async function pullData(config, ids) {
               key,
               record
             ));
+            let tempURL = configUtils.bracketSubstitution(
+              url,
+              key,
+              record
+            );
           }
         }
       }
@@ -136,7 +185,6 @@ async function pullData(config, ids) {
         console.log('Pulling: ' + url);
         sourceRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
       }
-    }
     }
 
     // Wait for all calls to this endpoint to finish before proceding

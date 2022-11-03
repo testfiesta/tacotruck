@@ -5,8 +5,8 @@
   "data_key": "{endpoint}",
   "denormalized_keys": {
     "cases": {
-      "projects": {
-        "suites": "project_id"
+      "suites": {
+        "projects.id": "project_id" 
        }
     }
   },
