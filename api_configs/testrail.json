@@ -31,7 +31,7 @@
         }
       },
       "mapping": {
-        "id": "external_id",
+        "id": "source_id",
         "name": "name"
       },
       "limit": {
@@ -52,7 +52,7 @@
         }
       },
       "mapping": {
-        "id": "external_id",
+        "id": "source_id",
         "name": "name"
       },
       "limit": {
@@ -74,7 +74,7 @@
       },
       "mapping": {
         "created_on": "created_at",
-        "id": "external_id",
+        "id": "source_id",
         "title": "name",
         "updated_on": "updated_at"
       },
@@ -97,7 +97,7 @@
       },
       "mapping": {
 	"created_on": "created_on",
-	"id": "external_id",
+	"id": "source_id",
 	"name": "name"
       },
       "limit": {
@@ -119,7 +119,7 @@
       },
       "mapping": {
 	"created_on": "created_at",
-	"id": "external_id",
+	"id": "source_id",
 	"name": "name",
 	"updated_on": "updated_at"
       },
@@ -141,7 +141,7 @@
         }
       },
       "mapping": {
-	"id": "external_id",
+	"id": "source_id",
 	"title": "name"
       },
       "limit": {
@@ -164,7 +164,7 @@
         }
       },
       "mapping": {
-        "id": "external_id",
+        "id": "target_id",
         "name": "name"
       }
     },
@@ -181,7 +181,7 @@
         }
       },
       "mapping": {
-        "id": "external_id",
+        "id": "target_id",
         "name": "name"
       }
     },
@@ -198,7 +198,7 @@
         }
       },
       "mapping": {
-        "id": "external_id",
+        "id": "target_id",
         "title": "title"
       }
     },
@@ -215,7 +215,7 @@
         }
       },
       "mapping": {
-        "id": "external_id",
+        "id": "target_id",
         "name": "name"
       }
     },
@@ -232,7 +232,7 @@
         }
       },
       "mapping": {
-        "id": "external_id",
+        "id": "target_id",
         "name": "name"
       }
     }

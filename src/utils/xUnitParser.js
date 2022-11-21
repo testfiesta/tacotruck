@@ -79,14 +79,14 @@ function parseJSONData(data, ignoreConfig) {
     );
 
     if (suiteBuilt) {
-      if (!newTestSuite.external_id) {
-        newTestSuite.external_id = "yatt-pipe_" + crypto.randomBytes(12).toString('hex');
+      if (!newTestSuite.source_id) {
+        newTestSuite.source_id = "yatt-pipe_" + crypto.randomBytes(12).toString('hex');
       } // TODO - Do something with this ID to pull things together.
       parsedData.suites.push(newTestSuite);
 
       for (tcase of caseData) {
         let newTestCase = new models.TestCase()
-        newTestCase.custom_fields["test_suite_id"] = newTestSuite.external_id;
+        newTestCase.custom_fields["test_suite_id"] = newTestSuite.source_id;
         let caseBuilt = newTestCase.build(
           xUnitParser.TEST_CASES_MAPPING,
           tcase,

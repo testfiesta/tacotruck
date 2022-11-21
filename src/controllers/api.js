@@ -54,7 +54,6 @@ async function pullData(config, ids) {
       let url = config.sourceBaseUrl
         + config.sourceTypeConfig.base_path
         + rawPath;
-      console.log('info', `URL 1: ${url}`);
 
       sourceRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
     } else {
@@ -82,105 +81,107 @@ async function pullData(config, ids) {
       urlList.push(config.sourceBaseUrl
                     + config.sourceTypeConfig.base_path
                     + rawPath);
-      let tempURL = config.sourceBaseUrl
-                    + config.sourceTypeConfig.base_path
-                    + rawPath;
+      // CTODO REMOVE let tempURL = config.sourceBaseUrl
+      //              + config.sourceTypeConfig.base_path
+      //              + rawPath;
 
-      // Loop through the replacement keys (in {}) on this endpoint
-      for (const key of keys) {
-        // Pull the entity type of the key
-        let splitKey = key.split('.');
-        let refEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
-        let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'external_id' );
 
-        if (data[refEndpoint]) {
-
-          for (let i=urlList.length-1; i>-1; i--) {
-            let url = urlList[i];
-            // Loop through our source data to find ids for child paths
-            for (const record of data[refEndpoint]) {
-              // Build path and push
-
-              // For odd case around denormalized APIs like TR's "test cases"
-              if (config.sourceTypeConfig.denormalized_keys[endpoint] &&
-                  (refEndpoint in
-                    config.sourceTypeConfig.denormalized_keys[endpoint])) {
-
-                for (const fullDenormKey in
-                    config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
-                  let splitDenormKey = fullDenormKey.split('.');
-                  let denormEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
-
-                  // For poorly designed APIs, you can end up with multiple keys
-                  //  that need to match.  For instance, needing to define both
-                  //  the project and the suite a test belongs to (when the
-                  //  suite belongs to the project as well).
-                  denormValue =
-                    config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint][fullDenormKey];
-
-                  // Look for the matching record in the second type (suites)
-                  //  based on the key in the denorm keys table (project_id).
-                  //  Then pull that record's refLocation for substitution.
-                  for (const denormRecord of data[denormEndpoint]) {
-                    if (denormRecord.custom_fields[denormValue] === record[refLocation]) {
-
-                      // Replace our base key before handing denorm keys.
-                      let newURL = configUtils.bracketSubstitution(
-                        url,
-                        key,
-                        denormRecord[refLocation]
-                      );
-                      for (const [secondaryReplacementKey, secondaryKey] of
-                          Object.entries(denormalizedConfigKeys[refEndpoint])) {
-                        // CTODO - keys can be outside of custom_fields
-                        newURL = configUtils.bracketSubstitution(
-                          newURL,
-                          secondaryReplacementKey,
-                          denormRecord.custom_fields[secondaryKey]
+      if (fetchType === 'index') {
+        // Loop through the replacement keys (in {}) on this endpoint
+        for (const key of keys) {
+          // Pull the entity type of the key
+          let splitKey = key.split('.');
+          let refEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
+          let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'external_id' );
+  
+          if (data[refEndpoint]) {
+  
+            for (let i=urlList.length-1; i>-1; i--) {
+              let url = urlList[i];
+              // Loop through our source data to find ids for child paths
+              for (const record of data[refEndpoint]) {
+                // Build path and push
+  
+                // For odd case around denormalized APIs like TR's "test cases"
+                if (config.sourceTypeConfig.denormalized_keys[endpoint] &&
+                    (refEndpoint in
+                      config.sourceTypeConfig.denormalized_keys[endpoint])) {
+  
+                  for (const fullDenormKey in
+                      config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
+                    let splitDenormKey = fullDenormKey.split('.');
+                    let denormEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
+  
+                    // For poorly designed APIs, you can end up with multiple keys
+                    //  that need to match.  For instance, needing to define both
+                    //  the project and the suite a test belongs to (when the
+                    //  suite belongs to the project as well).
+                    denormValue =
+                      config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint][fullDenormKey];
+  
+                    // Look for the matching record in the second type (suites)
+                    //  based on the key in the denorm keys table (project_id).
+                    //  Then pull that record's refLocation for substitution.
+                    for (const denormRecord of data[denormEndpoint]) {
+                      if (denormRecord.custom_fields[denormValue] === record[refLocation]) {
+  
+                        // Replace our base key before handing denorm keys.
+                        let newURL = configUtils.bracketSubstitution(
+                          url,
+                          key,
+                          denormRecord[refLocation]
                         );
-                        let removalIndex = keys.indexOf(secondaryReplacementKey);
-                        if (removalIndex > -1) {
-                          keys.splice(removalIndex, 1);
+                        for (const [secondaryReplacementKey, secondaryKey] of
+                            Object.entries(denormalizedConfigKeys[refEndpoint])) {
+                          // CTODO - keys can be outside of custom_fields
+                          newURL = configUtils.bracketSubstitution(
+                            newURL,
+                            secondaryReplacementKey,
+                            denormRecord.custom_fields[secondaryKey]
+                          );
+                          let removalIndex = keys.indexOf(secondaryReplacementKey);
+                          if (removalIndex > -1) {
+                            keys.splice(removalIndex, 1);
+                          }
                         }
+                        urlList.push(newURL);
                       }
-                      urlList.push(newURL);
                     }
                   }
+                } else {
+                  // Not a denormalized key
+                  urlList.push(configUtils.bracketSubstitution(
+                      url,
+                      key,
+                      record[refLocation]
+                    ));
                 }
-              } else {
-                // Not a denormalized key
-                urlList.push(configUtils.bracketSubstitution(
-                    url,
-                    key,
-                    record[refLocation]
-                  ));
-              }
-            } // else continue
-            // Remove the original record that has since had variables
-            //  substituted.
-            urlList.splice(i, 1);
-          }
-        } else if (fetchType === 'get') {
-          let url = config.sourceBaseUrl
-            + config.sourceTypeConfig.base_path
-            + rawPath;
-          for (const record of ids[endpoint]) {
-            // CTODO - Copy above - how are we creating an item for each key in
-            //  the urlList?
-            // Why is above so weird???? Pushing then splicing?
-            urlList.push(configUtils.bracketSubstitution(
-              url,
-              key,
-              record
-            ));
-            let tempURL = configUtils.bracketSubstitution(
-              url,
-              key,
-              record
-            );
+              } // else continue
+              // Remove the original record that has since had variables
+              //  substituted.
+              urlList.splice(i, 1);
+            }
           }
         }
-      }
+      } else if (fetchType === 'get') {
+        for (let i=urlList.length-1; i>-1; i--) {
+          let url = urlList[i];
+          for (const record of ids[endpoint]) {
+            let newURL = url;
+            for (const [secondaryReplacementKey, secondaryKey] of
+                Object.entries(record)) {
+              newURL = configUtils.bracketSubstitution(
+                newURL,
+                secondaryReplacementKey,
+                secondaryKey
+              );
+            }
+            urlList.push(newURL);
+          }
+          urlList.splice(i, 1);
+        }
+      } // CTODO - test
+
       for (const url of urlList) {
         console.log('Pulling: ' + url);
         sourceRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
