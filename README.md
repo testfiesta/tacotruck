@@ -31,6 +31,7 @@ But replace the `base64Credentials` key with your email address, followed by a "
 
 Then replace the YATT token with a valid YATT token for your YATT user.
 
+// CTODO - Update from test
 ### Code Usage
 ```javascript
 const { pushData } = require("yatt-pipe");
@@ -70,7 +71,7 @@ async function sendDataToTestRail(config, data) {
 
 async function getDataFromTestRail(config, data) {
   try {
-    const response = await pushData(config, data);
+    const response = await pullData(config, ids);
     console.log(response);
   } catch (error) {
     console.error(error);

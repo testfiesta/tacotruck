@@ -23,8 +23,7 @@
       "target": "projects",
       "endpoints": {
         "index": {
-          "path": "api/v2/get_projects",
-          "required": []
+          "path": "api/v2/get_projects"
         },
         "get": {
           "path": "api/v2/get_project/{id}"
@@ -44,11 +43,30 @@
       "target": "suites",
       "endpoints": {
         "index": {
-          "path": "api/v2/get_suites/{projects.id}",
-          "required": ["projects.id"]
+          "path": "api/v2/get_suites/{projects.id}"
         },
         "get": {
           "path": "api/v2/get_suite/{id}"
+        }
+      },
+      "mapping": {
+        "id": "source_id",
+        "name": "name"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
+      }
+    },
+    "sections": {
+      "response_data_key": "sections",
+      "target": "folders",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_sections/{projects.id}&suite_id={suites.id}"
+        },
+        "get": {
+          "path": "api/v2/get_section/{id}"
         }
       },
       "mapping": {
@@ -65,8 +83,7 @@
       "target": "cases",
       "endpoints": {
         "index": {
-          "path": "api/v2/get_cases/{projects.id}&suite_id={suites.id}",
-          "required": ["projects.id", "suites.id"]
+          "path": "api/v2/get_cases/{projects.id}&suite_id={suites.id}"
         },
         "get": {
           "path": "api/v2/get_case/{id}"
@@ -88,8 +105,7 @@
       "target": "plans",
       "endpoints": {
         "index": {
-          "path": "api/v2/get_plans/{projects.id}",
-          "required": ["projects.id"]
+          "path": "api/v2/get_plans/{projects.id}"
         },
         "get": {
           "path": "api/v2/get_plan/{id}"
@@ -110,8 +126,7 @@
       "target": "runs",
       "endpoints": {
         "index": {
-          "path": "api/v2/get_runs/{projects.id}",
-          "required": ["projects.id"]
+          "path": "api/v2/get_runs/{projects.id}"
         },
         "get": {
           "path": "api/v2/get_run/{id}"
@@ -133,8 +148,7 @@
       "target": "executions",
       "endpoints": {
         "index": {
-          "path": "api/v2/get_tests/{runs.id}",
-          "required": ["runs.id"]
+          "path": "api/v2/get_tests/{runs.id}"
         },
         "get": {
           "path": "api/v2/get_test/{id}"
@@ -169,8 +183,8 @@
       "target": "suites",
       "endpoints": {
         "create": {
-          "single_path": "api/v2/add_suite/{projects.id}",
-          "required": ["name", "projects.id"]
+          "single_path": "api/v2/add_suite/{project_id}",
+          "required": ["name", "project_id"]
         },
         "update": {
           "path": "api/v2/update_suite/{id}",
@@ -179,12 +193,26 @@
         }
       }
     },
+    "sections": {
+      "target": "folders",
+      "endpoints": {
+        "create": {
+          "single_path": "api/v2/add_section/{project_id}",
+          "required": ["project_id", "suite_id"]
+        },
+        "update": {
+          "path": "api/v2/update_case/{id}",
+          "required": ["id"],
+          "update_key": "id"
+        }
+      }
+    },
     "cases": {
       "target": "cases",
       "endpoints": {
         "create": {
-          "single_path": "api/v2/add_case/{sections.id}",
-          "required": ["title", "sections.id"]
+          "single_path": "api/v2/add_case/{section_id}",
+          "required": ["title", "section_id"]
         },
         "update": {
           "path": "api/v2/update_case/{id}",
@@ -197,8 +225,8 @@
       "target": "plans",
       "endpoints": {
         "create": {
-          "single_path": "api/v2/add_plan/{projects.id}",
-          "required": ["name", "projects.id"]
+          "single_path": "api/v2/add_plan/{project_id}",
+          "required": ["name", "project_id"]
         },
         "update": {
           "path": "api/v2/update_plan/{id}",
@@ -211,8 +239,8 @@
       "target": "runs",
       "endpoints": {
         "create": {
-          "single_path": "api/v2/add_run/{projects.id}",
-          "required": ["name", "projects.id"]
+          "single_path": "api/v2/add_run/{project_id}",
+          "required": ["name", "project_id"]
         },
         "update": {
           "path": "api/v2/update_run/{id}",

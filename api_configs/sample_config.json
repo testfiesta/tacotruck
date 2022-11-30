@@ -60,7 +60,8 @@
           "multi_path": "", // Path for bulk creation
           "single_path": "api/v2/add_project", // Path for individual creation
           "required": ["name"] // Required fields
-          "data_key": "" // The key used for storing the POST/PATCH data
+          "data_key": "", // The key used for storing the POST/PATCH data
+          "include_source": false // Whether or not to include the data "source" when submitting
         },
         "update": {
           "path": "api/v2/update_project/{id}", // Path for updates
