@@ -7,42 +7,48 @@
     "projects": {
       "endpoints": {
         "create": {
-          "path": "api/v1/data"
+          "multi_path": "api/v1/data",
+          "data_key": "entries"
         }
       }
     },
     "suites": {
       "endpoints": {
         "create": {
-          "path": "api/v1/data"
+          "multi_path": "api/v1/data",
+          "data_key": "entries"
         }
       }
     },
     "cases": {
       "endpoints": {
         "create": {
-          "path": "api/v1/data"
+          "multi_path": "api/v1/data",
+          "data_key": "entries"
         }
       }
     },
     "plans": {
       "endpoints": {
         "create": {
-          "path": "api/v1/data"
+          "multi_path": "api/v1/data",
+          "data_key": "entries"
         }
       }
     },
     "runs": {
       "endpoints": {
         "create": {
-          "path": "api/v1/data"
+          "multi_path": "api/v1/data",
+          "data_key": "entries"
         }
       }
     },
     "tests": {
       "endpoints": {
         "create": {
-          "path": "api/v1/data"
+          "multi_path": "api/v1/data",
+          "data_key": "entries"
         }
       }
     }

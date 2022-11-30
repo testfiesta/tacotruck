@@ -155,85 +155,70 @@
       "target": "projects",
       "endpoints": {
         "create": {
-          "path": "api/v2/add_project",
+          "single_path": "api/v2/add_project",
           "required": ["name"]
         },
         "update": {
           "path": "api/v2/update_project/{id}",
-          "required": ["id", "name"]
+          "required": ["id", "name"],
+          "update_key": "id"
         }
-      },
-      "mapping": {
-        "id": "target_id",
-        "name": "name"
       }
     },
     "suites": {
       "target": "suites",
       "endpoints": {
         "create": {
-          "path": "api/v2/add_suite/{projects.id}",
+          "single_path": "api/v2/add_suite/{projects.id}",
           "required": ["name", "projects.id"]
         },
         "update": {
           "path": "api/v2/update_suite/{id}",
-          "required": ["id", "name"]
+          "required": ["id", "name"],
+          "update_key": "id"
         }
-      },
-      "mapping": {
-        "id": "target_id",
-        "name": "name"
       }
     },
     "cases": {
       "target": "cases",
       "endpoints": {
         "create": {
-          "path": "api/v2/add_case/{sections.id}",
+          "single_path": "api/v2/add_case/{sections.id}",
           "required": ["title", "sections.id"]
         },
         "update": {
           "path": "api/v2/update_case/{id}",
-          "required": ["id", "title"]
+          "required": ["id", "title"],
+          "update_key": "id"
         }
-      },
-      "mapping": {
-        "id": "target_id",
-        "title": "title"
       }
     },
     "plans": {
       "target": "plans",
       "endpoints": {
         "create": {
-          "path": "api/v2/add_plan/{projects.id}",
+          "single_path": "api/v2/add_plan/{projects.id}",
           "required": ["name", "projects.id"]
         },
         "update": {
           "path": "api/v2/update_plan/{id}",
-          "required": ["id", "name"]
+          "required": ["id", "name"],
+          "update_key": "id"
         }
-      },
-      "mapping": {
-        "id": "target_id",
-        "name": "name"
       }
     },
     "runs": {
       "target": "runs",
       "endpoints": {
         "create": {
-          "path": "api/v2/add_run/{projects.id}",
+          "single_path": "api/v2/add_run/{projects.id}",
           "required": ["name", "projects.id"]
         },
         "update": {
           "path": "api/v2/update_run/{id}",
-          "required": ["id", "name"]
+          "required": ["id", "name"],
+          "update_key": "id"
         }
-      },
-      "mapping": {
-        "id": "target_id",
-        "name": "name"
       }
     }
   }

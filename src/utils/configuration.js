@@ -69,7 +69,7 @@ class PipeConfig {
     // If a target type is provided, set it.
     if (args.target_type) {
       if (validSourceTypes.includes(args.target_type)) {
-        targetType = args.target_type;
+        this.targetType = args.target_type;
       } else {
         console.error('Invalid target type: ' + args.target_type);
         process.exit();
@@ -93,9 +93,9 @@ class PipeConfig {
         if (fs.existsSync(args.source)) {
           // Check if this is a custom type
           this.sourceTypeConfig = JSON.parse(fs.readFileSync(args.source));
-        } else if (fs.existsSync('./api_configs/' + args.source + '.json')) {
+        } else if (fs.existsSync(`${packageRoot}/api_configs/${args.source}.json`)) {
           // Fall back to defaults
-          this.sourceTypeConfig = JSON.parse(fs.readFileSync('./api_configs/' + args.source + '.json'));
+          this.sourceTypeConfig = JSON.parse(fs.readFileSync(`${packageRoot}/api_configs/${args.source}.json`));
         } else if (args.source) {
           console.error('Source config not found: ' + args.source);
           process.exit();
@@ -130,9 +130,9 @@ class PipeConfig {
         if (fs.existsSync(args.target)) {
           // Check if this is a custom type
           this.targetTypeConfig = JSON.parse(fs.readFileSync(args.target));
-        } else if (fs.existsSync('./api_configs/' + args.target + '.json')) {
+        } else if (fs.existsSync(`${packageRoot}/api_configs/${args.target}.json`)) {
           // Fall back to defaults
-          this.targetTypeConfig = JSON.parse(fs.readFileSync('./api_configs/' + args.target + '.json'));
+          this.targetTypeConfig = JSON.parse(fs.readFileSync(`${packageRoot}/api_configs/${args.target}.json`));
         } else {
           console.error('Source config not found: ' + args.target);
           process.exit();

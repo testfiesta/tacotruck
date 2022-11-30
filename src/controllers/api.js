@@ -9,6 +9,9 @@ let sourceResponseCounter = {};
 let targetRequestsQueue = [];
 let targetThrottleCounter = [];
 
+/* ids - an object with endpoints as keys and lists of objects with identifying
+         data as values: e.g. { executions: [ { id: 1 } ] }
+*/
 async function pullData(config, ids) {
   //config.progressBar.start(200, 0);
 
@@ -81,10 +84,6 @@ async function pullData(config, ids) {
       urlList.push(config.sourceBaseUrl
                     + config.sourceTypeConfig.base_path
                     + rawPath);
-      // CTODO REMOVE let tempURL = config.sourceBaseUrl
-      //              + config.sourceTypeConfig.base_path
-      //              + rawPath;
-
 
       if (fetchType === 'index') {
         // Loop through the replacement keys (in {}) on this endpoint
@@ -92,7 +91,7 @@ async function pullData(config, ids) {
           // Pull the entity type of the key
           let splitKey = key.split('.');
           let refEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
-          let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'external_id' );
+          let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'source_id' );
   
           if (data[refEndpoint]) {
   
@@ -225,7 +224,8 @@ async function pushData(config, data) {
 
   for (const endpoint of config.targetEndpointSet) {
     if (data[endpoint]) {
-      let rawPath = config.targetTypeConfig.target[endpoint].endpoints.create.path;
+      let bulkData = [];
+      let updateKey = config.targetTypeConfig.target[endpoint].endpoints?.update.update_key || undefined;
       let options = {};
 
       // Add authn to the request
@@ -246,94 +246,108 @@ async function pushData(config, data) {
         type: endpoint
       };
 
-      if (rawPath.indexOf('{') < 0) {
-        let url = config.targetBaseUrl
-          + config.targetTypeConfig.base_path
-          + rawPath;
-        options.data.entries = data[endpoint];
+      for (const datapoint of data[endpoint]) {
+        if (updateKey && datapoint?.[updateKey]) {
+          // Update record.
+          let rawPath =
+            config.targetTypeConfig.target[endpoint].endpoints.update.path;
+          let dataKey =
+            config.targetTypeConfig.target[endpoint].endpoints.update.data_key;
+          let url = config.targetBaseUrl
+            + config.targetTypeConfig.base_path
+            + rawPath;
 
-        targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
-      } else {
-        /*
-        // CTODO - handle APIs that require references
-        let keys = configUtils.findSubstitutionKeys(rawPath);
-        let urlList = [];
-        urlList.push(config.targetBaseUrl
-                      + config.targetTypeConfig.base_path
-                      + rawPath);
-
-
-        // Loop through the replacement keys (in {}) on this endpoint
-        for (const key of keys) {
-          // Pull the entity type of the key
-          let splitKey = key.split('.');
-          let refEndpoint = splitKey[0];
-          let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'external_id' );
-
-          if (data[refEndpoint]) {
-
-            for (let i=urlList.length-1; i>-1; i--) {
-              let url = urlList[i];
-              // Loop through our target data to find ids for child paths
-              for (const record of data[refEndpoint]) {
-                // Build path and push
-
-                // For odd case around denormalized APIs like TR's "test cases"
-                if (config.targetTypeConfig.denormalized_keys[endpoint] &&
-                    (refEndpoint in
-                      config.targetTypeConfig.denormalized_keys[endpoint])) {
-
-                  for (const denormKey in
-                    config.targetTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
-                    // For poorly designed APIs, you can end up with multiple keys that need to match.  For instance,
-                    //  needing to define both the project and the suite a test belongs to (when the suite belongs to
-                    //  the project as well).
-                    denormValue = config.targetTypeConfig.denormalized_keys[endpoint][refEndpoint][denormKey];
-                    // Look for the matching record in the second type (suites) based on the key in the denorm
-                    //  keys table (project_id).  Then pull that record's refLocation for substitution.
-                    for (const denormRecord of data[denormKey]) {
-                      if (denormRecord.custom_fields[denormValue] === record[refLocation]) {
-                        urlList.push(configUtils.bracketSubstitution(
-                          url,
-                          key,
-                          denormRecord[refLocation]
-                        ));
-                      }
-                    }
-                  }
-                } else {
-                  // Not a denormalized key
-                  urlList.push(configUtils.bracketSubstitution(
-                      url,
-                      key,
-                      record[refLocation]
-                    ));
-                }
-              } // else continue
-              // Remove the original record that has since had variables substituted.
-              urlList.splice(i, 1);
+          if (rawPath.indexOf('{') < 0) {
+            if (dataKey && dataKey !== "") { 
+              options.data = {
+                [dataKey]: datapoint
+              };
+            } else {
+              options.data = datapoint;
+            }
+            targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
+          } else {
+            // Handle substitutions
+            let keys = configUtils.findSubstitutionKeys(rawPath);
+            let skip = false;
+            for (const key of keys) {
+              if (datapoint[key] ) {
+                let newURL = configUtils.bracketSubstitution(
+                  url,
+                  key,
+                  datapoint[key]
+                );
+              } else {
+                skip = true;
+                console.log(`Update record missing key [${key}] skipping: ${JSON.stringify(datapoint)}`);
+              }
+            }
+            if (!skip) {
+              targetRequestsQueue.push(
+                processNetworkPostRequest(config, newURL, options, endpoint)
+              );
             }
           }
+        } else if (config.targetTypeConfig.target[endpoint].endpoints.create?.multi_path) {
+          // Bulk creation
+          bulkData.push(datapoint);
+        } else {
+          // Individual creation
+          let rawPath =
+            config.targetTypeConfig.target[endpoint].endpoints.create.single_path;
+          let dataKey =
+            config.targetTypeConfig.target[endpoint].endpoints.create?.data_key;
+          let url = config.targetBaseUrl
+            + config.targetTypeConfig.base_path
+            + rawPath;
+
+          if (dataKey && dataKey !== "") {
+            options.data = {
+              [dataKey]: datapoint
+            };
+          } else {
+            options.data = datapoint;
+          }
+          targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
+
         }
-        for (const url of urlList) {
-          console.log('Pulling: ' + url);
-          targetRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
-        }
-      */
       }
 
-      // Wait for all calls to this endpoint to finish before proceding
-      await Promise.all(targetRequestsQueue).then(responses => {
-        // CTODO - If we insert individually and get entity info back, then use that to update dependencies.
-        for( var i=responses.length-1; i>=0; i-- ) {
-          let response = responses[i];
-        }
-      });
+      // After our loop, run bulk creation.
+      if (bulkData.length > 0) {
+          let rawPath =
+            config.targetTypeConfig.target[endpoint].endpoints.create.multi_path;
+          let dataKey =
+            config.targetTypeConfig.target[endpoint].endpoints.create?.data_key;
+          let url = config.targetBaseUrl
+            + config.targetTypeConfig.base_path
+            + rawPath;
+
+          if (dataKey && dataKey !== "") {
+            options.data = {
+              [dataKey]: bulkData
+            };
+          } else {
+            options.data = bulkData;
+          }
+          targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
+
+      }
     }
-    //progressBar.update(200);
-    // config.progressBar.stop();
-    //console.log('Data successfully piped!');
   }
+
+  // Wait for all calls to this endpoint to finish before proceding
+  await Promise.all(targetRequestsQueue).then(responses => {
+    // TODO - Add a backflow option - if we insert individually into the
+    //        target and get entity info back, then use that to update the
+    //        source record somehow.
+    for( var i=responses.length-1; i>=0; i-- ) {
+      let response = responses[i];
+    }
+  });
+  //progressBar.update(200);
+  // config.progressBar.stop();
+  //console.log('Data successfully piped!');
 }
 
 async function processNetworkGetRequest(config, url, options, type) {
