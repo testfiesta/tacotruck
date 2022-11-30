@@ -1,6 +1,7 @@
 class BaseModel {
   source_id;
   target_id;
+  external_id;
 
   created_at;
 

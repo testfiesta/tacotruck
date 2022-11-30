@@ -55,8 +55,11 @@ function collapse(inputData) {
   return data;
 }
 
-function parseJSONData(data, ignoreConfig) {
-  let parsedData = { suites: [], executions: [] };
+function parseJSONData(data, ignoreConfig, config) {
+  const testRunId = crypto.randomUUID();
+  let newTestRun = new models.TestRun(testRunId);
+  let parsedData = { suites: [], executions: [], runs: [] };
+  parsedData.runs.push(newTestRun);
   let suiteData = data.testsuites || (data.testsuite || []);
   if (data.testsuites && !data.testsuites.testsuite) {
       suiteData = [];
@@ -71,7 +74,13 @@ function parseJSONData(data, ignoreConfig) {
       caseData = [caseData];
     }
     delete suite.testcase;
-    let newTestSuite = new models.TestSuite()
+    let newTestSuite = new models.TestSuite();
+    newTestSuite.custom_fields["test_run_id"] = testRunId;
+    if (config.gitRepo) {
+      newTestSuite.custom_fields["git_repo"] = config.gitRepo;
+      newTestSuite.custom_fields["git_branch"] = config.gitBranch;
+      newTestSuite.custom_fields["git_sha"] = config.gitSha;
+    }
     let suiteBuilt = newTestSuite.build(
       xUnitParser.TEST_SUITES_MAPPING,
       suite,
@@ -87,6 +96,12 @@ function parseJSONData(data, ignoreConfig) {
       for (tcase of caseData) {
         let newTestCase = new models.TestCase()
         newTestCase.custom_fields["test_suite_id"] = newTestSuite.source_id;
+        newTestCase.custom_fields["test_run_id"] = testRunId;
+        if (config.gitRepo) {
+          newTestCase.custom_fields["git_repo"] = config.gitRepo;
+          newTestCase.custom_fields["git_branch"] = config.gitBranch;
+          newTestCase.custom_fields["git_sha"] = config.gitSha;
+        }
         let caseBuilt = newTestCase.build(
           xUnitParser.TEST_CASES_MAPPING,
           tcase,
@@ -113,8 +128,8 @@ class xUnitParser {
         name: "name",
   };
 
-  parseFile(path, ignoreConfig) {
-    return parseJSONData(collapse(xmlParser(fs.readFileSync(path))), ignoreConfig);
+  parseFile(path, ignoreConfig, config) {
+    return parseJSONData(collapse(xmlParser(fs.readFileSync(path))), ignoreConfig, config);
   }
 
 }

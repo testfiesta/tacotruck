@@ -1,5 +1,6 @@
 const auth = require('./auth.js');
 const fs = require('fs');
+const { execSync } = require('child_process');
 
 const credentialedTypes = ['api'];
 const validSourceTypes = ['api', 'junit'];
@@ -41,6 +42,16 @@ class PipeConfig {
   constructor(args) {
     // If data types are provided, validate them.
     this.dataTypes = [];
+    this.gitRepo;
+    this.gitBranch;
+    this.gitSha;
+
+    if (!args.no_git) {
+      this.gitRepo = executeGitCommand('basename -s .git `git config --get remote.origin.url`');
+      this.gitBranch = executeGitCommand('git rev-parse --abbrev-ref HEAD');
+      this.gitSha = executeGitCommand('git rev-parse HEAD');
+    }
+
     if (args.data_types) {
       this.dataTypes = [];
       for (const type of args.data_types.split(',')) {
@@ -309,7 +320,7 @@ class PipeConfig {
 
 // Find all dependencies in chain
 function buildDependencyChain(keyMap, name, endpointSelector) {
-  let path = keyMap[name].endpoints[endpointSelector].path;
+  let path = keyMap[name].endpoints[endpointSelector].multi_path;
   if (!keyMap[name] || !path) {
     console.error('Invalid key [' + name + '].');
     process.exit();
@@ -358,6 +369,11 @@ function bracketSubstitution(baseString, oldKey, newKey) {
     );
 }
 
+function executeGitCommand(command) {
+  return execSync(command)
+    .toString('utf8')
+    .replace(/[\n\r\s]+$/, '');
+}
 
 module.exports = {
   bracketSubstitution,
