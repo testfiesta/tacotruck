@@ -63,7 +63,7 @@ async function pullData(config, ids) {
     } else {
       let unsortedKeys = configUtils.findSubstitutionKeys(rawPath);
       let denormalizedConfigKeys =
-        config.sourceTypeConfig.denormalized_keys[endpoint] || {};
+        config.sourceTypeConfig.denormalized_keys.?[endpoint] || {};
       let keys = [];
 
       if (Object.keys(denormalizedConfigKeys).length < 1) {

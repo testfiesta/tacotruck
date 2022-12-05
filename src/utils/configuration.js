@@ -10,7 +10,9 @@ const validDataTypes = [
   'runs',
   'executions',
   'projects',
-  'suites'
+  'suites',
+  'folders',
+  'issues',
 ];
 
 class PipeConfig {
@@ -248,7 +250,9 @@ class PipeConfig {
       var sourceEndpoints = [];
       if (this.dataTypes.length > 0) {
         // If data types are specified, only check those endpoints.
-        sourceEndpoints = this.dataTypes;
+        for (const type of this.dataTypes) {
+          sourceEndpoints[type] = this.sourceTypeConfig.source[type];
+        }
       } else {
         sourceEndpoints = this.sourceTypeConfig.source; 
       }

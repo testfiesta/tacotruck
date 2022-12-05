@@ -1,0 +1,83 @@
+{
+  "name": "jira",
+  "base_path": "/rest/api/3/",
+  "data_key": "{endpoint}",
+  "paging": {
+    "location": "response",
+    "link_key": "_links.next"
+  },
+  "auth": {
+    "type": "basic"
+  },
+  "source": {
+    "issues": {
+      "response_data_key": "projects",
+      "target": "projects",
+      "endpoints": {
+        "index": {
+          "path": "search"
+        },
+        "get": {
+          "path": "issue/{key}"
+        }
+      },
+      "mapping": {
+        "id": "source_id",
+        "name": "name"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
+      }
+    },
+    "attachments": {
+      "response_data_key": "",
+      "target": "attachments",
+      "endpoints": {
+        "index": {
+        },
+        "get": {
+          "path": "attachment/{id}"
+          "bin_path": "attachment/content/{id}"
+        }
+      },
+      "mapping": {
+        "id": "source_id"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
+      }
+    }
+  },
+  "target": {
+    "issues": {
+      "target": "issues",
+      "endpoints": {
+        "create": {
+          "single_path": "issue",
+          "required": ["key"]
+        },
+        "update": {
+          "path": "issue/{key}",
+          "required": ["key"],
+          "update_key": "key",
+          "method": "PUT"
+        }
+      }
+    },
+    "attachments": {
+      "target": "attachments",
+      "endpoints": {
+        "create": {
+          "single_path": "issue/{key}/attachments",
+          "required": ["key", "filepath"]
+        }
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
+      }
+    }
+  }
+}
