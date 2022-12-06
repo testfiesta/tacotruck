@@ -57,7 +57,8 @@ function collapse(inputData) {
 
 function parseJSONData(data, ignoreConfig, config) {
   const testRunId = crypto.randomUUID();
-  let newTestRun = new models.TestRun(testRunId);
+  let newTestRun = new models.TestRun();
+  newTestRun.source_id = testRunId;
   let parsedData = { suites: [], executions: [], runs: [] };
   parsedData.runs.push(newTestRun);
   let suiteData = data.testsuites || (data.testsuite || []);

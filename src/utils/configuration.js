@@ -47,9 +47,15 @@ class PipeConfig {
     this.gitSha;
 
     if (!args.no_git) {
-      this.gitRepo = executeGitCommand('basename -s .git `git config --get remote.origin.url`');
-      this.gitBranch = executeGitCommand('git rev-parse --abbrev-ref HEAD');
-      this.gitSha = executeGitCommand('git rev-parse HEAD');
+      const gitConfig = fs.readFileSync('.git/config', { encoding: 'utf-8' });
+      this.gitRepo = gitConfig.trim().split('\n\t').find(config => config.includes('url')).split('/').pop();
+
+      const gitHEAD = fs.readFileSync('.git/HEAD', { encoding: 'utf-8' });
+      this.gitBranch = gitHEAD.trim().split('refs/heads/').pop();
+
+      let gitLogSha = fs.readFileSync('.git/logs/HEAD', { encoding: 'utf-8' });
+      gitLogSha = gitLogSha.trim().split('\n');
+      this.gitSha = gitLogSha.length > 0 ? gitLogSha[gitLogSha.length - 1].split(' ')[0] : '';
     }
 
     if (args.data_types) {
@@ -367,12 +373,6 @@ function bracketSubstitution(baseString, oldKey, newKey) {
       baseString.indexOf('{' + oldKey) + oldKey.length + 2,
       baseString.length
     );
-}
-
-function executeGitCommand(command) {
-  return execSync(command)
-    .toString('utf8')
-    .replace(/[\n\r\s]+$/, '');
 }
 
 module.exports = {
