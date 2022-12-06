@@ -11,7 +11,9 @@ const validDataTypes = [
   'runs',
   'executions',
   'projects',
-  'suites'
+  'suites',
+  'folders',
+  'issues',
 ];
 
 class PipeConfig {
@@ -265,7 +267,9 @@ class PipeConfig {
       var sourceEndpoints = [];
       if (this.dataTypes.length > 0) {
         // If data types are specified, only check those endpoints.
-        sourceEndpoints = this.dataTypes;
+        for (const type of this.dataTypes) {
+          sourceEndpoints[type] = this.sourceTypeConfig.source[type];
+        }
       } else {
         sourceEndpoints = this.sourceTypeConfig.source; 
       }
@@ -302,7 +306,6 @@ class PipeConfig {
       }
 
       // Parse source config and build dependency graph to determine access order
-      var targetEndpointOrder = [];
       var targetEndpoints = [];
       if (this.dataTypes.length > 0) {
         // If data types are specified, only check those endpoints.
@@ -310,13 +313,8 @@ class PipeConfig {
       } else {
         targetEndpoints = this.targetTypeConfig.target;
       }
-      for (const name in targetEndpoints) {
-        targetEndpointOrder.push(...buildDependencyChain(
-          this.targetTypeConfig.target, name, 'create'
-        ));
-      }
 
-      targetEndpointOrder.forEach(endpoint =>
+      Object.keys(targetEndpoints).forEach(endpoint =>
         this.targetEndpointSet.add(endpoint)
       );
       this.targetProgressIncrement = 100/this.targetEndpointSet.size;
@@ -326,7 +324,9 @@ class PipeConfig {
 
 // Find all dependencies in chain
 function buildDependencyChain(keyMap, name, endpointSelector) {
-  let path = keyMap[name].endpoints[endpointSelector].multi_path;
+  let path = keyMap[name]?.endpoints?.[endpointSelector]?.path;
+  path ||= keyMap[name]?.endpoints?.[endpointSelector]?.multi_path;
+  path ||= keyMap[name]?.endpoints?.[endpointSelector]?.single_path;
   if (!keyMap[name] || !path) {
     console.error('Invalid key [' + name + '].');
     process.exit();

@@ -31,31 +31,33 @@ But replace the `base64Credentials` key with your email address, followed by a "
 
 Then replace the YATT token with a valid YATT token for your YATT user.
 
+// CTODO - Update from test
 ### Code Usage
 ```javascript
-const { pushData } = require("yatt-pipe");
+const { pushData, pullData } = require("yatt-pipe");
 
 const config = {
   "credentials": "./creds.json",
-  "target": "yatt",
-  "targetType": "api",
+  "source": "testrail",
+  "target": "testrail",
+  "source_type": "api",
+  "target_type": "api",
 };
 
 const pushableData = {
-  "executions": [{
-    "id": 123,
-    "source": "testrail",
-    "custom_fields": {
-      "suite_id": 456,
-      "status": "success"
-    }
+  "projects": [{
+    "target_id": 5,
+    "name": "API Proj 2z",
+    "announcement": "Test"
   }]
 };
 
 const pullableData = {
-  "executions": [{
-    "id": 123,
-    }
+  "cases": [{
+    "id": 1,
+  },
+  {
+    "id": 2,
   }]
 };
 
@@ -70,7 +72,7 @@ async function sendDataToTestRail(config, data) {
 
 async function getDataFromTestRail(config, data) {
   try {
-    const response = await pushData(config, data);
+    const response = await pullData(config, data);
     console.log(response);
   } catch (error) {
     console.error(error);
@@ -79,7 +81,7 @@ async function getDataFromTestRail(config, data) {
 
 
 sendDataToTestRail(config, pushableData);
-record = await getDataFromTestRail(config, pullableData);
+getDataFromTestRail(config, pullableData);
 ```
 
 ### TestRail

@@ -1,5 +1,6 @@
 const axios = require('axios');
 const configUtils = require('../utils/configuration.js');
+const dataUtils = require('../utils/data.js');
 const models = require('../models/core.js');
 
 let sourceRequestsQueue = [];
@@ -62,7 +63,7 @@ async function pullData(config, ids) {
     } else {
       let unsortedKeys = configUtils.findSubstitutionKeys(rawPath);
       let denormalizedConfigKeys =
-        config.sourceTypeConfig.denormalized_keys[endpoint] || {};
+        config.sourceTypeConfig.denormalized_keys.?[endpoint] || {};
       let keys = [];
 
       if (Object.keys(denormalizedConfigKeys).length < 1) {
@@ -179,7 +180,7 @@ async function pullData(config, ids) {
           }
           urlList.splice(i, 1);
         }
-      } // CTODO - test
+      }
 
       for (const url of urlList) {
         console.log('Pulling: ' + url);
@@ -194,6 +195,9 @@ async function pullData(config, ids) {
 
         if (Array.isArray(response.data) && response.data.length < 1) {
           continue;
+        }
+        if (!Array.isArray(response.data)) {
+          response.data = [response.data];
         }
         for (const record of response.data) {
 
@@ -227,6 +231,7 @@ async function pushData(config, data) {
       let bulkData = [];
       let updateKey = config.targetTypeConfig.target[endpoint].endpoints?.update.update_key || undefined;
       let options = {};
+      let mapping = config.targetTypeConfig.target[endpoint].mapping || {};
 
       // Add authn to the request
       if (config.targetAuthSchema.location === "header") {
@@ -241,13 +246,12 @@ async function pushData(config, data) {
         }
       }
 
-      options.data = {
-        source: data.source,
-        type: endpoint
-      };
 
       for (const datapoint of data[endpoint]) {
-        if (updateKey && datapoint?.[updateKey]) {
+        // Move keys based on mapping
+        mappedDatapoint = dataUtils.mapData(mapping, datapoint);
+
+        if (updateKey && mappedDatapoint?.[updateKey]) {
           // Update record.
           let rawPath =
             config.targetTypeConfig.target[endpoint].endpoints.update.path;
@@ -256,41 +260,55 @@ async function pushData(config, data) {
           let url = config.targetBaseUrl
             + config.targetTypeConfig.base_path
             + rawPath;
-
-          if (rawPath.indexOf('{') < 0) {
-            if (dataKey && dataKey !== "") { 
-              options.data = {
-                [dataKey]: datapoint
-              };
-            } else {
-              options.data = datapoint;
+          let requiredKeys =
+            config.targetTypeConfig.target[endpoint].endpoints.update.required_keys
+            ?? [];
+          let missingKeys = [];
+          for (const rKey of requiredKeys) {
+            if (!mappedDatapoint[rKey]) {
+              missingKeys.push(rKey);
             }
-            targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
-          } else {
+          }
+          let skip = false;
+          if (missingKeys.length > 0) {
+            console.log(
+              `Update record missing required keys: (${
+                JSON.stringify(missingKeys)
+               }) for data point: ${JSON.stringify(datapoint)}`);
+            skip = true;
+          }
+          if (rawPath.indexOf('{') >= 0) {
             // Handle substitutions
             let keys = configUtils.findSubstitutionKeys(rawPath);
-            let skip = false;
             for (const key of keys) {
-              if (datapoint[key] ) {
-                let newURL = configUtils.bracketSubstitution(
+              if (mappedDatapoint[key]) {
+                url = configUtils.bracketSubstitution(
                   url,
                   key,
-                  datapoint[key]
+                  mappedDatapoint[key]
                 );
               } else {
                 skip = true;
-                console.log(`Update record missing key [${key}] skipping: ${JSON.stringify(datapoint)}`);
+                console.log(
+                  `Update record missing key [${key}] for data point: ${
+                    JSON.stringify(datapoint)
+                  }`);
               }
             }
-            if (!skip) {
-              targetRequestsQueue.push(
-                processNetworkPostRequest(config, newURL, options, endpoint)
-              );
-            }
+          }
+          if (!skip) {
+            options.data = dataUtils.buildRequestData(
+              dataKey,
+              mapping,
+              mappedDatapoint
+            );
+            targetRequestsQueue.push(
+              processNetworkPostRequest(config, url, options, endpoint)
+            );
           }
         } else if (config.targetTypeConfig.target[endpoint].endpoints.create?.multi_path) {
           // Bulk creation
-          bulkData.push(datapoint);
+          bulkData.push(mappedDatapoint);
         } else {
           // Individual creation
           let rawPath =
@@ -301,12 +319,13 @@ async function pushData(config, data) {
             + config.targetTypeConfig.base_path
             + rawPath;
 
-          if (dataKey && dataKey !== "") {
-            options.data = {
-              [dataKey]: datapoint
-            };
-          } else {
-            options.data = datapoint;
+          options.data = dataUtils.buildRequestData(
+            dataKey,
+            mapping,
+            mappedDatapoint
+          );
+          if (config.targetTypeConfig.target[endpoint].endpoints.create.include_source) {
+            options.data.source = data.source;
           }
           targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
 
@@ -323,13 +342,15 @@ async function pushData(config, data) {
             + config.targetTypeConfig.base_path
             + rawPath;
 
-          if (dataKey && dataKey !== "") {
-            options.data = {
-              [dataKey]: bulkData
-            };
-          } else {
-            options.data = bulkData;
+          options.data = dataUtils.buildRequestData(
+            dataKey,
+            mapping,
+            mappedDatapoint
+          );
+          if (config.targetTypeConfig.target[endpoint].endpoints.create.include_source) {
+            options.data.source = data.source;
           }
+
           targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
 
       }
