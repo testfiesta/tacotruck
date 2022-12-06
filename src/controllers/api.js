@@ -2,6 +2,8 @@ const axios = require('axios');
 const configUtils = require('../utils/configuration.js');
 const dataUtils = require('../utils/data.js');
 const models = require('../models/core.js');
+const FormData = require('form-data');
+const fs = require('fs');
 
 let sourceRequestsQueue = [];
 let sourceThrottleCounter = [];
@@ -230,6 +232,7 @@ async function pushData(config, data) {
     if (data[endpoint]) {
       let bulkData = [];
       let updateKey = config.targetTypeConfig.target[endpoint].endpoints?.update.update_key || undefined;
+      let payloadKey = config.targetTypeConfig.target[endpoint].endpoints?.create.payload_key || undefined;
       let options = {};
       let mapping = config.targetTypeConfig.target[endpoint].mapping || {};
 
@@ -269,13 +272,12 @@ async function pushData(config, data) {
               missingKeys.push(rKey);
             }
           }
-          let skip = false;
           if (missingKeys.length > 0) {
             console.log(
               `Update record missing required keys: (${
                 JSON.stringify(missingKeys)
                }) for data point: ${JSON.stringify(datapoint)}`);
-            skip = true;
+            continue;
           }
           if (rawPath.indexOf('{') >= 0) {
             // Handle substitutions
@@ -288,24 +290,22 @@ async function pushData(config, data) {
                   mappedDatapoint[key]
                 );
               } else {
-                skip = true;
                 console.log(
                   `Update record missing key [${key}] for data point: ${
                     JSON.stringify(datapoint)
                   }`);
+                continue;
               }
             }
           }
-          if (!skip) {
-            options.data = dataUtils.buildRequestData(
-              dataKey,
-              mapping,
-              mappedDatapoint
-            );
-            targetRequestsQueue.push(
-              processNetworkPostRequest(config, url, options, endpoint)
-            );
-          }
+          options.data = dataUtils.buildRequestData(
+            dataKey,
+            mapping,
+            mappedDatapoint
+          );
+          targetRequestsQueue.push(
+            processNetworkPostRequest(config, url, options, endpoint)
+          );
         } else if (config.targetTypeConfig.target[endpoint].endpoints.create?.multi_path) {
           // Bulk creation
           bulkData.push(mappedDatapoint);
@@ -319,15 +319,35 @@ async function pushData(config, data) {
             + config.targetTypeConfig.base_path
             + rawPath;
 
-          options.data = dataUtils.buildRequestData(
-            dataKey,
-            mapping,
-            mappedDatapoint
-          );
-          if (config.targetTypeConfig.target[endpoint].endpoints.create.include_source) {
-            options.data.source = data.source;
+          if (payloadKey && mappedDatapoint?.[payloadKey]) {
+            // Creation with payload
+            const filePath = mappedDatapoint?.[payloadKey];
+            if (!fs.existsSync(filePath)) {
+              console.log(`File ${filePath} does not exist. Skipping...`);
+              continue;
+            }
+
+            const form = new FormData();
+            const stats = fs.statSync(filePath);
+            const fileSizeInBytes = stats.size;
+            const fileStream = fs.createReadStream(filePath);
+            // CTODO - Test
+
+            form.append('file', fileStream, {knownLength: fileSizeInBytes});
+            options.data = form;
+          } else {    
+            options.data = dataUtils.buildRequestData(
+              dataKey,
+              mapping,
+              mappedDatapoint
+            );
+            if (config.targetTypeConfig.target[endpoint].endpoints.create.include_source) {
+              options.data.source = data.source;
+            }
           }
-          targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
+          targetRequestsQueue.push(
+            processNetworkPostRequest(config, url, options, endpoint)
+          );
 
         }
       }

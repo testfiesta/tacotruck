@@ -37,7 +37,7 @@
         "index": {
         },
         "get": {
-          "path": "attachment/{id}"
+          "path": "attachment/{id}",
           "bin_path": "attachment/content/{id}"
         }
       },
@@ -72,6 +72,7 @@
         "create": {
           "single_path": "issue/{key}/attachments",
           "required": ["key", "filepath"]
+          "payload_key": "filepath"
         }
       },
       "limit": {
