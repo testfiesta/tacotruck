@@ -1,6 +1,5 @@
 const auth = require('./auth.js');
 const fs = require('fs');
-const { execSync } = require('child_process');
 
 const credentialedTypes = ['api'];
 const validSourceTypes = ['api', 'junit'];
