@@ -48,15 +48,23 @@ class PipeConfig {
     this.gitSha;
 
     if (!args.no_git) {
-      const gitConfig = fs.readFileSync('.git/config', { encoding: 'utf-8' });
-      this.gitRepo = gitConfig.trim().split('\n\t').find(config => config.includes('url')).split('/').pop();
+      if (fs.existsSync('.git/config')) {
+        const gitConfig = fs.readFileSync('.git/config', { encoding: 'utf-8' });
+        this.gitRepo = gitConfig.split('\n\t').find(config => config.includes('url')).trim().split('/').pop();
 
-      const gitHEAD = fs.readFileSync('.git/HEAD', { encoding: 'utf-8' });
-      this.gitBranch = gitHEAD.trim().split('refs/heads/').pop();
+        if (fs.existsSync('.git/HEAD')) {
+          const gitHEAD = fs.readFileSync('.git/HEAD', { encoding: 'utf-8' });
+          this.gitBranch = gitHEAD.trim().split('refs/heads/').pop();
+        }
 
-      let gitLogSha = fs.readFileSync('.git/logs/HEAD', { encoding: 'utf-8' });
-      gitLogSha = gitLogSha.trim().split('\n');
-      this.gitSha = gitLogSha.length > 0 ? gitLogSha[gitLogSha.length - 1].split(' ')[0] : '';
+        if (fs.existsSync('.git/logs/HEAD')) {
+          let gitLogSha = fs.readFileSync('.git/logs/HEAD', { encoding: 'utf-8' });
+          gitLogSha = gitLogSha.trim().split('\n');
+          this.gitSha = gitLogSha.length > 0 ? gitLogSha[gitLogSha.length - 1].split(' ')[0] : '';
+        }
+      } else {
+        console.error('Git config not found');
+      }
     }
 
     if (args.data_types) {
