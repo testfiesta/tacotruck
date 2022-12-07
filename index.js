@@ -81,6 +81,10 @@ if (require.main === module) {
   });
   parser.add_argument('-v', '--verbose', { action: 'store_true' });
   parser.add_argument('--version', { action: 'version', version });
+  parser.add_argument('--no-git', {
+    action: 'store_true',
+    required: false,
+  });
 
   let args = parser.parse_args();
 

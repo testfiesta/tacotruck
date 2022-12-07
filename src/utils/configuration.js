@@ -43,6 +43,30 @@ class PipeConfig {
   constructor(args) {
     // If data types are provided, validate them.
     this.dataTypes = [];
+    this.gitRepo;
+    this.gitBranch;
+    this.gitSha;
+
+    if (!args.no_git) {
+      if (fs.existsSync('.git/config')) {
+        const gitConfig = fs.readFileSync('.git/config', { encoding: 'utf-8' });
+        this.gitRepo = gitConfig.split('\n\t').find(config => config.includes('url')).trim().split('/').pop();
+
+        if (fs.existsSync('.git/HEAD')) {
+          const gitHEAD = fs.readFileSync('.git/HEAD', { encoding: 'utf-8' });
+          this.gitBranch = gitHEAD.trim().split('refs/heads/').pop();
+        }
+
+        if (fs.existsSync('.git/logs/HEAD')) {
+          let gitLogSha = fs.readFileSync('.git/logs/HEAD', { encoding: 'utf-8' });
+          gitLogSha = gitLogSha.trim().split('\n');
+          this.gitSha = gitLogSha.length > 0 ? gitLogSha[gitLogSha.length - 1].split(' ')[0] : '';
+        }
+      } else {
+        console.error('Git config not found');
+      }
+    }
+
     if (args.data_types) {
       this.dataTypes = [];
       for (const type of args.data_types.split(',')) {
@@ -357,7 +381,6 @@ function bracketSubstitution(baseString, oldKey, newKey) {
       baseString.length
     );
 }
-
 
 module.exports = {
   bracketSubstitution,
