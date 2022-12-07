@@ -1,6 +1,9 @@
 const axios = require('axios');
 const configUtils = require('../utils/configuration.js');
+const dataUtils = require('../utils/data.js');
 const models = require('../models/core.js');
+const FormData = require('form-data');
+const fs = require('fs');
 
 let sourceRequestsQueue = [];
 let sourceThrottleCounter = [];
@@ -9,15 +12,34 @@ let sourceResponseCounter = {};
 let targetRequestsQueue = [];
 let targetThrottleCounter = [];
 
-async function pullData(config) {
+/* ids - an object with endpoints as keys and lists of objects with identifying
+         data as values: e.g. { executions: [ { id: 1 } ] }
+*/
+async function pullData(config, ids) {
   //config.progressBar.start(200, 0);
 
   // Pull data
   let data = {
     source: config.sourceTypeConfig.name
   };
-  for (const endpoint of config.sourceEndpointSet) {
-    let rawPath = config.sourceTypeConfig.source[endpoint].path;
+  let endpoints = [];
+  let fetchType = 'index';
+
+  if (Object.keys(ids).length > 0) {
+    // This means we're doing individual 'gets'.
+    endpoints = Object.keys(ids);
+    fetchType = 'get';
+  } else {
+    // Pull our preconstructed endpoint set.
+    endpoints = config.sourceEndpointSet;
+  }
+
+  for (const endpoint of endpoints) {
+    let rawPath = (
+      fetchType === 'index' ?
+        config.sourceTypeConfig.source[endpoint].endpoints.index.path :
+        config.sourceTypeConfig.source[endpoint].endpoints.get.path
+    );
     let options = {};
 
     // Add authn to the request
@@ -34,71 +56,134 @@ async function pullData(config) {
     }
 
     if (rawPath.indexOf('{') < 0) {
+      // No keys means a simple index.
       let url = config.sourceBaseUrl
         + config.sourceTypeConfig.base_path
         + rawPath;
 
       sourceRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
     } else {
-      let keys = configUtils.findSubstitutionKeys(rawPath);
+      let unsortedKeys = configUtils.findSubstitutionKeys(rawPath);
+      let denormalizedConfigKeys =
+        config.sourceTypeConfig.denormalized_keys.?[endpoint] || {};
+      let keys = [];
+
+      if (Object.keys(denormalizedConfigKeys).length < 1) {
+        keys = unsortedKeys;
+      } else {
+        // Move our denormalized keys to the front of the line for URL building
+        for (let i=Object.keys(denormalizedConfigKeys).length-1; i>-1; i--) {
+          for (const key of unsortedKeys) {
+            if (key.indexOf(Object.keys(denormalizedConfigKeys)[i]) > -1) {
+              keys.unshift(key);
+            } else {
+              keys.push(key);
+            }
+          }
+        }
+      }
+
       let urlList = [];
       urlList.push(config.sourceBaseUrl
                     + config.sourceTypeConfig.base_path
                     + rawPath);
 
-
-      // Loop through the replacement keys (in {}) on this endpoint
-      for (const key of keys) {
-        // Pull the entity type of the key
-        let splitKey = key.split('.');
-        let refEndpoint = splitKey[0];
-        let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'external_id' );
-
-        if (data[refEndpoint]) {
-
-          for (let i=urlList.length-1; i>-1; i--) {
-            let url = urlList[i];
-            // Loop through our source data to find ids for child paths
-            for (const record of data[refEndpoint]) {
-              // Build path and push
-
-              // For odd case around denormalized APIs like TR's "test cases"
-              if (config.sourceTypeConfig.denormalized_keys[endpoint] &&
-                  (refEndpoint in
-                    config.sourceTypeConfig.denormalized_keys[endpoint])) {
-
-                for (const denormKey in
-                  config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
-                  // For poorly designed APIs, you can end up with multiple keys that need to match.  For instance,
-                  //  needing to define both the project and the suite a test belongs to (when the suite belongs to
-                  //  the project as well).
-                  denormValue = config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint][denormKey];
-                  // Look for the matching record in the second type (suites) based on the key in the denorm
-                  //  keys table (project_id).  Then pull that record's refLocation for substitution.
-                  for (const denormRecord of data[denormKey]) {
-                    if (denormRecord.custom_fields[denormValue] === record[refLocation]) {
-                      urlList.push(configUtils.bracketSubstitution(
-                        url,
-                        key,
-                        denormRecord[refLocation]
-                      ));
+      if (fetchType === 'index') {
+        // Loop through the replacement keys (in {}) on this endpoint
+        for (const key of keys) {
+          // Pull the entity type of the key
+          let splitKey = key.split('.');
+          let refEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
+          let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'source_id' );
+  
+          if (data[refEndpoint]) {
+  
+            for (let i=urlList.length-1; i>-1; i--) {
+              let url = urlList[i];
+              // Loop through our source data to find ids for child paths
+              for (const record of data[refEndpoint]) {
+                // Build path and push
+  
+                // For odd case around denormalized APIs like TR's "test cases"
+                if (config.sourceTypeConfig.denormalized_keys[endpoint] &&
+                    (refEndpoint in
+                      config.sourceTypeConfig.denormalized_keys[endpoint])) {
+  
+                  for (const fullDenormKey in
+                      config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
+                    let splitDenormKey = fullDenormKey.split('.');
+                    let denormEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
+  
+                    // For poorly designed APIs, you can end up with multiple keys
+                    //  that need to match.  For instance, needing to define both
+                    //  the project and the suite a test belongs to (when the
+                    //  suite belongs to the project as well).
+                    denormValue =
+                      config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint][fullDenormKey];
+  
+                    // Look for the matching record in the second type (suites)
+                    //  based on the key in the denorm keys table (project_id).
+                    //  Then pull that record's refLocation for substitution.
+                    for (const denormRecord of data[denormEndpoint]) {
+                      if (denormRecord.custom_fields[denormValue] === record[refLocation]) {
+  
+                        // Replace our base key before handing denorm keys.
+                        let newURL = configUtils.bracketSubstitution(
+                          url,
+                          key,
+                          denormRecord[refLocation]
+                        );
+                        for (const [secondaryReplacementKey, secondaryKey] of
+                            Object.entries(denormalizedConfigKeys[refEndpoint])) {
+                          // CTODO - keys can be outside of custom_fields
+                          newURL = configUtils.bracketSubstitution(
+                            newURL,
+                            secondaryReplacementKey,
+                            denormRecord.custom_fields[secondaryKey]
+                          );
+                          let removalIndex = keys.indexOf(secondaryReplacementKey);
+                          if (removalIndex > -1) {
+                            keys.splice(removalIndex, 1);
+                          }
+                        }
+                        urlList.push(newURL);
+                      }
                     }
                   }
+                } else {
+                  // Not a denormalized key
+                  urlList.push(configUtils.bracketSubstitution(
+                      url,
+                      key,
+                      record[refLocation]
+                    ));
                 }
-              } else {
-                // Not a denormalized key
-                urlList.push(configUtils.bracketSubstitution(
-                    url,
-                    key,
-                    record[refLocation]
-                  ));
-              }
-            } // else continue
-            // Remove the original record that has since had variables substituted.
-            urlList.splice(i, 1);
+              } // else continue
+              // Remove the original record that has since had variables
+              //  substituted.
+              urlList.splice(i, 1);
+            }
           }
         }
+      } else if (fetchType === 'get') {
+        for (let i=urlList.length-1; i>-1; i--) {
+          let url = urlList[i];
+          for (const record of ids[endpoint]) {
+            let newURL = url;
+            for (const [secondaryReplacementKey, secondaryKey] of
+                Object.entries(record)) {
+              newURL = configUtils.bracketSubstitution(
+                newURL,
+                secondaryReplacementKey,
+                secondaryKey
+              );
+            }
+            urlList.push(newURL);
+          }
+          urlList.splice(i, 1);
+        }
       }
+
       for (const url of urlList) {
         console.log('Pulling: ' + url);
         sourceRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
@@ -112,6 +197,9 @@ async function pullData(config) {
 
         if (Array.isArray(response.data) && response.data.length < 1) {
           continue;
+        }
+        if (!Array.isArray(response.data)) {
+          response.data = [response.data];
         }
         for (const record of response.data) {
 
@@ -142,8 +230,11 @@ async function pushData(config, data) {
 
   for (const endpoint of config.targetEndpointSet) {
     if (data[endpoint]) {
-      let rawPath = config.targetTypeConfig.target[endpoint].path;
+      let bulkData = [];
+      let updateKey = config.targetTypeConfig.target[endpoint].endpoints?.update.update_key || undefined;
+      let payloadKey = config.targetTypeConfig.target[endpoint].endpoints?.create.payload_key || undefined;
       let options = {};
+      let mapping = config.targetTypeConfig.target[endpoint].mapping || {};
 
       // Add authn to the request
       if (config.targetAuthSchema.location === "header") {
@@ -158,99 +249,146 @@ async function pushData(config, data) {
         }
       }
 
-      options.data = {
-        source: data.source,
-        type: endpoint
-      };
 
-      if (rawPath.indexOf('{') < 0) {
-        let url = config.targetBaseUrl
-          + config.targetTypeConfig.base_path
-          + rawPath;
-        options.data.entries = data[endpoint];
+      for (const datapoint of data[endpoint]) {
+        // Move keys based on mapping
+        mappedDatapoint = dataUtils.mapData(mapping, datapoint);
 
-        targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
-      } else {
-        /*
-        // CTODO - handle APIs that require references
-        let keys = configUtils.findSubstitutionKeys(rawPath);
-        let urlList = [];
-        urlList.push(config.targetBaseUrl
-                      + config.targetTypeConfig.base_path
-                      + rawPath);
-
-
-        // Loop through the replacement keys (in {}) on this endpoint
-        for (const key of keys) {
-          // Pull the entity type of the key
-          let splitKey = key.split('.');
-          let refEndpoint = splitKey[0];
-          let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'external_id' );
-
-          if (data[refEndpoint]) {
-
-            for (let i=urlList.length-1; i>-1; i--) {
-              let url = urlList[i];
-              // Loop through our target data to find ids for child paths
-              for (const record of data[refEndpoint]) {
-                // Build path and push
-
-                // For odd case around denormalized APIs like TR's "test cases"
-                if (config.targetTypeConfig.denormalized_keys[endpoint] &&
-                    (refEndpoint in
-                      config.targetTypeConfig.denormalized_keys[endpoint])) {
-
-                  for (const denormKey in
-                    config.targetTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
-                    // For poorly designed APIs, you can end up with multiple keys that need to match.  For instance,
-                    //  needing to define both the project and the suite a test belongs to (when the suite belongs to
-                    //  the project as well).
-                    denormValue = config.targetTypeConfig.denormalized_keys[endpoint][refEndpoint][denormKey];
-                    // Look for the matching record in the second type (suites) based on the key in the denorm
-                    //  keys table (project_id).  Then pull that record's refLocation for substitution.
-                    for (const denormRecord of data[denormKey]) {
-                      if (denormRecord.custom_fields[denormValue] === record[refLocation]) {
-                        urlList.push(configUtils.bracketSubstitution(
-                          url,
-                          key,
-                          denormRecord[refLocation]
-                        ));
-                      }
-                    }
-                  }
-                } else {
-                  // Not a denormalized key
-                  urlList.push(configUtils.bracketSubstitution(
-                      url,
-                      key,
-                      record[refLocation]
-                    ));
-                }
-              } // else continue
-              // Remove the original record that has since had variables substituted.
-              urlList.splice(i, 1);
+        if (updateKey && mappedDatapoint?.[updateKey]) {
+          // Update record.
+          let rawPath =
+            config.targetTypeConfig.target[endpoint].endpoints.update.path;
+          let dataKey =
+            config.targetTypeConfig.target[endpoint].endpoints.update.data_key;
+          let url = config.targetBaseUrl
+            + config.targetTypeConfig.base_path
+            + rawPath;
+          let requiredKeys =
+            config.targetTypeConfig.target[endpoint].endpoints.update.required_keys
+            ?? [];
+          let missingKeys = [];
+          for (const rKey of requiredKeys) {
+            if (!mappedDatapoint[rKey]) {
+              missingKeys.push(rKey);
             }
           }
+          if (missingKeys.length > 0) {
+            console.log(
+              `Update record missing required keys: (${
+                JSON.stringify(missingKeys)
+               }) for data point: ${JSON.stringify(datapoint)}`);
+            continue;
+          }
+          if (rawPath.indexOf('{') >= 0) {
+            // Handle substitutions
+            let keys = configUtils.findSubstitutionKeys(rawPath);
+            for (const key of keys) {
+              if (mappedDatapoint[key]) {
+                url = configUtils.bracketSubstitution(
+                  url,
+                  key,
+                  mappedDatapoint[key]
+                );
+              } else {
+                console.log(
+                  `Update record missing key [${key}] for data point: ${
+                    JSON.stringify(datapoint)
+                  }`);
+                continue;
+              }
+            }
+          }
+          options.data = dataUtils.buildRequestData(
+            dataKey,
+            mapping,
+            mappedDatapoint
+          );
+          targetRequestsQueue.push(
+            processNetworkPostRequest(config, url, options, endpoint)
+          );
+        } else if (config.targetTypeConfig.target[endpoint].endpoints.create?.multi_path) {
+          // Bulk creation
+          bulkData.push(mappedDatapoint);
+        } else {
+          // Individual creation
+          let rawPath =
+            config.targetTypeConfig.target[endpoint].endpoints.create.single_path;
+          let dataKey =
+            config.targetTypeConfig.target[endpoint].endpoints.create?.data_key;
+          let url = config.targetBaseUrl
+            + config.targetTypeConfig.base_path
+            + rawPath;
+
+          if (payloadKey && mappedDatapoint?.[payloadKey]) {
+            // Creation with payload
+            const filePath = mappedDatapoint?.[payloadKey];
+            if (!fs.existsSync(filePath)) {
+              console.log(`File ${filePath} does not exist. Skipping...`);
+              continue;
+            }
+
+            const form = new FormData();
+            const stats = fs.statSync(filePath);
+            const fileSizeInBytes = stats.size;
+            const fileStream = fs.createReadStream(filePath);
+            // CTODO - Test
+
+            form.append('file', fileStream, {knownLength: fileSizeInBytes});
+            options.data = form;
+          } else {    
+            options.data = dataUtils.buildRequestData(
+              dataKey,
+              mapping,
+              mappedDatapoint
+            );
+            if (config.targetTypeConfig.target[endpoint].endpoints.create.include_source) {
+              options.data.source = data.source;
+            }
+          }
+          targetRequestsQueue.push(
+            processNetworkPostRequest(config, url, options, endpoint)
+          );
+
         }
-        for (const url of urlList) {
-          console.log('Pulling: ' + url);
-          targetRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
-        }
-      */
       }
 
-      // Wait for all calls to this endpoint to finish before proceding
-      await Promise.all(targetRequestsQueue).then(responses => {
-        // CTODO - If we insert individually and get entity info back, then use that to update dependencies.
-        for( var i=responses.length-1; i>=0; i-- ) {
-          let response = responses[i];
-        }
-      });
+      // After our loop, run bulk creation.
+      if (bulkData.length > 0) {
+          let rawPath =
+            config.targetTypeConfig.target[endpoint].endpoints.create.multi_path;
+          let dataKey =
+            config.targetTypeConfig.target[endpoint].endpoints.create?.data_key;
+          let url = config.targetBaseUrl
+            + config.targetTypeConfig.base_path
+            + rawPath;
+
+          options.data = dataUtils.buildRequestData(
+            dataKey,
+            mapping,
+            mappedDatapoint
+          );
+          if (config.targetTypeConfig.target[endpoint].endpoints.create.include_source) {
+            options.data.source = data.source;
+          }
+
+          targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
+
+      }
     }
-    //progressBar.update(200);
-    // config.progressBar.stop();
-    //console.log('Data successfully piped!');
   }
+
+  // Wait for all calls to this endpoint to finish before proceding
+  await Promise.all(targetRequestsQueue).then(responses => {
+    // TODO - Add a backflow option - if we insert individually into the
+    //        target and get entity info back, then use that to update the
+    //        source record somehow.
+    for( var i=responses.length-1; i>=0; i-- ) {
+      let response = responses[i];
+    }
+  });
+  //progressBar.update(200);
+  // config.progressBar.stop();
+  //console.log('Data successfully piped!');
 }
 
 async function processNetworkGetRequest(config, url, options, type) {

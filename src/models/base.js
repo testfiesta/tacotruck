@@ -1,5 +1,6 @@
 class BaseModel {
-  external_id;
+  source_id;
+  target_id;
 
   created_at;
 
@@ -7,9 +8,15 @@ class BaseModel {
   custom_fields = {};
 
 
- constructor(name=undefined, external_id=undefined, created_at=undefined) {
+  constructor(
+      name=undefined,
+      source_id=undefined,
+      target_id=undefined,
+      created_at=undefined
+  ) {
     this.name = name;
-    this.external_id = external_id;
+    this.source_id = source_id;
+    this.target_id = target_id;
     this.created_at = created_at;
   }
 

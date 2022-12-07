@@ -4,12 +4,12 @@ const models = require('../models/core.js');
 const xUnitParser = require('../utils/xUnitParser.js');
 
 
-async function pullData(config) {
+async function pullData(config, ids={}) {
+  // TODO - Pulling individual data points with `ids` is not currently supported
   //config.progressBar.start(200, 0);
-
   // Pull data
   let data = new xUnitParser()
-    .parseFile(config.sourceLocation, config.ignoreConfig);
+    .parseFile(config.sourceLocation, config.ignoreConfig, config);
 
    
   return data;

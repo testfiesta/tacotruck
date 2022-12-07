@@ -1,6 +1,6 @@
 {
-  "name": "YATTPipe",
-  "version": "1.0.0",
+  "name": "yatt-pipe",
+  "version": "0.1.0",
   "description": "Test/QA data pipeline by YATT",
   "main": "index.js",
   "author": "YATT",
@@ -11,6 +11,7 @@
     "cli-progress": "^3.10.0",
     "crypto": "^1.0.1",
     "delay": "^5.0.0",
+    "form-data": "^4.0.0",
     "xml2js-parser": "^1.1.1"
   },
   "devDependencies": {

@@ -4,6 +4,16 @@ const fs = require('fs');
 const credentialedTypes = ['api'];
 const validSourceTypes = ['api', 'junit'];
 const validTargetTypes = ['api'];
+const validDataTypes = [
+  'cases',
+  'plans',
+  'runs',
+  'executions',
+  'projects',
+  'suites',
+  'folders',
+  'issues',
+];
 
 class PipeConfig {
   ignoreConfig;
@@ -31,6 +41,47 @@ class PipeConfig {
   targetProgressIncrement;
 
   constructor(args) {
+    // If data types are provided, validate them.
+    this.dataTypes = [];
+    this.gitRepo;
+    this.gitBranch;
+    this.gitSha;
+
+    if (!args.no_git) {
+      if (fs.existsSync('.git/config')) {
+        const gitConfig = fs.readFileSync('.git/config', { encoding: 'utf-8' });
+        this.gitRepo = gitConfig.split('\n\t').find(config => config.includes('url')).trim().split('/').pop();
+
+        if (fs.existsSync('.git/HEAD')) {
+          const gitHEAD = fs.readFileSync('.git/HEAD', { encoding: 'utf-8' });
+          this.gitBranch = gitHEAD.trim().split('refs/heads/').pop();
+        }
+
+        if (fs.existsSync('.git/logs/HEAD')) {
+          let gitLogSha = fs.readFileSync('.git/logs/HEAD', { encoding: 'utf-8' });
+          gitLogSha = gitLogSha.trim().split('\n');
+          this.gitSha = gitLogSha.length > 0 ? gitLogSha[gitLogSha.length - 1].split(' ')[0] : '';
+        }
+      } else {
+        console.error('Git config not found');
+      }
+    }
+
+    if (args.data_types) {
+      this.dataTypes = [];
+      for (const type of args.data_types.split(',')) {
+        if (validDataTypes.includes(type)) {
+          this.dataTypes.push(type);
+        } else {
+          console.error('Invalid data type: ' + type +'. Ignoring...');
+        }
+      }
+      if (this.dataTypes.length === 0) {
+        console.error('No valid data types provided.');
+        process.exit();
+      }
+    }
+
     // If a source type is provided, set it.
     if (validSourceTypes.includes(args.source_type)) {
       this.sourceType = args.source_type;
@@ -44,7 +95,7 @@ class PipeConfig {
     // If a target type is provided, set it.
     if (args.target_type) {
       if (validSourceTypes.includes(args.target_type)) {
-        targetType = args.target_type;
+        this.targetType = args.target_type;
       } else {
         console.error('Invalid target type: ' + args.target_type);
         process.exit();
@@ -68,9 +119,9 @@ class PipeConfig {
         if (fs.existsSync(args.source)) {
           // Check if this is a custom type
           this.sourceTypeConfig = JSON.parse(fs.readFileSync(args.source));
-        } else if (fs.existsSync('./api_configs/' + args.source + '.json')) {
+        } else if (fs.existsSync(`${packageRoot}/api_configs/${args.source}.json`)) {
           // Fall back to defaults
-          this.sourceTypeConfig = JSON.parse(fs.readFileSync('./api_configs/' + args.source + '.json'));
+          this.sourceTypeConfig = JSON.parse(fs.readFileSync(`${packageRoot}/api_configs/${args.source}.json`));
         } else if (args.source) {
           console.error('Source config not found: ' + args.source);
           process.exit();
@@ -105,9 +156,9 @@ class PipeConfig {
         if (fs.existsSync(args.target)) {
           // Check if this is a custom type
           this.targetTypeConfig = JSON.parse(fs.readFileSync(args.target));
-        } else if (fs.existsSync('./api_configs/' + args.target + '.json')) {
+        } else if (fs.existsSync(`${packageRoot}/api_configs/${args.target}.json`)) {
           // Fall back to defaults
-          this.targetTypeConfig = JSON.parse(fs.readFileSync('./api_configs/' + args.target + '.json'));
+          this.targetTypeConfig = JSON.parse(fs.readFileSync(`${packageRoot}/api_configs/${args.target}.json`));
         } else {
           console.error('Source config not found: ' + args.target);
           process.exit();
@@ -220,9 +271,18 @@ class PipeConfig {
 
       // Parse source config and build dependency graph to determine access order
       var sourceEndpointOrder = [];
-      for (const name in this.sourceTypeConfig.source) {
+      var sourceEndpoints = [];
+      if (this.dataTypes.length > 0) {
+        // If data types are specified, only check those endpoints.
+        for (const type of this.dataTypes) {
+          sourceEndpoints[type] = this.sourceTypeConfig.source[type];
+        }
+      } else {
+        sourceEndpoints = this.sourceTypeConfig.source; 
+      }
+      for (const name in sourceEndpoints) {
         sourceEndpointOrder.push(...buildDependencyChain(
-          this.sourceTypeConfig.source, name
+          this.sourceTypeConfig.source, name, 'index'
         ));
       }
 
@@ -253,14 +313,15 @@ class PipeConfig {
       }
 
       // Parse source config and build dependency graph to determine access order
-      var targetEndpointOrder = [];
-      for (const name in this.targetTypeConfig.target) {
-        targetEndpointOrder.push(...buildDependencyChain(
-          this.targetTypeConfig.target, name
-        ));
+      var targetEndpoints = [];
+      if (this.dataTypes.length > 0) {
+        // If data types are specified, only check those endpoints.
+        targetEndpoints = this.dataTypes;
+      } else {
+        targetEndpoints = this.targetTypeConfig.target;
       }
 
-      targetEndpointOrder.forEach(endpoint =>
+      Object.keys(targetEndpoints).forEach(endpoint =>
         this.targetEndpointSet.add(endpoint)
       );
       this.targetProgressIncrement = 100/this.targetEndpointSet.size;
@@ -269,19 +330,22 @@ class PipeConfig {
 }
 
 // Find all dependencies in chain
-function buildDependencyChain(keyMap, name) {
-  if (!keyMap[name] || !keyMap[name].path) {
+function buildDependencyChain(keyMap, name, endpointSelector) {
+  let path = keyMap[name]?.endpoints?.[endpointSelector]?.path;
+  path ||= keyMap[name]?.endpoints?.[endpointSelector]?.multi_path;
+  path ||= keyMap[name]?.endpoints?.[endpointSelector]?.single_path;
+  if (!keyMap[name] || !path) {
     console.error('Invalid key [' + name + '].');
     process.exit();
   }
-  if (keyMap[name].path.indexOf('{') < 0) {
+  if (path.indexOf('{') < 0) {
     return [name];
   } else {
-    let keys = findSubstitutionKeys(keyMap[name].path);
+    let keys = findSubstitutionKeys(path);
     let dependencyMap = [];
     for (const dependency of keys) {
       dependencyMap.push(
-        ...buildDependencyChain(keyMap, dependency.split('.')[0])
+        ...buildDependencyChain(keyMap, dependency.split('.')[0], endpointSelector)
       );
     }
     dependencyMap.push(name);
@@ -318,7 +382,6 @@ function bracketSubstitution(baseString, oldKey, newKey) {
     );
 }
 
-
 module.exports = {
   bracketSubstitution,
   buildDependencyChain,
@@ -326,4 +389,5 @@ module.exports = {
   PipeConfig,
   validSourceTypes,
   validTargetTypes,
+  validDataTypes,
 }

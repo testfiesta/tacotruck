@@ -5,8 +5,8 @@
   "data_key": "{endpoint}",
   "denormalized_keys": {
     "cases": {
-      "projects": {
-        "suites": "project_id"
+      "suites": {
+        "projects.id": "project_id" 
        }
     }
   },
@@ -21,10 +21,17 @@
     "projects": {
       "response_data_key": "projects",
       "target": "projects",
-      "path": "api/v2/get_projects",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_projects"
+        },
+        "get": {
+          "path": "api/v2/get_project/{id}"
+        }
+      },
       "mapping": {
-	"id": "external_id",
-	"name": "name"
+        "id": "source_id",
+        "name": "name"
       },
       "limit": {
         "type": "count",
@@ -34,9 +41,36 @@
     "suites": {
       "response_data_key": "suites",
       "target": "suites",
-      "path": "api/v2/get_suites/{projects.id}",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_suites/{projects.id}"
+        },
+        "get": {
+          "path": "api/v2/get_suite/{id}"
+        }
+      },
       "mapping": {
-        "id": "external_id",
+        "id": "source_id",
+        "name": "name"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
+      }
+    },
+    "sections": {
+      "response_data_key": "sections",
+      "target": "folders",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_sections/{projects.id}&suite_id={suites.id}"
+        },
+        "get": {
+          "path": "api/v2/get_section/{id}"
+        }
+      },
+      "mapping": {
+        "id": "source_id",
         "name": "name"
       },
       "limit": {
@@ -47,10 +81,17 @@
     "cases": {
       "response_data_key": "cases",
       "target": "cases",
-      "path": "api/v2/get_cases/{projects.id}&suite_id={suites.id}",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_cases/{projects.id}&suite_id={suites.id}"
+        },
+        "get": {
+          "path": "api/v2/get_case/{id}"
+        }
+      },
       "mapping": {
         "created_on": "created_at",
-        "id": "external_id",
+        "id": "source_id",
         "title": "name",
         "updated_on": "updated_at"
       },
@@ -62,10 +103,17 @@
     "plans": {
       "response_data_key": "plans",
       "target": "plans",
-      "path": "api/v2/get_plans/{projects.id}",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_plans/{projects.id}"
+        },
+        "get": {
+          "path": "api/v2/get_plan/{id}"
+        }
+      },
       "mapping": {
 	"created_on": "created_on",
-	"id": "external_id",
+	"id": "source_id",
 	"name": "name"
       },
       "limit": {
@@ -76,10 +124,17 @@
     "runs": {
       "response_data_key": "runs",
       "target": "runs",
-      "path": "api/v2/get_runs/{projects.id}",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_runs/{projects.id}"
+        },
+        "get": {
+          "path": "api/v2/get_run/{id}"
+        }
+      },
       "mapping": {
 	"created_on": "created_at",
-	"id": "external_id",
+	"id": "source_id",
 	"name": "name",
 	"updated_on": "updated_at"
       },
@@ -91,10 +146,135 @@
     "tests": {
       "response_data_key": "tests",
       "target": "executions",
-      "path": "api/v2/get_tests/{runs.id}",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_tests/{runs.id}"
+        },
+        "get": {
+          "path": "api/v2/get_test/{id}"
+        }
+      },
       "mapping": {
-	"id": "external_id",
+	"id": "source_id",
 	"title": "name"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
+      }
+    },
+    "attachments": {
+      "response_data_key": "",
+      "target": "attachments",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_attachments_for_{entity}/{id}"
+        },
+        "get": {
+          "bin_path": "api/v2/get_attachment/{id}"
+        }
+      },
+      "mapping": {
+	"id": "source_id"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
+      }
+    }
+  },
+  "target": {
+    "projects": {
+      "target": "projects",
+      "endpoints": {
+        "create": {
+          "single_path": "api/v2/add_project",
+          "required": ["name"]
+        },
+        "update": {
+          "path": "api/v2/update_project/{id}",
+          "required": ["id", "name"],
+          "update_key": "id"
+        }
+      }
+    },
+    "suites": {
+      "target": "suites",
+      "endpoints": {
+        "create": {
+          "single_path": "api/v2/add_suite/{project_id}",
+          "required": ["name", "project_id"]
+        },
+        "update": {
+          "path": "api/v2/update_suite/{id}",
+          "required": ["id", "name"],
+          "update_key": "id"
+        }
+      }
+    },
+    "sections": {
+      "target": "folders",
+      "endpoints": {
+        "create": {
+          "single_path": "api/v2/add_section/{project_id}",
+          "required": ["project_id", "suite_id"]
+        },
+        "update": {
+          "path": "api/v2/update_case/{id}",
+          "required": ["id"],
+          "update_key": "id"
+        }
+      }
+    },
+    "cases": {
+      "target": "cases",
+      "endpoints": {
+        "create": {
+          "single_path": "api/v2/add_case/{section_id}",
+          "required": ["title", "section_id"]
+        },
+        "update": {
+          "path": "api/v2/update_case/{id}",
+          "required": ["id", "title"],
+          "update_key": "id"
+        }
+      }
+    },
+    "plans": {
+      "target": "plans",
+      "endpoints": {
+        "create": {
+          "single_path": "api/v2/add_plan/{project_id}",
+          "required": ["name", "project_id"]
+        },
+        "update": {
+          "path": "api/v2/update_plan/{id}",
+          "required": ["id", "name"],
+          "update_key": "id"
+        }
+      }
+    },
+    "runs": {
+      "target": "runs",
+      "endpoints": {
+        "create": {
+          "single_path": "api/v2/add_run/{project_id}",
+          "required": ["name", "project_id"]
+        },
+        "update": {
+          "path": "api/v2/update_run/{id}",
+          "required": ["id", "name"],
+          "update_key": "id"
+        }
+      }
+    },
+    "attachments": {
+      "target": "attachments",
+      "endpoints": {
+        "create": {
+          "single_path": "api/v2/add_attachment_to_{entity}/{entity_id}",
+          "required": ["entity_id"]
+        }
       },
       "limit": {
         "type": "count",

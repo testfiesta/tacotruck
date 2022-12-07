@@ -5,22 +5,58 @@
   },
   "target": { 
     "projects": {
-      "path": "api/v1/data"
+      "endpoints": {
+        "create": {
+          "multi_path": "api/v1/projects",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
     },
     "suites": {
-      "path": "api/v1/data"
+      "endpoints": {
+        "create": {
+          "multi_path": "api/v1/suites",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
     },
     "cases": {
-      "path": "api/v1/data"
+      "endpoints": {
+        "create": {
+          "multi_path": "api/v1/cases",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
     },
     "plans": {
-      "path": "api/v1/data"
+      "endpoints": {
+        "create": {
+          "multi_path": "api/v1/plans",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
     },
     "runs": {
-      "path": "api/v1/data"
+      "endpoints": {
+        "create": {
+          "multi_path": "api/v1/runs",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
     },
     "tests": {
-      "path": "api/v1/data"
+      "endpoints": {
+        "create": {
+          "multi_path": "api/v1/executions",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
     }
   }
 }
