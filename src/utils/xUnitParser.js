@@ -1,6 +1,6 @@
 const crypto = require('crypto');
+const dataUtils = require('./data');
 const fs = require('fs');
-const models = require('../models/core.js');
 const xmlParser = require('xml2js-parser').parseStringSync;
 
 function collapse(inputData) {
@@ -55,12 +55,8 @@ function collapse(inputData) {
   return data;
 }
 
-function parseJSONData(data, ignoreConfig, config) {
-  const testRunId = crypto.randomUUID();
-  let newTestRun = new models.TestRun();
-  newTestRun.source_id = testRunId;
+function parseJSONData(data, config) {
   let parsedData = { suites: [], executions: [], runs: [] };
-  parsedData.runs.push(newTestRun);
   let suiteData = data.testsuites || (data.testsuite || []);
   if (data.testsuites && !data.testsuites.testsuite) {
       suiteData = [];
@@ -68,6 +64,16 @@ function parseJSONData(data, ignoreConfig, config) {
   if (data.testsuites && data.testsuites.testsuite) {
       suiteData = data.testsuites.testsuite;
   }
+  delete data.testsuites.testsuite;
+
+  const testRunId = crypto.randomUUID();
+  let newTestRun = dataUtils.mapDataWithIgnores(
+      xUnitParser.TEST_RUNS_MAPPING,
+      data.testsuites,
+     ( config.ignoreConfig ? config.ignoreConfig["runs"] : {} )
+    )
+  newTestRun.generated_source_id = testRunId;
+  parsedData.runs.push(newTestRun);
 
   for (suite of suiteData) {
     let caseData = suite.testcase || [];
@@ -75,40 +81,32 @@ function parseJSONData(data, ignoreConfig, config) {
       caseData = [caseData];
     }
     delete suite.testcase;
-    let newTestSuite = new models.TestSuite();
-    newTestSuite.custom_fields["test_run_id"] = testRunId;
-    if (config.gitRepo) {
-      newTestSuite.custom_fields["git_repo"] = config.gitRepo;
-      newTestSuite.custom_fields["git_branch"] = config.gitBranch;
-      newTestSuite.custom_fields["git_sha"] = config.gitSha;
-    }
-    let suiteBuilt = newTestSuite.build(
+    let newTestSuite = dataUtils.mapDataWithIgnores(
       xUnitParser.TEST_SUITES_MAPPING,
       suite,
-     ( ignoreConfig ? ignoreConfig["testsuites"] : {} )
+     ( config.ignoreConfig ? config.ignoreConfig["suites"] : {} )
     );
 
-    if (suiteBuilt) {
+    if (newTestSuite) {
+      const suiteId = ( !newTestSuite.source_id ?
+        crypto.randomUUID() :
+        newTestSuite.source_id );
       if (!newTestSuite.source_id) {
-        newTestSuite.source_id = "yatt-pipe_" + crypto.randomBytes(12).toString('hex');
-      } // TODO - Do something with this ID to pull things together.
+        newTestSuite.generated_source_id = suiteId;
+      }
       parsedData.suites.push(newTestSuite);
 
       for (tcase of caseData) {
-        let newTestCase = new models.TestCase()
-        newTestCase.custom_fields["test_suite_id"] = newTestSuite.source_id;
-        newTestCase.custom_fields["test_run_id"] = testRunId;
-        if (config.gitRepo) {
-          newTestCase.custom_fields["git_repo"] = config.gitRepo;
-          newTestCase.custom_fields["git_branch"] = config.gitBranch;
-          newTestCase.custom_fields["git_sha"] = config.gitSha;
-        }
-        let caseBuilt = newTestCase.build(
+        let newTestCase = dataUtils.mapDataWithIgnores( 
           xUnitParser.TEST_CASES_MAPPING,
           tcase,
-          ( ignoreConfig ? ignoreConfig["testcases"] : {} )
+          ( config.ignoreConfig ? config.ignoreConfig["executions"] : {} )
         );
-        if (caseBuilt) {
+        newTestCase.test_suite_id = suiteId;
+        newTestCase.test_run_id = testRunId;
+        
+        if (newTestCase) {
+          // A "case" in JUnit parlance is an "execution" for us.
           parsedData.executions.push(newTestCase);
         }
       }
@@ -120,6 +118,10 @@ function parseJSONData(data, ignoreConfig, config) {
 
 class xUnitParser {
 
+  static TEST_RUNS_MAPPING = {
+        name: "name",
+  };
+
   static TEST_SUITES_MAPPING = {
         name: "name",
         timestamp: "created_at"
@@ -129,8 +131,8 @@ class xUnitParser {
         name: "name",
   };
 
-  parseFile(path, ignoreConfig, config) {
-    return parseJSONData(collapse(xmlParser(fs.readFileSync(path))), ignoreConfig, config);
+  parseFile(config) {
+    return parseJSONData(collapse(xmlParser(fs.readFileSync(config.integration))), config);
   }
 
 }

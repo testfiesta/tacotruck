@@ -1,6 +1,5 @@
 const axios = require('axios');
 const configUtils = require('../utils/configuration.js');
-const models = require('../models/core.js');
 const xUnitParser = require('../utils/xUnitParser.js');
 
 
@@ -9,7 +8,7 @@ async function pullData(config, ids={}) {
   //config.progressBar.start(200, 0);
   // Pull data
   let data = new xUnitParser()
-    .parseFile(config.sourceLocation, config.ignoreConfig, config);
+    .parseFile(config);
 
    
   return data;

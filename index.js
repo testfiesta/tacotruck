@@ -18,7 +18,7 @@ if (require.main === module) {
 
   const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
  
-  let availableConfigs = fs.readdirSync(`${packageRoot}/api_configs`)
+  let availableConfigs = fs.readdirSync(`${packageRoot}/configs`)
     .filter(file => !(/(^|\/)\.[^\/\.]/g).test(file))
     .map(file => {
       return file.split('.')[0];
@@ -36,8 +36,8 @@ if (require.main === module) {
     required: false,
     help: 'Path to a config file specifying source records to ignore.'
   });
-  parser.add_argument('-o', '--overwrite', {
-    help: 'JSON including configs to include or overwrite'
+  parser.add_argument('-o', '--overrides', {
+    help: 'JSON data to include in target data'
   });
   parser.add_argument('-s', '--source', {
     required: true,
@@ -45,27 +45,13 @@ if (require.main === module) {
       + '\nor the path to a custom JSON api config.\n'
       + 'For type junit - the path to a JUnit-style XML file.'
   });
-  parser.add_argument('-T', '--source-type', {
-    required: true,
-    help: 'One of: '+ configUtils.validSourceTypes.join(', ')
-  });
   parser.add_argument('-t', '--target', {
-    required: false,
+    required: true,
     help: 'One of: ' + availableConfigs
-  });
-  parser.add_argument('-Y', '--target-type', {
-    required: false,
-    help: 'One of: '+ configUtils.validTargetTypes.join(', ')
-      + '\nIf not provided, it will try to determine based on the `target` argument.'
   });
   parser.add_argument('-d', '--data-types', {
     required: false,
-    help: 'One or more of: ' + configUtils.validDataTypes.join(', ') + '. As a comma-delimited list'
-  });
-  parser.add_argument('-p', '--pipe', {
-    action: 'store_true',
-    required: false,
-    help: 'A complete pipe - pull data from source and push to target.'
+    help: 'Data type keys to use from source config'
   });
   parser.add_argument('--offset', {
     required: false,
@@ -77,51 +63,60 @@ if (require.main === module) {
   });
   parser.add_argument('--count', {
     required: false,
-    help: 'Maximum record count to return..'
+    help: 'Maximum record count to return.'
   });
-  parser.add_argument('-v', '--verbose', { action: 'store_true' });
-  parser.add_argument('--version', { action: 'version', version });
   parser.add_argument('--no-git', {
     action: 'store_true',
     required: false,
   });
+  parser.add_argument('-v', '--verbose', { action: 'store_true' });
+  parser.add_argument('--version', { action: 'version', version });
 
   let args = parser.parse_args();
 
-  if (args.pipe) {
-    pullData(args).then((data) => pushData(args, data));
-  }
+  pullData(args).then((data) => pushData(args, data));
 }
 
 async function pullData(args, ids={}) {
   const config = new configUtils.PipeConfig(args);
+  let responseData = [];
   //config.progressBar = progressBar;
-  switch (config.sourceType) {
-    case 'api':
-      return apiController.pullData(config, ids);
-      break;
-    case 'junit':
-      return xUnitController.pullData(config, ids);
-      break;
-    default:
-      console.log('Unable to process source type: ' + config.sourceType);
-      process.exit();
+  for (const sourceConfig of config.sourceConfigs) {
+    switch (sourceConfig.typeConfig.type) { // CTODO - just pass sourceTypeConfig
+      case 'api':
+        responseData.push(await apiController.pullData(sourceConfig, ids));
+        break;
+      case 'junit':
+        responseData.push(await xUnitController.pullData(sourceConfig, ids));
+        break;
+      default:
+        console.log(`Unable to process source type: ${sourceConfig.type}`);
+        process.exit();
+    }
   }
+  return responseData;
 }
 
 function pushData(args, data) {
   const config = new configUtils.PipeConfig(args);
+  if (!Array.isArray(data)) {
+    data = [data];
+  }
   //config.progressBar = progressBar;
-  switch (config.targetType) { 
-    case 'api':
-      apiController.pushData(config, data);
-      break;
-    case 'junit':
-      xUnitController.pushData(config, data);
-      break;
-    default:
-      console.log('Unable to process target type: ' + config.targetType);
-      process.exit();
+  for (const sourceData of data) {
+    for (const targetConfig of config.targetConfigs) {
+      switch (targetConfig.typeConfig.type) { 
+        case 'api':
+          apiController.pushData(targetConfig, sourceData);
+          break;
+        case 'junit':
+          xUnitController.pushData(targetConfig, sourceData);
+          break;
+        default:
+          console.log(`Unable to process target type: ${targetConfig.type}`);
+          process.exit();
+      }
+    }
   }
 }
 

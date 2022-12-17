@@ -4,50 +4,36 @@ const fs = require('fs');
 const credentialedTypes = ['api'];
 const validSourceTypes = ['api', 'junit'];
 const validTargetTypes = ['api'];
-const validDataTypes = [
-  'cases',
-  'plans',
-  'runs',
-  'executions',
-  'projects',
-  'suites',
-  'folders',
-  'issues',
-];
+const defaultEndpoints = {
+  "source": "index"
+};
 
-class PipeConfig {
+class EndpointConfig {
+  direction;
+  overrides;
+  authSchema;
+  authPayload;
+  baseUrl;
+  credentials;
+  throttleCap = 2;
+  type;
+  typeConfig;
+  typeLocation;
+  endpointSet = [];
+  gitRepo;
+  gitBranch;
+  gitSha;
   ignoreConfig;
-  sourceAuthSchema;
-  sourceAuthPayload;
-  sourceBaseUrl;
-  sourceCredentials;
-  sourceThrottleCap = 2;
-  sourceType;
-  sourceTypeConfig;
-  sourceTypeLocation;
-  sourceEndpointSet = new Set();
-  sourceProgressIncrement;
-  sourceOffsets = {};
+  progressIncrement;
+  offsets = {};
 
-  targetAuthSchema;
-  targetAuthPayload;
-  targetBaseUrl;
-  targetCredentials;
-  targetThrottleCap = 2;
-  targetType;
-  targetTypeConfig;
-  targetTypeLocation;
-  targetEndpointSet = new Set();
-  targetProgressIncrement;
+  constructor(args, integration, direction) {
+    this.direction = direction;
+    this.integration = integration;
 
-  constructor(args) {
-    // If data types are provided, validate them.
-    this.dataTypes = [];
-    this.gitRepo;
-    this.gitBranch;
-    this.gitSha;
+    // Pull git info if this is run via CLI
+    if (require.main === module && !args.no_git) {
 
-    if (!args.no_git) {
       if (fs.existsSync('.git/config')) {
         const gitConfig = fs.readFileSync('.git/config', { encoding: 'utf-8' });
         this.gitRepo = gitConfig.split('\n\t').find(config => config.includes('url')).trim().split('/').pop();
@@ -67,41 +53,200 @@ class PipeConfig {
       }
     }
 
-    if (args.data_types) {
-      this.dataTypes = [];
-      for (const type of args.data_types.split(',')) {
-        if (validDataTypes.includes(type)) {
-          this.dataTypes.push(type);
-        } else {
-          console.error('Invalid data type: ' + type +'. Ignoring...');
-        }
-      }
-      if (this.dataTypes.length === 0) {
-        console.error('No valid data types provided.');
-        process.exit();
-      }
+    if (args.overrides) {
+      this.overrides = args.overrides;
     }
 
-    // If a source type is provided, set it.
-    if (validSourceTypes.includes(args.source_type)) {
-      this.sourceType = args.source_type;
-    } else {
-      console.error('Invalid source type: ' + args.source_type);
+    // Parse the integration config files.
+    try {
+      let integrationSplit = this.integration.split(':');
+      if (integrationSplit.length > 1) {
+        if (integrationSplit.length > 2) {
+          console.error(`Invalid local file integration [${this.integration}].`);
+          process.exit();
+        }
+        this.integration = integrationSplit[1];
+        if (fs.existsSync(this.integration)) {
+          // Check if this is a custom type
+          this.typeConfig = {
+            name: integrationSplit[0],
+            type: integrationSplit[0],
+          };
+        }
+      } else {
+        if (fs.existsSync(this.integration)) {
+          this.typeConfig = JSON.parse(fs.readFileSync(`${this.integration}.json`));
+        } else if (fs.existsSync(`${packageRoot}/configs/${this.integration}.json`)) {
+          // Fall back to defaults
+          this.typeConfig = JSON.parse(fs.readFileSync(`${packageRoot}/configs/${this.integration}.json`));
+        } else if (this.integration) {
+          console.error(`Integration config not found: ${this.integration}`);
+          process.exit();
+        }
+      }
+    } catch (err) {
+      console.error(`Invalid integration config: ${err}`);
       process.exit();
     }
 
-    this.sourceLocation = args.source;
-
-    // If a target type is provided, set it.
-    if (args.target_type) {
-      if (validSourceTypes.includes(args.target_type)) {
-        this.targetType = args.target_type;
-      } else {
-        console.error('Invalid target type: ' + args.target_type);
+    // Ensure the "type" for the integration is valid.
+    if (!this.typeConfig?.type) {
+      console.error(`Missing 'type' for [${this.integration}]`);
+      process.exit();
+    } else {
+      if (this.direction === 'source' &&
+          !validSourceTypes.includes(this.typeConfig.type)) { 
+        console.error(`Invalid source type: ${this.typeConfig.type}`);
+        process.exit();
+      }
+      if (this.direction === 'target' &&
+          !validTargetTypes.includes(this.typeConfig.type)) { 
+        console.error(`Invalid target type: ${this.typeConfig.type}`);
         process.exit();
       }
     }
 
+    if (!this.typeConfig.name) {
+      console.error('Configuration file must specify a "name" to identify the service.');
+      process.exit();
+    }
+
+
+    // Parse credentials file and ensure it matches expected data based on
+    // type provided in the config
+    if (credentialedTypes.includes(this.typeConfig.type)) {
+      try {
+        if (args.credentials && fs.existsSync(args.credentials)) {
+          let creds = JSON.parse(fs.readFileSync(args.credentials));
+          this.credentials = creds[this.integration][this.direction];
+          this.baseUrl = creds[this.integration][this.direction].base_url;
+        } else {
+          this.credentials = JSON.parse(
+            process.env[
+              this.integration.toUpperCase() + '_' +
+              this.direction.toUpperCase() + '_CREDENTIALS'
+            ]
+          );
+          this.baseUrl = credentials.base_url;
+        }
+
+        if (!this.credentials && !this.baseUrl) {
+          console.error(
+            `Credentials missing for [${this.integration} - ${this.direction}]`
+          );
+          process.exit();
+        }
+      } catch (err) {
+        console.error(`Issue reading ${this.integration} credentials: ${err}`);
+        process.exit();
+      }
+
+      try {
+        this.authSchema =
+          auth.authSchemas[this.typeConfig.auth.type];
+      } catch(err) {
+        console.error('Invalid auth configuration: ' + err);
+        process.exit();
+      }
+
+      // Build our credentials
+      for (const key of this.authSchema.inputs) {
+        if (!this.credentials[key]) {
+          console.error(
+            `Invalid credentials for ${this.integration} - ${this.direction}.` +
+            `\n Missing input: ${key}`);
+          process.exit();
+        } else {
+          let keyIndex = this.authSchema.payload.indexOf(key);
+          if (keyIndex < 0) {
+            console.error(`Key [${key}] not found in payload.`);
+            process.exit();
+          }
+          // Do our substitutions to build the payload.
+          this.authPayload =
+            this.authSchema.payload.substring(0, keyIndex-1)
+            + this.credentials[key]
+            + this.authSchema.payload.substring(
+              keyIndex+key.length+1, this.authSchema.payload.length
+            );
+        }
+      }
+    } 
+
+    // Handle integration type specifics
+    if (this.typeConfig.type === 'api') {
+      if (this.typeConfig.requests_per_second) {
+        if (isNaN(this.typeConfig.requests_per_second)) {
+          console.error(
+            `Invalid config "requests_per_second" on [${this.integration}] API.`
+          );
+        } else {
+          this.throttleCap = this.typeConfig.requests_per_second;
+        }
+      }
+
+      // Parse integration config and build dependency graph to determine
+      //   access order
+      var endpointOrder = [];
+      var endpoints = [];
+      if (args.dataTypes && args.dataTypes.length > 0) {
+        //// If data types are specified, only check those endpoints.
+        //for (const type of dataTypes) {
+        //  endpoints[type] = this.typeConfig[this.direction][type];
+        //} CTODO - remove if this works
+        for (const type of args.dataTypes) {
+          if (!this.typeConfig?.[this.direction]?.[type]) {
+            console.error(
+              `Invalid data type [${type}] for [${this.integration}]. Ignoring.`
+            );
+          } else {
+            endpoints.push(type);
+          }
+        }
+      } else {
+        endpoints = Object.keys(this.typeConfig[this.direction]); 
+      }
+
+      if (defaultEndpoints[this.direction]) {
+        for (const name of endpoints) {
+          endpointOrder.push(...buildDependencyChain(
+            this.typeConfig[this.direction],
+            name,
+            defaultEndpoints[this.direction]
+          ));
+        }
+      } else {
+        endpointOrder = endpoints;
+      }
+
+      if (endpointOrder.length < 1) {
+        console.error(
+          `No valid data types provided for [${this.integration}].`
+        );
+        process.exit();
+      }
+
+      endpointOrder.forEach(endpoint => {
+        if (!this.endpointSet.includes(endpoint)) {
+          this.endpointSet.push(endpoint);
+        } 
+      });
+      this.progressIncrement = 100/this.endpointSet.size;
+
+      // If incremental, get last offsets from target config
+      for (const endpoint of this.endpointSet) {
+        if (args.incremental) {
+          // TODO
+        } else {
+          this.offsets[endpoint] = 0;
+          // TODO use this
+        } 
+      } 
+    } else if (this.typeConfig.type === 'junit') {
+      // NOOP
+    }
+
+    // Parse the ignore file
     try {
       if (args.ignore) {
         if (fs.existsSync(args.ignore)) {
@@ -112,220 +257,33 @@ class PipeConfig {
     } catch (err) {
       console.error('Invalid ignore config: ' + err);
     }
+  }
+}
 
-    // Parse the source config files.
-    if (this.sourceType === 'api') {
-      try {
-        if (fs.existsSync(args.source)) {
-          // Check if this is a custom type
-          this.sourceTypeConfig = JSON.parse(fs.readFileSync(args.source));
-        } else if (fs.existsSync(`${packageRoot}/api_configs/${args.source}.json`)) {
-          // Fall back to defaults
-          this.sourceTypeConfig = JSON.parse(fs.readFileSync(`${packageRoot}/api_configs/${args.source}.json`));
-        } else if (args.source) {
-          console.error('Source config not found: ' + args.source);
-          process.exit();
-        }
-      } catch (err) {
-        console.error('Invalid source config: ' + err);
-        process.exit();
-      }
-    } else {
-      console.error('Invalid source type: ' + this.sourceType);
+class PipeConfig {
+  sourceConfigs = [];
+  targetConfigs = [];
+
+  constructor(args) {
+
+    let sources = args.source.split(',');
+    for (const source of sources) {
+      this.sourceConfigs.push(new EndpointConfig(args, source, 'source'));
+    }
+    if (this.sourceConfigs.length < 1) {
+      console.error('You must specify at least one data source.');
       process.exit();
     }
 
-    if (!this.sourceTypeConfig.name) {
-      console.error('Source configuration file must specify a "name" to identify the service.');
+    let targets = args.target.split(',');
+    for (const target of targets) {
+      this.targetConfigs.push(new EndpointConfig(args, target, 'target'));
+    }
+    if (this.targetConfigs.length < 1) {
+      console.error('You must specify at least one data target.');
       process.exit();
     }
 
-    // Default target type to api if no config was provided
-    if (!this.targetType) {
-      this.targetType = 'api';
-    }
-
-    // Default target to YATT
-    if (!args.target) {
-      args.target = 'yatt';
-    }
-
-    // Parse the target config files.
-    if (this.targetType === 'api') {
-      try {
-        if (fs.existsSync(args.target)) {
-          // Check if this is a custom type
-          this.targetTypeConfig = JSON.parse(fs.readFileSync(args.target));
-        } else if (fs.existsSync(`${packageRoot}/api_configs/${args.target}.json`)) {
-          // Fall back to defaults
-          this.targetTypeConfig = JSON.parse(fs.readFileSync(`${packageRoot}/api_configs/${args.target}.json`));
-        } else {
-          console.error('Source config not found: ' + args.target);
-          process.exit();
-        }
-      } catch (err) {
-        console.error('Invalid target config: ' + err);
-        process.exit();
-      }
-    } else {
-      console.error('Invalid target type: ' + this.targetType);
-      process.exit();
-    }
-
-    if (credentialedTypes.includes(this.sourceType)) {
-      // Parse credentials file and ensure it matches expected data based on type
-      // provided in the config
-      try {
-        let creds = JSON.parse(fs.readFileSync(args.credentials));
-        this.sourceCredentials = creds.source;
-        this.sourceBaseUrl = creds.source.base_url;
-      } catch (err) {
-        console.error('Issue reading source credentials file: ' + err);
-        process.exit();
-      }
-
-      try {
-        this.sourceAuthSchema =
-          auth.authSchemas[this.sourceTypeConfig.auth.type];
-      } catch(err) {
-        console.error('Invalid auth configuration: ' + err);
-        process.exit();
-      }
-
-      // Build our source API credentials
-      for (const key of this.sourceAuthSchema.inputs) {
-        if (!this.sourceCredentials[key]) {
-          console.error('Invalid source credentials.' +
-            '\n Missing input: ' + key);
-          process.exit();
-        } else {
-          let keyIndex = this.sourceAuthSchema.payload.indexOf(key);
-          if (keyIndex < 0) {
-            console.error('Key [' + key + '] not found in payload.');
-            process.exit();
-          }
-          // Do our substitutions to build the payload.
-          this.sourceAuthPayload =
-            this.sourceAuthSchema.payload.substring(0, keyIndex-1)
-            + this.sourceCredentials[key]
-            + this.sourceAuthSchema.payload.substring(
-              keyIndex+key.length+1, this.sourceAuthSchema.payload.length
-            );
-        }
-      }
-    }
-
-    // Build our target API credentials
-
-    if (credentialedTypes.includes(this.targetType)) {
-      // Parse credentials file and ensure it matches expected data based on type
-      // provided in the config
-      try {
-        let creds = JSON.parse(fs.readFileSync(args.credentials));
-        this.targetCredentials = creds.target;
-        this.targetBaseUrl = creds.target.base_url;
-      } catch (err) {
-        console.error('Issue reading target credentials file: ' + err);
-        process.exit();
-      }
-
-      try {
-        this.targetAuthSchema =
-          auth.authSchemas[this.targetTypeConfig.auth.type];
-      } catch(err) {
-        console.error('Invalid auth configuration: ' + err);
-        process.exit();
-      }
-
-      // Build our target API credentials
-      for (const key of this.targetAuthSchema.inputs) {
-        if (!this.targetCredentials[key]) {
-          console.error('Invalid target credentials.' +
-            '\n Missing input: ' + key);
-          process.exit();
-        } else {
-          let keyIndex = this.targetAuthSchema.payload.indexOf(key);
-          if (keyIndex < 0) {
-            console.error('Key [' + key + '] not found in payload.');
-            process.exit();
-          }
-          // Do our substitutions to build the payload.
-          this.targetAuthPayload =
-            this.targetAuthSchema.payload.substring(0, keyIndex-1)
-            + this.targetCredentials[key]
-            + this.targetAuthSchema.payload.substring(
-              keyIndex+key.length+1, this.targetAuthSchema.payload.length
-            );
-        }
-      }
-    }
-
-    if (this.sourceType === 'api') {
-      if (this.sourceTypeConfig.requests_per_second) {
-        if (isNaN(this.sourceTypeConfig.requests_per_second)) {
-          console.error('Invalid config "requests_per_second" on source API.');
-        } else {
-          this.sourceThrottleCap = this.sourceTypeConfig.requests_per_second;
-        }
-      }
-
-      // Parse source config and build dependency graph to determine access order
-      var sourceEndpointOrder = [];
-      var sourceEndpoints = [];
-      if (this.dataTypes.length > 0) {
-        // If data types are specified, only check those endpoints.
-        for (const type of this.dataTypes) {
-          sourceEndpoints[type] = this.sourceTypeConfig.source[type];
-        }
-      } else {
-        sourceEndpoints = this.sourceTypeConfig.source; 
-      }
-      for (const name in sourceEndpoints) {
-        sourceEndpointOrder.push(...buildDependencyChain(
-          this.sourceTypeConfig.source, name, 'index'
-        ));
-      }
-
-      sourceEndpointOrder.forEach(endpoint =>
-        this.sourceEndpointSet.add(endpoint)
-      );
-      this.sourceProgressIncrement = 100/this.sourceEndpointSet.size;
-
-      // If incremental, get last offsets from target config
-      for (const endpoint of this.sourceEndpointSet) {
-        if (args.incremental) {
-          // CTODO
-        } else {
-          this.sourceOffsets[endpoint] = 0;
-          // CTODO use this
-        } 
-      } 
-    } else if (this.sourceType === 'junit') {
-    }
-
-    if (this.targetType === 'api') {
-      if (this.targetTypeConfig.requests_per_second) {
-        if (isNaN(this.targetTypeConfig.requests_per_second)) {
-          console.error('Invalid config "requests_per_second" on target API.');
-        } else {
-          this.targetThrottleCap = this.targetTypeConfig.requests_per_second;
-        }
-      }
-
-      // Parse source config and build dependency graph to determine access order
-      var targetEndpoints = [];
-      if (this.dataTypes.length > 0) {
-        // If data types are specified, only check those endpoints.
-        targetEndpoints = this.dataTypes;
-      } else {
-        targetEndpoints = this.targetTypeConfig.target;
-      }
-
-      Object.keys(targetEndpoints).forEach(endpoint =>
-        this.targetEndpointSet.add(endpoint)
-      );
-      this.targetProgressIncrement = 100/this.targetEndpointSet.size;
-    }
   }
 }
 
@@ -362,7 +320,7 @@ function findSubstitutionKeys(keyString) {
   while (startIndex > -1) {
     let endIndex = fragment.indexOf('}');
     if (endIndex < 0) {
-      console.error('Unmatched brackets in source API path: ' + name);
+      console.error('Unmatched brackets in API path: ' + name);
       process.exit(); 
     }
     keys.push(fragment.substring(startIndex+1, endIndex));
@@ -389,5 +347,4 @@ module.exports = {
   PipeConfig,
   validSourceTypes,
   validTargetTypes,
-  validDataTypes,
 }

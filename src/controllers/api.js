@@ -1,7 +1,6 @@
 const axios = require('axios');
 const configUtils = require('../utils/configuration.js');
 const dataUtils = require('../utils/data.js');
-const models = require('../models/core.js');
 const FormData = require('form-data');
 const fs = require('fs');
 
@@ -20,7 +19,7 @@ async function pullData(config, ids) {
 
   // Pull data
   let data = {
-    source: config.sourceTypeConfig.name
+    source: config.typeConfig.name
   };
   let endpoints = [];
   let fetchType = 'index';
@@ -31,41 +30,41 @@ async function pullData(config, ids) {
     fetchType = 'get';
   } else {
     // Pull our preconstructed endpoint set.
-    endpoints = config.sourceEndpointSet;
+    endpoints = config.endpointSet;
   }
 
   for (const endpoint of endpoints) {
     let rawPath = (
       fetchType === 'index' ?
-        config.sourceTypeConfig.source[endpoint].endpoints.index.path :
-        config.sourceTypeConfig.source[endpoint].endpoints.get.path
+        config.typeConfig.source[endpoint].endpoints.index.path :
+        config.typeConfig.source[endpoint].endpoints.get.path
     );
     let options = {};
 
     // Add authn to the request
-    if (config.sourceAuthSchema.location === "header") {
+    if (config.authSchema.location === "header") {
       options.headers = {};
       let keys =
-        configUtils.findSubstitutionKeys(config.sourceAuthSchema.payload);
+        configUtils.findSubstitutionKeys(config.authSchema.payload);
       // Loop through the replacement keys (in {}) on this endpoint
       for (const key of keys) {
         // Pull identifier
-        options.headers[config.sourceAuthSchema.key] =
-          config.sourceAuthPayload;
+        options.headers[config.authSchema.key] =
+          config.authPayload;
       }
     }
 
     if (rawPath.indexOf('{') < 0) {
       // No keys means a simple index.
-      let url = config.sourceBaseUrl
-        + config.sourceTypeConfig.base_path
+      let url = config.baseUrl
+        + config.typeConfig.base_path
         + rawPath;
 
       sourceRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
     } else {
       let unsortedKeys = configUtils.findSubstitutionKeys(rawPath);
       let denormalizedConfigKeys =
-        config.sourceTypeConfig.denormalized_keys.?[endpoint] || {};
+        config.typeConfig.denormalized_keys?.[endpoint] || {};
       let keys = [];
 
       if (Object.keys(denormalizedConfigKeys).length < 1) {
@@ -84,8 +83,8 @@ async function pullData(config, ids) {
       }
 
       let urlList = [];
-      urlList.push(config.sourceBaseUrl
-                    + config.sourceTypeConfig.base_path
+      urlList.push(config.baseUrl
+                    + config.typeConfig.base_path
                     + rawPath);
 
       if (fetchType === 'index') {
@@ -94,7 +93,11 @@ async function pullData(config, ids) {
           // Pull the entity type of the key
           let splitKey = key.split('.');
           let refEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
-          let refLocation = ( splitKey[1] && splitKey[1] !== 'id' ? splitKey[1] : 'source_id' );
+          let refLocation = (
+            splitKey[1] && splitKey[1] !== 'id' ?
+              splitKey[1] :
+              'source_id'
+          );
   
           if (data[refEndpoint]) {
   
@@ -105,12 +108,12 @@ async function pullData(config, ids) {
                 // Build path and push
   
                 // For odd case around denormalized APIs like TR's "test cases"
-                if (config.sourceTypeConfig.denormalized_keys[endpoint] &&
+                if (config.typeConfig.denormalized_keys[endpoint] &&
                     (refEndpoint in
-                      config.sourceTypeConfig.denormalized_keys[endpoint])) {
+                      config.typeConfig.denormalized_keys[endpoint])) {
   
                   for (const fullDenormKey in
-                      config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint]) {
+                      config.typeConfig.denormalized_keys[endpoint][refEndpoint]) {
                     let splitDenormKey = fullDenormKey.split('.');
                     let denormEndpoint = splitKey[0]; // i.e. the "projects" in "projects.id"
   
@@ -119,13 +122,13 @@ async function pullData(config, ids) {
                     //  the project and the suite a test belongs to (when the
                     //  suite belongs to the project as well).
                     denormValue =
-                      config.sourceTypeConfig.denormalized_keys[endpoint][refEndpoint][fullDenormKey];
+                      config.typeConfig.denormalized_keys[endpoint][refEndpoint][fullDenormKey];
   
                     // Look for the matching record in the second type (suites)
                     //  based on the key in the denorm keys table (project_id).
                     //  Then pull that record's refLocation for substitution.
                     for (const denormRecord of data[denormEndpoint]) {
-                      if (denormRecord.custom_fields[denormValue] === record[refLocation]) {
+                      if (denormRecord?.[denormValue] === record[refLocation]) {
   
                         // Replace our base key before handing denorm keys.
                         let newURL = configUtils.bracketSubstitution(
@@ -135,11 +138,10 @@ async function pullData(config, ids) {
                         );
                         for (const [secondaryReplacementKey, secondaryKey] of
                             Object.entries(denormalizedConfigKeys[refEndpoint])) {
-                          // CTODO - keys can be outside of custom_fields
                           newURL = configUtils.bracketSubstitution(
                             newURL,
                             secondaryReplacementKey,
-                            denormRecord.custom_fields[secondaryKey]
+                            denormRecord?.[secondaryKey]
                           );
                           let removalIndex = keys.indexOf(secondaryReplacementKey);
                           if (removalIndex > -1) {
@@ -185,7 +187,6 @@ async function pullData(config, ids) {
       }
 
       for (const url of urlList) {
-        console.log('Pulling: ' + url);
         sourceRequestsQueue.push(processNetworkGetRequest(config, url, options, endpoint));
       }
     }
@@ -202,17 +203,19 @@ async function pullData(config, ids) {
           response.data = [response.data];
         }
         for (const record of response.data) {
-
-          let dataPoint = new models.modelTypes[response.target_type];
-          let built = dataPoint.build(
-            config.sourceTypeConfig.source[response.source_type].mapping,
+          let dataPoint = dataUtils.mapDataWithIgnores(
+            config.typeConfig.source[response.source_type].mapping,
             record,
-            ( config.ignoreConfig ? config.ignoreConfig[response.source_type] : {} )
+            (
+              config.ignoreConfig ?
+                config.ignoreConfig[response.source_type] :
+                {}
+            )
           );
           if( !data[response.target_type] ) {
             data[response.target_type] = [];
           }
-          if (built) {
+          if (dataPoint) {
             data[response.target_type].push(dataPoint);
           }
         }
@@ -228,27 +231,31 @@ async function pushData(config, data) {
 
   console.log(JSON.stringify(data, null, 2));
 
-  for (const endpoint of config.targetEndpointSet) {
+  for (const endpoint of config.endpointSet) {
     if (data[endpoint]) {
       let bulkData = [];
-      let updateKey = config.targetTypeConfig.target[endpoint].endpoints?.update.update_key || undefined;
-      let payloadKey = config.targetTypeConfig.target[endpoint].endpoints?.create.payload_key || undefined;
+      let updateKey = config.typeConfig.target[endpoint].endpoints?.update?.update_key || undefined;
+      let payloadKey = config.typeConfig.target[endpoint].endpoints?.create?.payload_key || undefined;
       let options = {};
-      let mapping = config.targetTypeConfig.target[endpoint].mapping || {};
+      let mapping = config.typeConfig.target[endpoint].mapping || {};
+      //if (!updateKey || !payloadKey) {
+      //  // CTODO - fix yatt input
+      //  console.log(`endpoint: ${endpoint}`);
+      //  console.log(`UK / PK: ${updateKey} / ${payloadKey}`);
+      //}
 
       // Add authn to the request
-      if (config.targetAuthSchema.location === "header") {
+      if (config.authSchema.location === "header") {
         options.headers = {};
         let keys =
-          configUtils.findSubstitutionKeys(config.targetAuthSchema.payload);
+          configUtils.findSubstitutionKeys(config.authSchema.payload);
         // Loop through the replacement keys (in {}) on this endpoint
         for (const key of keys) {
           // Pull identifier
-          options.headers[config.targetAuthSchema.key] =
-            config.targetAuthPayload;
+          options.headers[config.authSchema.key] =
+            config.authPayload;
         }
       }
-
 
       for (const datapoint of data[endpoint]) {
         // Move keys based on mapping
@@ -257,14 +264,14 @@ async function pushData(config, data) {
         if (updateKey && mappedDatapoint?.[updateKey]) {
           // Update record.
           let rawPath =
-            config.targetTypeConfig.target[endpoint].endpoints.update.path;
+            config.typeConfig.target[endpoint].endpoints.update.path;
           let dataKey =
-            config.targetTypeConfig.target[endpoint].endpoints.update.data_key;
-          let url = config.targetBaseUrl
-            + config.targetTypeConfig.base_path
+            config.typeConfig.target[endpoint].endpoints.update.data_key;
+          let url = config.baseUrl
+            + config.typeConfig.base_path
             + rawPath;
           let requiredKeys =
-            config.targetTypeConfig.target[endpoint].endpoints.update.required_keys
+            config.typeConfig.target[endpoint].endpoints.update.required_keys
             ?? [];
           let missingKeys = [];
           for (const rKey of requiredKeys) {
@@ -273,7 +280,7 @@ async function pushData(config, data) {
             }
           }
           if (missingKeys.length > 0) {
-            console.log(
+            console.error(
               `Update record missing required keys: (${
                 JSON.stringify(missingKeys)
                }) for data point: ${JSON.stringify(datapoint)}`);
@@ -290,7 +297,7 @@ async function pushData(config, data) {
                   mappedDatapoint[key]
                 );
               } else {
-                console.log(
+                console.error(
                   `Update record missing key [${key}] for data point: ${
                     JSON.stringify(datapoint)
                   }`);
@@ -303,27 +310,43 @@ async function pushData(config, data) {
             mapping,
             mappedDatapoint
           );
+
+          if (config.gitRepo || config.gitBranch || config.gitSha) {
+            options.data.source_control = {
+              'repo': config.gitRepo,
+              'branch': config.gitBranch,
+              'sha': config.gitSha
+            };
+          }
+
+          // Add our override data on update
+          if (config.overrides?.[endpoint]) {
+            for (const[key, value] of config.overrides[endpoint]) {
+              options.data[key] = value;
+            }
+          }
+
           targetRequestsQueue.push(
             processNetworkPostRequest(config, url, options, endpoint)
           );
-        } else if (config.targetTypeConfig.target[endpoint].endpoints.create?.multi_path) {
+        } else if (config.typeConfig.target[endpoint].endpoints.create?.multi_path) {
           // Bulk creation
           bulkData.push(mappedDatapoint);
         } else {
           // Individual creation
           let rawPath =
-            config.targetTypeConfig.target[endpoint].endpoints.create.single_path;
+            config.typeConfig.target[endpoint].endpoints.create.single_path;
           let dataKey =
-            config.targetTypeConfig.target[endpoint].endpoints.create?.data_key;
-          let url = config.targetBaseUrl
-            + config.targetTypeConfig.base_path
+            config.typeConfig.target[endpoint].endpoints.create?.data_key;
+          let url = config.baseUrl
+            + config.typeConfig.base_path
             + rawPath;
 
           if (payloadKey && mappedDatapoint?.[payloadKey]) {
             // Creation with payload
             const filePath = mappedDatapoint?.[payloadKey];
             if (!fs.existsSync(filePath)) {
-              console.log(`File ${filePath} does not exist. Skipping...`);
+              console.error(`File ${filePath} does not exist. Skipping...`);
               continue;
             }
 
@@ -341,9 +364,26 @@ async function pushData(config, data) {
               mapping,
               mappedDatapoint
             );
-            if (config.targetTypeConfig.target[endpoint].endpoints.create.include_source) {
+
+            if (config.typeConfig.target[endpoint].endpoints.create.include_source) {
               options.data.source = data.source;
             }
+
+            if (config.gitRepo || config.gitBranch || config.gitSha) {
+              options.data.source_control = {
+                'repo': config.gitRepo,
+                'branch': config.gitBranch,
+                'sha': config.gitSha
+              };
+            }
+
+            // Add our override data on create
+            if (config.overrides?.[endpoint]) {
+              for (const[key, value] of config.overrides[endpoint]) {
+                options.data[key] = value;
+              }
+            }
+
           }
           targetRequestsQueue.push(
             processNetworkPostRequest(config, url, options, endpoint)
@@ -355,11 +395,11 @@ async function pushData(config, data) {
       // After our loop, run bulk creation.
       if (bulkData.length > 0) {
           let rawPath =
-            config.targetTypeConfig.target[endpoint].endpoints.create.multi_path;
+            config.typeConfig.target[endpoint].endpoints.create.multi_path;
           let dataKey =
-            config.targetTypeConfig.target[endpoint].endpoints.create?.data_key;
-          let url = config.targetBaseUrl
-            + config.targetTypeConfig.base_path
+            config.typeConfig.target[endpoint].endpoints.create?.data_key;
+          let url = config.baseUrl
+            + config.typeConfig.base_path
             + rawPath;
 
           options.data = dataUtils.buildRequestData(
@@ -367,9 +407,26 @@ async function pushData(config, data) {
             mapping,
             mappedDatapoint
           );
-          if (config.targetTypeConfig.target[endpoint].endpoints.create.include_source) {
+
+          if (config.typeConfig.target[endpoint].endpoints.create.include_source) {
             options.data.source = data.source;
           }
+
+          if (config.gitRepo || config.gitBranch || config.gitSha) {
+            options.data.source_control = {
+              'repo': config.gitRepo,
+              'branch': config.gitBranch,
+              'sha': config.gitSha
+            };
+          }
+
+          // Add our override data on create
+          if (config.overrides?.[endpoint]) {
+            for (const[key, value] of config.overrides[endpoint]) {
+              options.data[key] = value;
+            }
+          }
+
 
           targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
 
@@ -388,13 +445,11 @@ async function pushData(config, data) {
   });
   //progressBar.update(200);
   // config.progressBar.stop();
-  //console.log('Data successfully piped!');
 }
 
 async function processNetworkGetRequest(config, url, options, type) {
-
   // If we're over our throttle, wait.
-  while (sourceThrottleCounter.length > config.sourceThrottleCap) {
+  while (sourceThrottleCounter.length > config.throttleCap) {
     // Discard timestamps > 1 second ago
     for (const t of sourceThrottleCounter) {
       if (t < Date.now()-1000) {
@@ -404,8 +459,8 @@ async function processNetworkGetRequest(config, url, options, type) {
       }
     }
 
-    if (sourceThrottleCounter.length > config.sourceThrottleCap) {
-      await new Promise(resolve => setTimeout(resolve, 1000/config.sourceThrottleCap));
+    if (sourceThrottleCounter.length > config.throttleCap) {
+      await new Promise(resolve => setTimeout(resolve, 1000/config.throttleCap));
     }
   }
 
@@ -413,18 +468,17 @@ async function processNetworkGetRequest(config, url, options, type) {
   sourceThrottleCounter.push(Date.now());
 
   return axios.get(url, options).then((response => {
-
     let dataSet;
     if (Array.isArray(response.data) && response.data.length < 1) {
       dataSet = [];
     } else {
       // If we have a key we expect in the response and it isn't empty, use it.  Otherwise it's the whole data.
-      dataSet = ( config.sourceTypeConfig.source[type].response_data_key &&
+      dataSet = ( config.typeConfig.source[type].response_data_key &&
                      response.data[
-                       config.sourceTypeConfig.source[type].response_data_key
+                       config.typeConfig.source[type].response_data_key
                      ] ?
                      response.data[
-                       config.sourceTypeConfig.source[type].response_data_key
+                       config.typeConfig.source[type].response_data_key
                      ] :
                      response.data );
       // If this is our first request of this type, count how many entries we recieve at the response_data_key.
@@ -435,19 +489,19 @@ async function processNetworkGetRequest(config, url, options, type) {
     }
 
     // Handle paging
-    if (config.sourceTypeConfig.paging.location === "response") {
+    if (config.typeConfig.paging.location === "response") {
       let keepPaging = true;
       // If we have a limit, check before paging.
-      if (config.sourceTypeConfig.source[type].limit) {
-        switch (config.sourceTypeConfig.source[type].limit.type) {
+      if (config.typeConfig.source[type].limit) {
+        switch (config.typeConfig.source[type].limit.type) {
           case 'count':
             // If it is a raw count
-            if (sourceResponseCounter[type] >= config.sourceTypeConfig.source[type].limit.value) {
-              if (!config.sourceTypeConfig.source[type].limit.cutoff || // TODO - Move default to config setup
-                  (config.sourceTypeConfig.source[type].limit.cutoff &&
-                  config.sourceTypeConfig.source[type].limit.cutoff === 'hard')) {
+            if (sourceResponseCounter[type] >= config.typeConfig.source[type].limit.value) {
+              if (!config.typeConfig.source[type].limit.cutoff || // TODO - Move default to config setup
+                  (config.typeConfig.source[type].limit.cutoff &&
+                  config.typeConfig.source[type].limit.cutoff === 'hard')) {
                 let overage = sourceResponseCounter[type]
-                  - parseInt(config.sourceTypeConfig.source[type].limit.value);
+                  - parseInt(config.typeConfig.source[type].limit.value);
                 dataSet.splice(dataSet.length-overage, dataSet.length-overage+1);
               }
               keepPaging = false;
@@ -457,12 +511,12 @@ async function processNetworkGetRequest(config, url, options, type) {
             // If it is based on an id
             let i=0;
             while (i < dataSet.length) {
-              let kvPair = config.sourceTypeConfig.source[type].limit.value.split(':');
+              let kvPair = config.typeConfig.source[type].limit.value.split(':');
               if (kvPair.length === 2) { // TODO - Check for this in config setup
                 if (dataSet[i][kvPair[0]] == kvPair[1]) {
-                  if (!config.sourceTypeConfig.source[type].limit.cutoff || // TODO - Move default to config setup
-                      (config.sourceTypeConfig.source[type].limit.cutoff &&
-                      config.sourceTypeConfig.source[type].limit.cutoff === 'hard')) {
+                  if (!config.typeConfig.source[type].limit.cutoff || // TODO - Move default to config setup
+                      (config.typeConfig.source[type].limit.cutoff &&
+                      config.typeConfig.source[type].limit.cutoff === 'hard')) {
                     dataSet.splice(i, dataSet.length-i);
                   }
                   keepPaging = false;
@@ -475,8 +529,8 @@ async function processNetworkGetRequest(config, url, options, type) {
         }
       }
       if (keepPaging) {
-        if (response.data[config.sourceTypeConfig.paging.link_key]) {
-          processNetworkGetRequest(config, response.data[config.sourceTypeConfig.paging.link_key], options);
+        if (response.data[config.typeConfig.paging.link_key]) {
+          processNetworkGetRequest(config, response.data[config.typeConfig.paging.link_key], options);
         }
         // TODO: Support for paging without handy links returned by the API.
       }
@@ -486,7 +540,7 @@ async function processNetworkGetRequest(config, url, options, type) {
       return {
         data: dataSet,
         source_type: type,
-        target_type: config.sourceTypeConfig.source[type].target
+        target_type: config.typeConfig.source[type].target
       }
     } // CTOOD else retry/backoff/what?
   }).bind( {options: options, type: type} )).catch(error => {
@@ -499,7 +553,7 @@ async function processNetworkGetRequest(config, url, options, type) {
 async function processNetworkPostRequest(config, url, options, type) {
 
   // If we're over our throttle, wait.
-  while (targetThrottleCounter.length > config.targetThrottleCap) {
+  while (targetThrottleCounter.length > config.throttleCap) {
     // Discard timestamps > 1 second ago
     for (const t of targetThrottleCounter) {
       if (t < Date.now()-1000) {
@@ -509,8 +563,8 @@ async function processNetworkPostRequest(config, url, options, type) {
       }
     }
 
-    if (targetThrottleCounter.length > config.targetThrottleCap) {
-      await new Promise(resolve => setTimeout(resolve, 1000/config.targetThrottleCap));
+    if (targetThrottleCounter.length > config.throttleCap) {
+      await new Promise(resolve => setTimeout(resolve, 1000/config.throttleCap));
     }
   }
 

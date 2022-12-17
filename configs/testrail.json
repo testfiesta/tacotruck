@@ -1,5 +1,6 @@
 {
   "name": "testrail",
+  "type": "api",
   "requests_per_second": 2,
   "base_path": "index.php?",
   "data_key": "{endpoint}",
@@ -8,6 +9,11 @@
       "suites": {
         "projects.id": "project_id" 
        }
+    },
+    "sections": {
+      "suites": {
+        "projects.id": "project_id" 
+      }
     }
   },
   "paging": {
@@ -162,25 +168,6 @@
         "type": "count",
         "value": "1000"
       }
-    },
-    "attachments": {
-      "response_data_key": "",
-      "target": "attachments",
-      "endpoints": {
-        "index": {
-          "path": "api/v2/get_attachments_for_{entity}/{id}"
-        },
-        "get": {
-          "bin_path": "api/v2/get_attachment/{id}"
-        }
-      },
-      "mapping": {
-	"id": "source_id"
-      },
-      "limit": {
-        "type": "count",
-        "value": "1000"
-      }
     }
   },
   "target": {
@@ -266,19 +253,6 @@
           "required": ["id", "name"],
           "update_key": "id"
         }
-      }
-    },
-    "attachments": {
-      "target": "attachments",
-      "endpoints": {
-        "create": {
-          "single_path": "api/v2/add_attachment_to_{entity}/{entity_id}",
-          "required": ["entity_id"]
-        }
-      },
-      "limit": {
-        "type": "count",
-        "value": "1000"
       }
     }
   }

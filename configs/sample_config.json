@@ -1,5 +1,6 @@
 {
   "name": "testrail", // The name of the service you're pulling data from/pushing data to.
+  "type": "api", // Type of integration - currently 'api' or 'junit'
   "requests_per_second": 2, // The API rate limit for an API service.
   "base_path": "index.php?", // The base API path to append to the base URL provided in the credentials file.
   "denormalized_keys": { // Special case for APIs with denormalized key requirements.

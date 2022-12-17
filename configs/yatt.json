@@ -1,4 +1,6 @@
 {
+  "name": "yatt",
+  "type": "api",
   "base_path": "",
   "auth": {
     "type": "bearer"
