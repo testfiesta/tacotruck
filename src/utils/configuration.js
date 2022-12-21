@@ -290,7 +290,7 @@ class PipeConfig {
 // Find all dependencies in chain
 function buildDependencyChain(keyMap, name, endpointSelector) {
   let path = keyMap[name]?.endpoints?.[endpointSelector]?.path;
-  path ||= keyMap[name]?.endpoints?.[endpointSelector]?.multi_path;
+  path ||= keyMap[name]?.endpoints?.[endpointSelector]?.bulk_path;
   path ||= keyMap[name]?.endpoints?.[endpointSelector]?.single_path;
   if (!keyMap[name] || !path) {
     console.error('Invalid key [' + name + '].');

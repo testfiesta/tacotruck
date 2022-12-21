@@ -230,7 +230,17 @@ async function pullData(config, ids) {
 async function pushData(config, data) {
 
   console.log(JSON.stringify(data, null, 2));
+  // Check for any data that will be dropped and warn
+  for (const dataEndpoint of Object.keys(data)) {
+    if (!config.endpointSet.includes(dataEndpoint)) {
+      console.error(`Data found for [${dataEndpoint}], but no configuration ` +
+        `for this data type exists for target [${config.name}] so the data` +
+        `will not be sent.`);
+    }
+  }
 
+  let multiTarget = config.typeConfig.multi_target;
+  let multiBulkData = {};
   for (const endpoint of config.endpointSet) {
     if (data[endpoint]) {
       let bulkData = [];
@@ -238,11 +248,6 @@ async function pushData(config, data) {
       let payloadKey = config.typeConfig.target[endpoint].endpoints?.create?.payload_key || undefined;
       let options = {};
       let mapping = config.typeConfig.target[endpoint].mapping || {};
-      //if (!updateKey || !payloadKey) {
-      //  // CTODO - fix yatt input
-      //  console.log(`endpoint: ${endpoint}`);
-      //  console.log(`UK / PK: ${updateKey} / ${payloadKey}`);
-      //}
 
       // Add authn to the request
       if (config.authSchema.location === "header") {
@@ -327,9 +332,9 @@ async function pushData(config, data) {
           }
 
           targetRequestsQueue.push(
-            processNetworkPostRequest(config, url, options, endpoint)
+            processNetworkPostRequest(config, url, options)
           );
-        } else if (config.typeConfig.target[endpoint].endpoints.create?.multi_path) {
+        } else if (config.typeConfig.target[endpoint].endpoints.create?.bulk_path || multiTarget) {
           // Bulk creation
           bulkData.push(mappedDatapoint);
         } else {
@@ -354,7 +359,6 @@ async function pushData(config, data) {
             const stats = fs.statSync(filePath);
             const fileSizeInBytes = stats.size;
             const fileStream = fs.createReadStream(filePath);
-            // CTODO - Test
 
             form.append('file', fileStream, {knownLength: fileSizeInBytes});
             options.data = form;
@@ -386,16 +390,17 @@ async function pushData(config, data) {
 
           }
           targetRequestsQueue.push(
-            processNetworkPostRequest(config, url, options, endpoint)
+            processNetworkPostRequest(config, url, options)
           );
 
         }
       }
 
       // After our loop, run bulk creation.
-      if (bulkData.length > 0) {
+      if (bulkData.length > 0 ){
+        if (!multiTarget) {
           let rawPath =
-            config.typeConfig.target[endpoint].endpoints.create.multi_path;
+            config.typeConfig.target[endpoint].endpoints.create.bulk_path;
           let dataKey =
             config.typeConfig.target[endpoint].endpoints.create?.data_key;
           let url = config.baseUrl
@@ -428,10 +433,62 @@ async function pushData(config, data) {
           }
 
 
-          targetRequestsQueue.push(processNetworkPostRequest(config, url, options, endpoint));
+          targetRequestsQueue.push(processNetworkPostRequest(config, url, options));
 
+        } else {
+          multiBulkData[endpoint] = bulkData;
+        }
       }
     }
+  }
+
+  if (multiTarget) {
+    let options= {};
+
+    // Add authn to the request
+    if (config.authSchema.location === "header") {
+      options.headers = {};
+      let keys =
+        configUtils.findSubstitutionKeys(config.authSchema.payload);
+      // Loop through the replacement keys (in {}) on this endpoint
+      for (const key of keys) {
+        // Pull identifier
+        options.headers[config.authSchema.key] =
+          config.authPayload;
+      }
+    }
+
+    let rawPath =
+      config.typeConfig.multi_target.path;
+    let dataKey =
+      config.typeConfig.multi_target.data_key;
+    let url = config.baseUrl
+      + config.typeConfig.base_path
+      + rawPath;
+
+    // TODO - data is already mapped - why pass mapping?
+    options.data = dataUtils.buildRequestData(
+      dataKey,
+      {},
+      multiBulkData
+    );
+
+    if (config.typeConfig.multi_target.include_source) {
+      options.data.source = data.source;
+    }
+
+    if (config.gitRepo || config.gitBranch || config.gitSha) {
+      options.data.source_control = {
+        'repo': config.gitRepo,
+        'branch': config.gitBranch,
+        'sha': config.gitSha
+      };
+    }
+
+    // Note: Overrides don't currently work on multi_target data
+
+    targetRequestsQueue.push(processNetworkPostRequest(config, url, options));
+
   }
 
   // Wait for all calls to this endpoint to finish before proceding
@@ -496,8 +553,10 @@ async function processNetworkGetRequest(config, url, options, type) {
         switch (config.typeConfig.source[type].limit.type) {
           case 'count':
             // If it is a raw count
-            if (sourceResponseCounter[type] >= config.typeConfig.source[type].limit.value) {
-              if (!config.typeConfig.source[type].limit.cutoff || // TODO - Move default to config setup
+            if (sourceResponseCounter[type] >=
+                config.typeConfig.source[type].limit.value) {
+              // TODO - Move default to config setup
+              if (!config.typeConfig.source[type].limit.cutoff ||
                   (config.typeConfig.source[type].limit.cutoff &&
                   config.typeConfig.source[type].limit.cutoff === 'hard')) {
                 let overage = sourceResponseCounter[type]
@@ -514,7 +573,7 @@ async function processNetworkGetRequest(config, url, options, type) {
               let kvPair = config.typeConfig.source[type].limit.value.split(':');
               if (kvPair.length === 2) { // TODO - Check for this in config setup
                 if (dataSet[i][kvPair[0]] == kvPair[1]) {
-                  if (!config.typeConfig.source[type].limit.cutoff || // TODO - Move default to config setup
+                  if (!config.typeConfig.source[type].limit.cutoff ||
                       (config.typeConfig.source[type].limit.cutoff &&
                       config.typeConfig.source[type].limit.cutoff === 'hard')) {
                     dataSet.splice(i, dataSet.length-i);
@@ -550,7 +609,7 @@ async function processNetworkGetRequest(config, url, options, type) {
 }
 
 
-async function processNetworkPostRequest(config, url, options, type) {
+async function processNetworkPostRequest(config, url, options) {
 
   // If we're over our throttle, wait.
   while (targetThrottleCounter.length > config.throttleCap) {

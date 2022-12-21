@@ -5,11 +5,16 @@
   "auth": {
     "type": "bearer"
   },
+  "multi_target": {
+    "path": "api/v1/data",
+    "data_key": "entries",
+    "include_source": true
+  },
   "target": { 
     "projects": {
       "endpoints": {
         "create": {
-          "multi_path": "api/v1/projects",
+          "bulk_path": "api/v1/data",
           "data_key": "entries",
           "include_source": true
         }
@@ -18,7 +23,7 @@
     "suites": {
       "endpoints": {
         "create": {
-          "multi_path": "api/v1/suites",
+          "bulk_path": "api/v1/data",
           "data_key": "entries",
           "include_source": true
         }
@@ -27,7 +32,7 @@
     "cases": {
       "endpoints": {
         "create": {
-          "multi_path": "api/v1/cases",
+          "bulk_path": "api/v1/data",
           "data_key": "entries",
           "include_source": true
         }
@@ -36,7 +41,7 @@
     "plans": {
       "endpoints": {
         "create": {
-          "multi_path": "api/v1/plans",
+          "bulk_path": "api/v1/data",
           "data_key": "entries",
           "include_source": true
         }
@@ -45,16 +50,16 @@
     "runs": {
       "endpoints": {
         "create": {
-          "multi_path": "api/v1/runs",
+          "bulk_path": "api/v1/data",
           "data_key": "entries",
           "include_source": true
         }
       }
     },
-    "tests": {
+    "executions": {
       "endpoints": {
         "create": {
-          "multi_path": "api/v1/executions",
+          "bulk_path": "api/v1/data",
           "data_key": "entries",
           "include_source": true
         }

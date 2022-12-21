@@ -58,7 +58,7 @@
       "target": "projects", // The key of this data in the intermediate representation.
       "endpoints": { // Endpoints for the various actions that can be performed
         "create": { // Type of action
-          "multi_path": "", // Path for bulk creation
+          "bulk_path": "", // Path for bulk creation
           "single_path": "api/v2/add_project", // Path for individual creation
           "required": ["name"] // Required fields
           "data_key": "", // The key used for storing the POST/PATCH data
