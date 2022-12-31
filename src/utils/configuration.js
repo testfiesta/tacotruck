@@ -54,7 +54,11 @@ class EndpointConfig {
     }
 
     if (args.overrides) {
-      this.overrides = args.overrides;
+      if (typeof args.overrides === 'string' || args.overrides instanceof String) {
+        this.overrides = JSON.parse(args.overrides);
+      } else {
+        this.overrides = args.overrides;
+      }
     }
 
     // Parse the integration config files.

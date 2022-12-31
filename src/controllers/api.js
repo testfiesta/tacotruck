@@ -326,7 +326,7 @@ async function pushData(config, data) {
 
           // Add our override data on update
           if (config.overrides?.[endpoint]) {
-            for (const[key, value] of config.overrides[endpoint]) {
+            for (const[key, value] of Object.entries(config.overrides[endpoint])) {
               options.data[key] = value;
             }
           }
@@ -336,6 +336,25 @@ async function pushData(config, data) {
           );
         } else if (config.typeConfig.target[endpoint].endpoints.create?.bulk_path || multiTarget) {
           // Bulk creation
+
+          if (config.typeConfig.target[endpoint].endpoints.create.include_source) {
+            mappedDatapoint.source = data.source;
+          }
+
+          if (config.gitRepo || config.gitBranch || config.gitSha) {
+            mappedDatapoint.source_control = {
+              'repo': config.gitRepo,
+              'branch': config.gitBranch,
+              'sha': config.gitSha
+            };
+          }
+
+          if (config.overrides?.[endpoint]) {
+            for (const[key, value] of Object.entries(config.overrides[endpoint])) {
+              mappedDatapoint[key] = value;
+            }
+          }
+
           bulkData.push(mappedDatapoint);
         } else {
           // Individual creation
@@ -383,7 +402,7 @@ async function pushData(config, data) {
 
             // Add our override data on create
             if (config.overrides?.[endpoint]) {
-              for (const[key, value] of config.overrides[endpoint]) {
+              for (const[key, value] of Object.entries(config.overrides[endpoint])) {
                 options.data[key] = value;
               }
             }
@@ -412,26 +431,6 @@ async function pushData(config, data) {
             mapping,
             mappedDatapoint
           );
-
-          if (config.typeConfig.target[endpoint].endpoints.create.include_source) {
-            options.data.source = data.source;
-          }
-
-          if (config.gitRepo || config.gitBranch || config.gitSha) {
-            options.data.source_control = {
-              'repo': config.gitRepo,
-              'branch': config.gitBranch,
-              'sha': config.gitSha
-            };
-          }
-
-          // Add our override data on create
-          if (config.overrides?.[endpoint]) {
-            for (const[key, value] of config.overrides[endpoint]) {
-              options.data[key] = value;
-            }
-          }
-
 
           targetRequestsQueue.push(processNetworkPostRequest(config, url, options));
 
