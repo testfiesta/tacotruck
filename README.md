@@ -37,7 +37,7 @@ For more info on how these work, see [Sources and Targets](#sources-and-targets)
 
   -o, --overrides
     required: false
-    description: JSON data to add onto the source data when exporting to the target (see [Data Overrides](#data-overrides).
+    description: JSON data to add onto the source data when exporting to the target (see [Data Overrides](#data-overrides)).
 
   -s, --source
     required: Either source or target is required.
