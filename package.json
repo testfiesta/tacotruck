@@ -1,6 +1,6 @@
 {
   "name": "yatt-pipe",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Test/QA data pipeline by YATT",
   "main": "index.js",
   "author": "YATT",
