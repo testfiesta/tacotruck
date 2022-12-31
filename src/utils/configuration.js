@@ -32,7 +32,7 @@ class EndpointConfig {
     this.integration = integration;
 
     // Pull git info if this is run via CLI
-    if (require.main === module && !args.no_git) {
+    if (calledViaCLI && !args.no_git) {
 
       if (fs.existsSync('.git/config')) {
         const gitConfig = fs.readFileSync('.git/config', { encoding: 'utf-8' });

@@ -10,8 +10,9 @@ const { version } = require('./package.json');
 const xUnitController = require('./src/controllers/xUnit.js');
 
 global.packageRoot = __dirname;
- 
-if (require.main === module) {
+global.calledViaCLI = (require.main === module);
+
+if (calledViaCLI) {
   const parser = new ArgumentParser({
     description: 'YATTPipe'
   });
