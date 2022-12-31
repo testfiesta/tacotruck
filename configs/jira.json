@@ -2,7 +2,6 @@
   "name": "jira",
   "type": "api",
   "base_path": "/rest/api/3/",
-  "data_key": "{endpoint}",
   "paging": {
     "location": "response",
     "link_key": "_links.next"
@@ -12,7 +11,7 @@
   },
   "source": {
     "issues": {
-      "response_data_key": "projects",
+      "data_key": "projects",
       "target": "projects",
       "endpoints": {
         "index": {
@@ -32,7 +31,7 @@
       }
     },
     "attachments": {
-      "response_data_key": "",
+      "data_key": "",
       "target": "attachments",
       "endpoints": {
         "index": {

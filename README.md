@@ -11,10 +11,10 @@ Since it's written in NodeJS, yatt-pipe can be utilized as either a JS module (l
 Consider the following use-cases and examples:
 - Reporting test results to Zephyr and YATT for test access and improved reporting. (See examples on [our GitHub](https://github.com/yatt-ai/).)
 - Migrating data between TestRail and XRay to change TCM providers. `yatt-pipe` can be used to keep data in sync during and after test runs and migrate historical data from the original system.
-- Programmatically uploading testing evidence and attachments to your TCM.  This is what [YATTIE](https://docs.yattie.com) does.
+- Programmatically uploading testing evidence and attachments to your TCM. This is what [YATTIE](https://docs.yattie.com) does.
 
 ## Integrations
-Integrations are easy to create and customize with just a configuration file.  Simply review the `configs/sample_config.json` file and default integrations to understand how to create your own.
+Integrations are easy to create and customize with just a configuration file. Simply review the `configs/sample_config.json` file and default integrations to understand how to create your own.
 
 By default, `yatt-pipe` currently supports:
 |             | Data Sources | Data Targets |
@@ -29,7 +29,7 @@ For more info on how these work, see [Sources and Targets](#sources-and-targets)
 ## CLI Flags
   -c, --credentials
     required: false
-    description: Path to credentials file for API connections.  Credentials can also be passed via ENV variables (see [Authentication](#authentication)).
+    description: Path to credentials file for API connections. Credentials can also be passed via ENV variables (see [Authentication](#authentication)).
 
   -I, --ignore
     required: false
@@ -40,14 +40,16 @@ For more info on how these work, see [Sources and Targets](#sources-and-targets)
     description: JSON data to add onto the source data when exporting to the target (see [Data Overrides](#data-overrides).
 
   -s, --source
-    required: on CLI
+    required: Either source or target is required.
+    description: Integration to pull data from.
 
   -t, --target
-    required: on CLI
+    required: Either source or target is required.
+    description: Integration to push data to.
 
   -d, --data-types
     required: false
-    description: Data type keys to use from source config
+    description: Data type keys to use from source config. By default, data is pulled from all endpoints specified in the configuration. This list can be lmited with the `--data-types` parameter.
 
   --offset
     required: false
@@ -63,6 +65,7 @@ For more info on how these work, see [Sources and Targets](#sources-and-targets)
 
   --no-git
     required: false
+    description: (CLI only) Don't include git repo information when reporting data.
 
   -v, --verbose
 
@@ -118,7 +121,6 @@ e.g.:
 TESTRAIL_SOURCE_CREDENTIALS='{"base64Credentials":"eW91cmVtYWlsQGVtYWlsLmNvbTp5b3VycGFzc3dvcmQK","base_url":"https://YourTestrailAccount.testrail.com/"}'
 ```
 
-// CTODO - Update from test
 ### Usage as a NodeJS Package
 ```javascript
 const { pushData, pullData } = require("yatt-pipe");
@@ -131,9 +133,9 @@ const config = {
 
 const pushableData = {
   "projects": [{
-    "target_id": 5,
-    "name": "API Proj 2z",
-    "announcement": "Test"
+    "target_id": 1,
+    "name": "API Proj",
+    "announcement": "Test announcement!"
   }]
 };
 
@@ -238,14 +240,14 @@ The following data would then be sent to  your target:
 ## About
 The primary configuration options when using `yatt-pipe` are the data sources (where the data is coming _from_ - passed with the `-s` flag or in the `source` field) and data targets (where the data is going _to_ passed with the `-t` flag or in the `target` field). 
 
-Default integrations can be used simply by referencing their name (e.g `-s testrail`) and custom integrations can be used by passing the relative path to their configuration file (e.g. `-s ./my-integration.json`).
+Default integrations can be used simply by referencing their name (e.g `-s testrail`) and [custom integrations](#custom-integrations) can be used by passing the relative path to their configuration file (e.g. `-s ./my-integration.json`).
 
 Multiple sources and/or targets can be passed as a comma-delimited list.
 
 File-type integrations such as JUnit results files must called with the format: `${type}:${relative_file_path}` (e.g. `-s junit:./test-results.xml`).
 
 ## Authentication
-Authentication methods are specific to the various sources and targets you use.  Further information can be found in the "Configuring" section of the [integrations](#included-integrations) you are using. 
+Authentication methods are specific to the various sources and targets you use. Further information can be found in the "Configuring" section of the [integrations](#included-integrations) you are using. 
 
 ### Configuring Credentials
 Regardless of which type of authentication your integrations use, the credentials are always passed to `yatt-pipe` in one of two ways:
@@ -288,7 +290,7 @@ An example would be:
 #### Configuring
 JIRA uses HTTP basic authentication with either a password or an [API token](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/#Create-an-API-token).
 
-To configure with YATT, you must base64 encode your username followed by a colon (":") followed by your password or API key.  In the terminal, you could run the following:
+To configure with `yatt-pipe`, you must base64 encode your username followed by a colon (":") followed by your password or API key. In the terminal, you could run the following:
 ```
 $ echo -n "username:password" | base64 -w0
 dXNlcm5hbWU6cGFzc3dvcmQ=
@@ -315,18 +317,19 @@ You then would place this string ("dXNlcm5hbWU6cGFzc3dvcmQ=" in the example abov
 
 ### JUnit Files
 #### Configuring
+No configuration is required for JUnit files.
 #### Supported Types
 |             | Source | Target |
 |-------------|:------:|:------:|
-| Suites      |   X    |   X    |
-| Runs        |   X    |   X    |
-| Tests       |   X    |   X    |
+| Suites      |   X    |        |
+| Runs        |   X    |        |
+| Tests       |   X    |        |
 
 ### TestRail
 #### Configuring
 TestRail uses HTTP basic authentication with [either a password or an API token](https://support.gurock.com/hc/en-us/articles/7077039051284-Accessing-the-TestRail-API#authentication-0-0).
 
-To configure with YATT, you must base64 encode your username followed by a colon (":") followed by your password or API key.  In the terminal, you could run the following:
+To configure with `yatt-pipe`, you must base64 encode your username followed by a colon (":") followed by your password or API key. In the terminal, you could run the following:
 ```
 $ echo -n "username:password" | base64 -w0
 dXNlcm5hbWU6cGFzc3dvcmQ=
@@ -359,7 +362,7 @@ You then would place this string ("dXNlcm5hbWU6cGFzc3dvcmQ=" in the example abov
 #### Configuring
 YATT uses bearer token authentication with [tokens](https://docs.yatt.ai/api/authentication).
 
-To configure with YATT, you must create a token and add it to your credentials JSON.
+To configure with `yatt-pipe`, you must create a token and add it to your credentials JSON.
 
 Your token goes into the `token` field in your credentials JSON. For example, if we wanted to use YATT as a target for data, and our token was "yatt_99866737272422404.7f879e26fd76d09ce9ca263f9231f2cf" then our credentials JSON would look like:
 ```
@@ -387,4 +390,154 @@ Your token goes into the `token` field in your credentials JSON. For example, if
 | Branches    |        |   X    |
 
 ## Custom Integrations
-CTODO
+Custom API integrations can easily be created with just a few pieces of information:
+- The authentication scheme
+- The paging mechanism (if applicable)
+- The API structure
+
+All most custom integrations require is a simple JSON configuration file with the following format: (_Note: If you need further details, the definitive example lives in `configs/sample_config.json`._)
+```
+{
+  "name": ...,        // The name to identify this integration
+  "requests_per_second": 2, // Allows for rate limiting requests
+  "base_path": "index.php?", // Base path for API to be appended to configured `base_url`.
+  "paging": { ... },
+  "auth": { ... },
+  "source": { ... },
+  "target": { ... }
+}
+```
+
+### Paging
+This section contains the parameters required for managing paging on API integrations.
+
+Example:
+```
+  "paging": {
+    "location": "response",
+    "link_key": "_links.next",
+    "options": {
+      "location": "querystring",
+      "limit": {
+        "key": "limit",
+        "value": "250"
+      },
+      "offset": {
+        "key": "offset"
+      }
+    }
+  },
+```
+| Key                   | Type / Options | Description |
+|-----------------------|:--------------:|:-----------:|
+| `location`            | `response`     | Where paging details are provided by source APIs. |
+| `link_key`            | String         | The key in the response where paging details an be found. _Note: Sub keys in the JSON be nested with a `.`._    |
+| `options.location`    | `querystring`  | Where paging details are passed to source APIs. |
+| `options.limit.key`   | String         | The key used to pass a page limit to source APIs. |
+| `options.limit.value` | Integer        | The actual limit integer for source APIs. |
+| `optionsl.offset.key` | String         | They key used to pass a paging offset to source APIs. |
+
+### Auth
+This section contains the parameters required for managing authentication with API integrations.
+
+Example:
+```
+  "auth": {
+    "type": "basic"
+  }
+```
+| Key    | Type / Options  | Description |
+|--------|:---------------:|:-----------:|
+| `type` | `basic`/`token` | The type of authentication required by the API. |
+
+#### Basic
+Basic auth uses HTTP basic auth. The auth JSON (either in the configuration file or the environment variable) requires one parameter: `base64Credentials`.
+
+To determine the correct value for this paramter, you must base64 encode your username followed by a colon (":") followed by your password or API key. In the terminal, you could run something like the following:
+```
+$ echo -n "username:password" | base64 -w0
+dXNlcm5hbWU6cGFzc3dvcmQ=
+```
+`dXNlcm5hbWU6cGFzc3dvcmQ=` is then the value for `base64Credentials`.
+
+#### Token
+Token auth uses HTTP bearer tokens. The auth JSON (either in the configuration file or the environment variable) requires one parameter: `token`.
+
+The value for this parameter is your bearer token for the service.
+
+### Source
+A `source` integraiton provides all of the information required to connect to a data source API.
+
+Example:
+```
+  "source": {
+    "projects": {
+      "data_key": "projects",
+      "target": "projects",
+      "endpoints": {
+        "index": {
+          "path": "api/v2/get_projects"
+        },
+        "get": {
+          "path": "api/v2/get_project/{id}"
+        }
+      },
+      "mapping": {
+        "id": "source_id",
+        "name": "name"
+      },
+      "limit": {
+        "type": "count",
+        "value": "1000"
+      }
+    }
+  }
+```
+
+| Key    | Type / Options  | Description |
+|--------------------------|:---------------:|:-----------:|
+| {Endpoint Name}                              | String          | Within the source block, the first key is the name of the endpoint. (Above, it is "projects".) |
+| `data_key`                                   | String          | This is the key in a response JSON where the data can be found. Often times, it is something like "entries". If the data is provided directly at the root of the response JSON (i.e. no metadata is included in the response), this can be left blank. |
+| `target`                                     | String          | If we want to transform the name of the data type internally (rather than use the endpoint name), we can supply that value. |
+| `endpoints`                                  | Map             | In this key, we can specify the various types of endpoints (e.g. endpoints for listing all data or individual data points). |
+| `endpoints.index.path`/`endpoints.show.path` | String          | This is the API path for the endpoint/type combination. |
+| `mapping`                                    | Map             | This field allows us to map values to other values in the internal representation of the data (e.g. If we want to change the `id` field to be named `source_id`. |
+| `limit`                                      | Map             | This is the limit on the number of records to pull. |
+| `limit.type`                                 | `count`/`match` | This specifies whether our limit is a raw count of records or continuing until we match a provided `id`. |
+| `limit.value`                                | Integer/String  | The number of records or matching ID. _Note: IDs are specified by the format `{field_name_to_match}:{id}`. e.g.: `id:1234`.|
+
+
+### Target
+A `target` integraiton is substantially similar to a `source` integration - it provides all of the information required to connect to a data target API.
+
+Example:
+```
+  "target": {
+    "projects": {
+      "target": "projects",
+      "endpoints": {
+        "create": {
+          "single_path": "api/v2/add_project",
+          "required": ["name"]
+        },
+        "update": {
+          "path": "api/v2/update_project/{id}",
+          "required": ["id", "name"],
+          "update_key": "id"
+        }
+      }
+    }
+  }
+
+```
+| Key    | Type / Options  | Description |
+|--------------------------|:---------------:|:-----------:|
+| {Endpoint Name}                                                                     | String          | Within the source block, the first key is the name of the endpoint. (Above, it is "projects".) |
+| `target`                                                                            | String          | If we want to transform the name of the data type from what the internal representation (usually the endpoint name), we can supply that value. |
+| `endpoints`                                                                         | Map             | In this key, we can specify the various types of endpoints (e.g. endpoints for creating new data versus updating current data points). |
+| `endpoints.create.single_path`/`endpoints.create.bulk_path`/`endpoints.update.path` | String          | This is the API path for the endpoint/type combination. |
+| `endpoints.create.required`/`endpoints.update.required`                             | List          | A list of required fields to create/update data. |
+| `endpoints.create.data_key`                                                         | String          | This is the key in a POST JSON where the data can be found. Often times, it is something like "entries". This only applies to bulk creation endpoints. |
+| `endpoints.update.update_key`                                                       | String          | The key used to identify which data to update (e.g. the `id`). |
+| `mapping`                                                                           | Map             | This field allows us to map values to other values in the internal representation of the data (e.g. If we want to change the `id` field to be named `source_id`. |
+

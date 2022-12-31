@@ -530,15 +530,15 @@ async function processNetworkGetRequest(config, url, options, type) {
       dataSet = [];
     } else {
       // If we have a key we expect in the response and it isn't empty, use it.  Otherwise it's the whole data.
-      dataSet = ( config.typeConfig.source[type].response_data_key &&
+      dataSet = ( config.typeConfig.source[type].data_key &&
                      response.data[
-                       config.typeConfig.source[type].response_data_key
+                       config.typeConfig.source[type].data_key
                      ] ?
                      response.data[
-                       config.typeConfig.source[type].response_data_key
+                       config.typeConfig.source[type].data_key
                      ] :
                      response.data );
-      // If this is our first request of this type, count how many entries we recieve at the response_data_key.
+      // If this is our first request of this type, count how many entries we recieve at the data_key.
       if (!sourceResponseCounter[type]) {
         sourceResponseCounter[type] = 0 ;
       }

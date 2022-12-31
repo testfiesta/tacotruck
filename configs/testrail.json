@@ -3,7 +3,6 @@
   "type": "api",
   "requests_per_second": 2,
   "base_path": "index.php?",
-  "data_key": "{endpoint}",
   "denormalized_keys": {
     "cases": {
       "suites": {
@@ -25,7 +24,7 @@
   },
   "source": {
     "projects": {
-      "response_data_key": "projects",
+      "data_key": "projects",
       "target": "projects",
       "endpoints": {
         "index": {
@@ -45,7 +44,7 @@
       }
     },
     "suites": {
-      "response_data_key": "suites",
+      "data_key": "suites",
       "target": "suites",
       "endpoints": {
         "index": {
@@ -65,7 +64,7 @@
       }
     },
     "sections": {
-      "response_data_key": "sections",
+      "data_key": "sections",
       "target": "folders",
       "endpoints": {
         "index": {
@@ -85,7 +84,7 @@
       }
     },
     "cases": {
-      "response_data_key": "cases",
+      "data_key": "cases",
       "target": "cases",
       "endpoints": {
         "index": {
@@ -107,7 +106,7 @@
       }
     },
     "plans": {
-      "response_data_key": "plans",
+      "data_key": "plans",
       "target": "plans",
       "endpoints": {
         "index": {
@@ -128,7 +127,7 @@
       }
     },
     "runs": {
-      "response_data_key": "runs",
+      "data_key": "runs",
       "target": "runs",
       "endpoints": {
         "index": {
@@ -150,7 +149,7 @@
       }
     },
     "tests": {
-      "response_data_key": "tests",
+      "data_key": "tests",
       "target": "executions",
       "endpoints": {
         "index": {
