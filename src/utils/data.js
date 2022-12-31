@@ -3,7 +3,9 @@ function mapData(mapping, data) {
   for (const mapKey of Object.keys(mapping)) {
     if (finalData[mapKey]) {
       finalData[mapping[mapKey]] = finalData[mapKey];
-      delete finalData[mapKey];
+      if (mapKey !== mapping[mapKey]) {
+        delete finalData[mapKey];
+      }
     }
   }
   return finalData;
