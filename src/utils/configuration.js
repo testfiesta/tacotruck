@@ -121,13 +121,14 @@ class EndpointConfig {
           this.credentials = creds[this.integration][this.direction];
           this.baseUrl = creds[this.integration][this.direction].base_url;
         } else {
-          this.credentials = JSON.parse(
+          let creds = JSON.parse(
             process.env[
               this.integration.toUpperCase() + '_' +
               this.direction.toUpperCase() + '_CREDENTIALS'
             ]
           );
-          this.baseUrl = credentials.base_url;
+          this.credentials = creds[this.direction];
+          this.baseUrl = creds[this.direction].base_url;
         }
 
         if (!this.credentials && !this.baseUrl) {
