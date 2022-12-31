@@ -36,7 +36,7 @@ class EndpointConfig {
 
       if (fs.existsSync('.git/config')) {
         const gitConfig = fs.readFileSync('.git/config', { encoding: 'utf-8' });
-        this.gitRepo = gitConfig.split('\n\t').find(config => config.includes('url')).trim();
+        this.gitRepo = gitConfig.split('\n\t').find(config => config.includes('url')).trim().split(' ').pop();;
 
         if (fs.existsSync('.git/HEAD')) {
           const gitHEAD = fs.readFileSync('.git/HEAD', { encoding: 'utf-8' });
