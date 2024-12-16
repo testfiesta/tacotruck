@@ -1,28 +1,28 @@
-yatt-pipe
+tacotruck
 ========
 A tool for moving testing/quality data.
 
 # About
 ## Summary
-`yatt-pipe` exists to make it easy to move quality data to wherever you need it. Whether you are looking to report test results to your various quality systems or trying to migrate historical databetween test case management tools, yatt-pipe provides a simple, easily extendable interface for doing so.
+`tacotruck` exists to make it easy to move quality data to wherever you need it. Whether you are looking to report test results to your various quality systems or trying to migrate historical databetween test case management tools, tacotruck provides a simple, easily extendable interface for doing so.
 
-Since it's written in NodeJS, yatt-pipe can be utilized as either a JS module (link to NPM) or CLI tool (link to packages). Likewise, it has been conveniently packaged into a Docker container, GitHub Action, CircleCI Orb, etc.
+Since it's written in NodeJS, tacotruck can be utilized as either a JS module (link to NPM) or CLI tool (link to packages). Likewise, it has been conveniently packaged into a Docker container, GitHub Action, CircleCI Orb, etc.
 
 Consider the following use-cases and examples:
-- Reporting test results to Zephyr and YATT for test access and improved reporting. (See examples on [our GitHub](https://github.com/yatt-ai/).)
-- Migrating data between TestRail and XRay to change TCM providers. `yatt-pipe` can be used to keep data in sync during and after test runs and migrate historical data from the original system.
-- Programmatically uploading testing evidence and attachments to your TCM. This is what [YATTIE](https://docs.yattie.com) does.
+- Reporting test results to Zephyr and TestFiesta for test access and improved reporting. (See examples on [our GitHub](https://github.com/testfiesta/).)
+- Migrating data between TestRail and XRay to change TCM providers. `tacotruck` can be used to keep data in sync during and after test runs and migrate historical data from the original system.
+- Programmatically uploading testing evidence and attachments to your TCM. This is what [Pinata](https://docs.testfiesta.com) does.
 
 ## Integrations
 Integrations are easy to create and customize with just a configuration file. Simply review the `configs/sample_config.json` file and default integrations to understand how to create your own.
 
-By default, `yatt-pipe` currently supports:
+By default, `tacotruck` currently supports:
 |             | Data Sources | Data Targets |
 |-------------|:------------:|:------------:|
 | JIRA        |      X       |      X       |
 | JUnit Files |      X       |              |
 | TestRail    |      X       |      X       |
-| YATT        |      X       |      X       |
+| TestFiesta  |      X       |      X       |
 
 For more info on how these work, see [Sources and Targets](#sources-and-targets).
 
@@ -76,20 +76,20 @@ For more info on how these work, see [Sources and Targets](#sources-and-targets)
 ## Download & Installation
 ### As a NodeJS package
 ```shell
-$ npm i yatt-pipe
+$ npm i tacotruck
 ```
 ### As a CLI tool
-Releases and packages [on GitHub](https://github.com/yatt-ai/yatt-pipe/releases).
+Releases and packages [on GitHub](https://github.com/testfiesta/tacotruck/releases).
 
 1. Download the release appropriate for your OS/Architecture
 2. Install it or save it on your system path
-3. Call `yatt-pipe --help` from the terminal
+3. Call `tacotruck --help` from the terminal
 
 ### Usage on the CLI
-`node index.js -c creds.json -s testrail -t yatt -o '{"cases":{"service":"microservice-1"}}'`
-`node index.js -c creds.json -s junit:./results.xml -t yatt -o '{"cases":{"service":"microservice-1"}}'`
+`node index.js -c creds.json -s testrail -t TestFiesta -o '{"cases":{"service":"microservice-1"}}'`
+`node index.js -c creds.json -s junit:./results.xml -t TestFiesta -o '{"cases":{"service":"microservice-1"}}'`
 
-This will pull all (up to configured limits) data from a TestRail instance and push it into YATT.
+This will pull all (up to configured limits) data from a TestRail instance and push it into TestFiesta.
 
 The `creds.json` should look something like this:
 ```
@@ -100,9 +100,9 @@ The `creds.json` should look something like this:
       "base_url": "https://YourTestrailAccont.testrail.com/"
     }
   },
-  "yatt": {
+  "TestFiesta": {
     "target": {
-      "token": "yatt_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "token": "TestFiesta_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
       "base_url": "http://localhost:5000/"
     }
   }
@@ -110,7 +110,7 @@ The `creds.json` should look something like this:
 ```
 But replace the `base64Credentials` key with your email address, followed by a ":", followed by your TestRail password and then the whole string should be base64 encoded. Ex: `echo -n "myemail@email.com:mypassword" | base64 -w0` (*Don't forget the '-n' to remove the default new line added by 'echo'.*)
 
-Then replace the YATT token with a valid YATT token for your YATT user.
+Then replace the TestFiesta token with a valid TestFiesta token for your TestFiesta user.
 
 Alternatively, you can supply credentials via ENV variables in the format:
 ```
@@ -123,7 +123,7 @@ TESTRAIL_SOURCE_CREDENTIALS='{"base64Credentials":"eW91cmVtYWlsQGVtYWlsLmNvbTp5b
 
 ### Usage as a NodeJS Package
 ```javascript
-const { pushData, pullData } = require("yatt-pipe");
+const { pushData, pullData } = require("tacotruck");
 
 const config = {
   "credentials": "./creds.json",
@@ -172,7 +172,7 @@ getDataFromTestRail(config, pullableData);
 ```
 
 ## Ignoring Data
-Source data can be selectively ignored by `yatt-pipe` based off of data type and a provied JavaScript regex. (I recommend using something like [Regexr](https://regexr.com/) if you need to hone your regex for usage here.)
+Source data can be selectively ignored by `tacotruck` based off of data type and a provied JavaScript regex. (I recommend using something like [Regexr](https://regexr.com/) if you need to hone your regex for usage here.)
 
 For example, if you want to ignore all "projects" with "Example" or "example" in their name, you could pass the following ignore JSON:
 ```
@@ -238,7 +238,7 @@ The following data would then be sent to  your target:
 
 # Sources and Targets
 ## About
-The primary configuration options when using `yatt-pipe` are the data sources (where the data is coming _from_ - passed with the `-s` flag or in the `source` field) and data targets (where the data is going _to_ passed with the `-t` flag or in the `target` field). 
+The primary configuration options when using `tacotruck` are the data sources (where the data is coming _from_ - passed with the `-s` flag or in the `source` field) and data targets (where the data is going _to_ passed with the `-t` flag or in the `target` field). 
 
 Default integrations can be used simply by referencing their name (e.g `-s testrail`) and [custom integrations](#custom-integrations) can be used by passing the relative path to their configuration file (e.g. `-s ./my-integration.json`).
 
@@ -250,8 +250,8 @@ File-type integrations such as JUnit results files must called with the format: 
 Authentication methods are specific to the various sources and targets you use. Further information can be found in the "Configuring" section of the [integrations](#included-integrations) you are using. 
 
 ### Configuring Credentials
-Regardless of which type of authentication your integrations use, the credentials are always passed to `yatt-pipe` in one of two ways:
-- Your credentials JSON can be stored in a configuration file, the path of which is passed to `yatt-pipe` via the `-c` option. (e.g. `-c ./my-creds.json`).
+Regardless of which type of authentication your integrations use, the credentials are always passed to `tacotruck` in one of two ways:
+- Your credentials JSON can be stored in a configuration file, the path of which is passed to `tacotruck` via the `-c` option. (e.g. `-c ./my-creds.json`).
 - Credential JSON can be stored in environment variables with the naming convention: `${INTEGRATION_NAME}_{INTEGRATION_DIRECTION}_CREDENTIALS`. (e.g. `TESTRAIL_SOURCE_CREDENTIALS` or `TESTRAIL_TARGET_CREDENTIALS`)
 
 ### Credentials JSON Format
@@ -276,10 +276,10 @@ An example would be:
       "base_url": "https://fake-instance.testrail.com/"
     }
   },
-  "yatt": {
+  "TestFiesta": {
     "target": {
-      "token": "yatt_99866737272422404.7f879e26fd76d09ce9ca263f9231f2cf",
-      "base_url": "http://app.yatt.ai/"
+      "token": "TestFiesta_99866737272422404.7f879e26fd76d09ce9ca263f9231f2cf",
+      "base_url": "http://app.TestFiesta.ai/"
     }
   }
 }
@@ -290,7 +290,7 @@ An example would be:
 #### Configuring
 JIRA uses HTTP basic authentication with either a password or an [API token](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/#Create-an-API-token).
 
-To configure with `yatt-pipe`, you must base64 encode your username followed by a colon (":") followed by your password or API key. In the terminal, you could run the following:
+To configure with `tacotruck`, you must base64 encode your username followed by a colon (":") followed by your password or API key. In the terminal, you could run the following:
 ```
 $ echo -n "username:password" | base64 -w0
 dXNlcm5hbWU6cGFzc3dvcmQ=
@@ -329,7 +329,7 @@ No configuration is required for JUnit files.
 #### Configuring
 TestRail uses HTTP basic authentication with [either a password or an API token](https://support.gurock.com/hc/en-us/articles/7077039051284-Accessing-the-TestRail-API#authentication-0-0).
 
-To configure with `yatt-pipe`, you must base64 encode your username followed by a colon (":") followed by your password or API key. In the terminal, you could run the following:
+To configure with `tacotruck`, you must base64 encode your username followed by a colon (":") followed by your password or API key. In the terminal, you could run the following:
 ```
 $ echo -n "username:password" | base64 -w0
 dXNlcm5hbWU6cGFzc3dvcmQ=
@@ -358,19 +358,19 @@ You then would place this string ("dXNlcm5hbWU6cGFzc3dvcmQ=" in the example abov
 | Runs        |   X    |   X    |
 | Tests       |   X    |   X    |
 
-### YATT
+### TestFiesta
 #### Configuring
-YATT uses bearer token authentication with [tokens](https://docs.yatt.ai/api/authentication).
+TestFiesta uses bearer token authentication with [tokens](https://docs.TestFiesta.ai/api/authentication).
 
-To configure with `yatt-pipe`, you must create a token and add it to your credentials JSON.
+To configure with `tacotruck`, you must create a token and add it to your credentials JSON.
 
-Your token goes into the `token` field in your credentials JSON. For example, if we wanted to use YATT as a target for data, and our token was "yatt_99866737272422404.7f879e26fd76d09ce9ca263f9231f2cf" then our credentials JSON would look like:
+Your token goes into the `token` field in your credentials JSON. For example, if we wanted to use TestFiesta as a target for data, and our token was "TestFiesta_99866737272422404.7f879e26fd76d09ce9ca263f9231f2cf" then our credentials JSON would look like:
 ```
 {
-  "yatt": {
+  "TestFiesta": {
     "target": {
-      "token": "yatt_99866737272422404.7f879e26fd76d09ce9ca263f9231f2cf",
-      "base_url": "https://api.yatt.ai/"
+      "token": "TestFiesta_99866737272422404.7f879e26fd76d09ce9ca263f9231f2cf",
+      "base_url": "https://api.TestFiesta.ai/"
     }
   }
 
