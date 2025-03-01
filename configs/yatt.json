@@ -6,7 +6,7 @@
     "type": "bearer"
   },
   "multi_target": {
-    "path": "api/v1/data",
+    "path": "v1/dacoaster/projects/TPJ/data",
     "data_key": "entries",
     "include_source": true
   },
@@ -14,7 +14,7 @@
     "projects": {
       "endpoints": {
         "create": {
-          "bulk_path": "api/v1/data",
+          "bulk_path": "/v1/dacoaster/projects/TPJ/data",
           "data_key": "entries",
           "include_source": true
         }
