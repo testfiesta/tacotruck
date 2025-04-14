@@ -1,12 +1,12 @@
 {
-  "name": "yatt",
+  "name": "testfiesta",
   "type": "api",
   "base_path": "",
   "auth": {
     "type": "bearer"
   },
   "multi_target": {
-    "path": "v1/dacoaster/projects/TPJ/data",
+    "path": "v1/hussieny/projects/KEY1/TPJ/data",
     "data_key": "entries",
     "include_source": true
   },
@@ -14,7 +14,7 @@
     "projects": {
       "endpoints": {
         "create": {
-          "bulk_path": "/v1/dacoaster/projects/TPJ/data",
+          "bulk_path": "/v1/hussieny/projects/KEY1/TPJ/data",
           "data_key": "entries",
           "include_source": true
         }

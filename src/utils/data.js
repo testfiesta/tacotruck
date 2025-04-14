@@ -27,9 +27,15 @@ function mapDataWithIgnores(mapping, data, ignore={}) {
 function buildRequestData(key, mapping, data) {
   let finalData = mapData(mapping, data);
   if (key && key !== "") {
-    return {
-      [key]: finalData
-    };
+    // Update to use the key inside the entity object.
+    // For example: { executions: { entries: [] } } — here, "entries" is the key.
+    return Object.keys(finalData).reduce((acc, curr) => {
+      acc[curr] = {
+        [key]: finalData[curr]
+      }
+    return acc
+    }, {})
+
   } else {
     return finalData;
   }

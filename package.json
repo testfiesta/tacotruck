@@ -1,9 +1,9 @@
 {
-  "name": "yatt-pipe",
-  "version": "0.2.3",
-  "description": "Test/QA data pipeline by YATT",
+  "name": "testfiesta-pipe",
+  "version": "0.3.0",
+  "description": "Test/QA data pipeline by TestFiesta",
   "main": "index.js",
-  "author": "YATT",
+  "author": "TestFiesta",
   "license": "MIT",
   "dependencies": {
     "argparse": "^2.0.1",

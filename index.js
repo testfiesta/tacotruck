@@ -14,7 +14,7 @@ global.calledViaCLI = (require.main === module);
 
 if (calledViaCLI) {
   const parser = new ArgumentParser({
-    description: 'YATTPipe'
+    description: 'TestFiestaPipe'
   });
 
   const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
