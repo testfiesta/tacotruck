@@ -338,7 +338,9 @@ async function pushData(config, data) {
           // Bulk creation
 
           if (config.typeConfig.target[endpoint].endpoints.create.include_source) {
-            mappedDatapoint.source = data.source;
+            // Use source from mappedDatapoint if available; fallback to data.source.
+            // Helpful when pushData is used with raw JSON input.
+            mappedDatapoint.source = mappedDatapoint.source ?? data.source;
           }
 
           if (config.gitRepo || config.gitBranch || config.gitSha) {
@@ -629,7 +631,8 @@ async function processNetworkPostRequest(config, url, options) {
   // Make request
   targetThrottleCounter.push(Date.now());
 
-  const data = options.data;
+  const { source_control, ...datWithoutSource } = options.data; // Destructure source_control
+  const data = {entities: datWithoutSource};
   delete options.data;
   return axios.post(url, data, options).then(response => {
 

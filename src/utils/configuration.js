@@ -2,7 +2,7 @@ const auth = require('./auth.js');
 const fs = require('fs');
 
 const credentialedTypes = ['api'];
-const validSourceTypes = ['api', 'junit'];
+const validSourceTypes = ['api', 'junit', 'json'];
 const validTargetTypes = ['api'];
 const defaultEndpoints = {
   "source": "index"
