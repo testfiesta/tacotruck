@@ -1,5 +1,5 @@
 {
-  "name": "tacotruck-pipe",
+  "name": "tacotruck",
   "version": "0.3.0",
   "description": "Test/QA data pipeline by TestFiesta",
   "main": "index.js",
