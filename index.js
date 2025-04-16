@@ -8,13 +8,14 @@ const configUtils = require('./src/utils/configuration.js');
 const fs = require('fs');
 const { version } = require('./package.json');
 const xUnitController = require('./src/controllers/xUnit.js');
+const jsonController = require('./src/controllers/json.js');
 
 global.packageRoot = __dirname;
 global.calledViaCLI = (require.main === module);
 
 if (calledViaCLI) {
   const parser = new ArgumentParser({
-    description: 'TestFiestaPipe'
+    description: 'Tacotruck'
   });
 
   const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
@@ -88,7 +89,10 @@ async function pullData(args, ids={}) {
         responseData.push(await apiController.pullData(sourceConfig, ids));
         break;
       case 'junit':
-        responseData.push(await xUnitController.pullData(sourceConfig, ids));
+        responseData.push(await xUnitController.pullData(sourceConfig, ids))
+        break;
+      case 'json':
+        responseData.push(await jsonController.pullData(sourceConfig, ids));
         break;
       default:
         console.log(`Unable to process source type: ${sourceConfig.type}`);

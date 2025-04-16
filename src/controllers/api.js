@@ -631,7 +631,8 @@ async function processNetworkPostRequest(config, url, options) {
   // Make request
   targetThrottleCounter.push(Date.now());
 
-  const data = {entities: options.data};
+  const { source_control, ...datWithoutSource } = options.data; // Destructure source_control
+  const data = {entities: datWithoutSource};
   delete options.data;
   return axios.post(url, data, options).then(response => {
 

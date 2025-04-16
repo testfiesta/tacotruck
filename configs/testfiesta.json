@@ -6,7 +6,7 @@
     "type": "bearer"
   },
   "multi_target": {
-    "path": "v1/hussieny/projects/KEY1/TPJ/data",
+    "path": "v1/hassan1/projects/0__/data",
     "data_key": "entries",
     "include_source": true
   },
