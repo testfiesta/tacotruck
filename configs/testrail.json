@@ -6,12 +6,12 @@
   "denormalized_keys": {
     "cases": {
       "suites": {
-        "projects.id": "project_id" 
-       }
+        "projects.id": "project_id"
+      }
     },
     "sections": {
       "suites": {
-        "projects.id": "project_id" 
+        "projects.id": "project_id"
       }
     }
   },
@@ -117,9 +117,9 @@
         }
       },
       "mapping": {
-	"created_on": "created_on",
-	"id": "source_id",
-	"name": "name"
+        "created_on": "created_on",
+        "id": "source_id",
+        "name": "name"
       },
       "limit": {
         "type": "count",
@@ -138,10 +138,10 @@
         }
       },
       "mapping": {
-	"created_on": "created_at",
-	"id": "source_id",
-	"name": "name",
-	"updated_on": "updated_at"
+        "created_on": "created_at",
+        "id": "source_id",
+        "name": "name",
+        "updated_on": "updated_at"
       },
       "limit": {
         "type": "count",
@@ -160,8 +160,8 @@
         }
       },
       "mapping": {
-	"id": "source_id",
-	"title": "name"
+        "id": "source_id",
+        "title": "name"
       },
       "limit": {
         "type": "count",

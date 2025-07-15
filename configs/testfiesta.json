@@ -10,7 +10,7 @@
     "data_key": "entries",
     "include_source": true
   },
-  "target": { 
+  "target": {
     "projects": {
       "endpoints": {
         "create": {
