@@ -71,7 +71,7 @@
       "endpoints": {
         "create": {
           "single_path": "issue/{key}/attachments",
-          "required": ["key", "filepath"]
+          "required": ["key", "filepath"],
           "payload_key": "filepath"
         }
       },

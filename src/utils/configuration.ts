@@ -1,4 +1,5 @@
 import * as fs from 'node:fs'
+import asyncStorage from './asyncStorage'
 import * as auth from './auth'
 
 // Global variables declaration
@@ -128,13 +129,16 @@ export class EndpointConfig {
         if (fs.existsSync(this.integration)) {
           this.typeConfig = JSON.parse(fs.readFileSync(`${this.integration}.json`, 'utf-8'))
         }
-        else if (fs.existsSync(`${globalThis.packageRoot}/configs/${this.integration}.json`)) {
-          // Fall back to defaults
-          this.typeConfig = JSON.parse(fs.readFileSync(`${globalThis.packageRoot}/configs/${this.integration}.json`, 'utf-8'))
-        }
-        else if (this.integration) {
-          console.error(`Integration config not found: ${this.integration}`)
-          process.exit(1)
+        else {
+          const packageRoot = asyncStorage.getItem('packageRoot')
+          if (packageRoot && fs.existsSync(`${packageRoot}/configs/${this.integration}.json`)) {
+            // Fall back to defaults
+            this.typeConfig = JSON.parse(fs.readFileSync(`${packageRoot}/configs/${this.integration}.json`, 'utf-8'))
+          }
+          else if (this.integration) {
+            console.error(`Integration config not found: ${this.integration}`)
+            process.exit(1)
+          }
         }
       }
     }
