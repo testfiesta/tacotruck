@@ -3,7 +3,8 @@
   "type": "api",
   "base_path": "",
   "auth": {
-    "type": "bearer"
+    "type": "bearer",
+    "location": "header"
   },
   "multi_target": {
     "path": "v1/hassan1/projects/0__/data",

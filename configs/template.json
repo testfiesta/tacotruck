@@ -1,0 +1,66 @@
+{
+  "name": "template",
+  "type": "api",
+  "base_path": "",
+  "auth": {
+    "type": "bearer",
+    "location": "header"
+  },
+  "requests_per_second": 10,
+  "sourceThrottle": 5,
+  "sourceThrottleTime": 1000,
+  
+  "multi_target": {
+    "path": "v1/api/projects/{project_id}/data",
+    "data_key": "entries",
+    "include_source": true
+  },
+  
+  "source": {
+    "projects": {
+      "endpoints": {
+        "index": {
+          "path": "/v1/api/projects",
+          "data_key": "data"
+        },
+        "show": {
+          "path": "/v1/api/projects/{id}",
+          "data_key": "data"
+        }
+      }
+    },
+    "suites": {
+      "endpoints": {
+        "index": {
+          "path": "/v1/api/suites",
+          "data_key": "data"
+        }
+      }
+    }
+  },
+  
+  "target": {
+    "projects": {
+      "endpoints": {
+        "create": {
+          "bulk_path": "/v1/api/projects/bulk",
+          "data_key": "entries",
+          "include_source": true
+        },
+        "update": {
+          "single_path": "/v1/api/projects/{id}",
+          "update_key": "id"
+        }
+      }
+    },
+    "suites": {
+      "endpoints": {
+        "create": {
+          "bulk_path": "/v1/api/suites/bulk",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
+    }
+  }
+}

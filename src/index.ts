@@ -1,6 +1,6 @@
 import * as apiController from './controllers/api.js'
 import * as jsonController from './controllers/json.js'
-import * as xUnitController from './controllers/xUnit.js'
+import * as xUnitController from './controllers/xunit.js'
 import * as configUtils from './utils/configuration'
 
 export async function pullData(args, ids = {}) {

@@ -174,8 +174,8 @@ export class EndpointConfig {
     // type provided in the config
     if (credentialedTypes.includes(this.typeConfig.type)) {
       try {
-        if (args.credentials && fs.existsSync(args.credentials)) {
-          const creds = JSON.parse(fs.readFileSync(args.credentials, 'utf-8'))
+        if (args.credentials) {
+          const creds = args.credentials
           this.credentials = creds[this.integration][this.direction]
           this.baseUrl = creds[this.integration][this.direction].base_url
         }
