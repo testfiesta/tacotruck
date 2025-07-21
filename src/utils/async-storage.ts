@@ -62,7 +62,10 @@ class AsyncStorage {
    * @returns The result of the callback function
    */
   public run<T>(callback: () => T, store?: Map<string, any>): T {
-    return this.asyncLocalStorage.run(store || new Map<string, any>(), callback)
+    return this.asyncLocalStorage.run(
+      store || new Map<string, any>(),
+      callback,
+    )
   }
 }
 

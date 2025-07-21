@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import asyncStorage from '../asyncStorage'
+import asyncStorage from '../async-storage'
 
 describe('asyncStorage', () => {
   beforeEach(() => {
