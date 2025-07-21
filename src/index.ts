@@ -1,13 +1,13 @@
-import * as apiController from './controllers/api.js'
-import * as jsonController from './controllers/json.js'
-import * as xUnitController from './controllers/xunit.js'
+import * as apiController from './controllers/api'
+import * as jsonController from './controllers/json'
+import * as xUnitController from './controllers/xunit'
 import * as configUtils from './utils/configuration'
 
-export async function pullData(args, ids = {}) {
+export async function pullData(args: any, ids = {}) {
   const config = new configUtils.PipeConfig(args)
   const responseData = []
   for (const sourceConfig of config.sourceConfigs) {
-    switch (sourceConfig.typeConfig.type) { // CTODO - just pass sourceTypeConfig
+    switch (sourceConfig.typeConfig?.type) { // CTODO - just pass sourceTypeConfig
       case 'api':
         responseData.push(await apiController.pullData(sourceConfig, ids))
         break
@@ -25,14 +25,14 @@ export async function pullData(args, ids = {}) {
   return responseData
 }
 
-export function pushData(args, data) {
+export function pushData(args: any, data: any) {
   const config = new configUtils.PipeConfig(args)
   if (!Array.isArray(data)) {
     data = [data]
   }
   for (const sourceData of data) {
     for (const targetConfig of config.targetConfigs) {
-      switch (targetConfig.typeConfig.type) {
+      switch (targetConfig.typeConfig?.type) {
         case 'api':
           apiController.pushData(targetConfig, sourceData)
           break
