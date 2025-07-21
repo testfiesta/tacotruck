@@ -1,4 +1,4 @@
-import xUnitParser from '../utils/xunit-parser'
+import XUnitParser from '../utils/xunit-parser'
 
 interface Config {
   integration: string
@@ -17,14 +17,14 @@ interface Ids {
 /**
  * Pulls data from an xUnit file specified in the config
  * @param config Configuration object containing integration file path
- * @param ids Optional IDs object (not currently supported)
+ * @param _ids Optional IDs object (not currently supported)
  * @returns Parsed xUnit data
  */
-export async function pullData(config: Config, ids: Ids = {}): Promise<any> {
+export async function pullData(config: Config, _ids: Ids = {}): Promise<any> {
   // TODO - Pulling individual data points with `ids` is not currently supported
   // config.progressBar.start(200, 0);
   // Pull data
-  const data = new xUnitParser()
+  const data = new XUnitParser()
     .parseFile(config)
 
   return data
@@ -32,10 +32,10 @@ export async function pullData(config: Config, ids: Ids = {}): Promise<any> {
 
 /**
  * Attempts to push data to xUnit format (not supported)
- * @param conf Configuration object
- * @param data Data to push
+ * @param _conf Configuration object
+ * @param _data Data to push
  */
-export function pushData(conf: Config, data: any): void {
+export function pushData(_conf: Config, _data: any): void {
   console.error('Invalid target config: Data cannot be pushed into xUnit format')
   process.exit(1)
 }

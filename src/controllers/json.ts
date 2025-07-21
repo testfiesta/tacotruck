@@ -1,22 +1,22 @@
 import type { Buffer } from 'node:buffer'
 import * as fs from 'node:fs'
 
-interface Config {
+export interface Config {
   integration: string
   [key: string]: any
 }
 
-interface Ids {
+export interface Ids {
   [key: string]: any
 }
 
 /**
  * Pulls data from a JSON file specified in the config
  * @param config Configuration object containing integration file path
- * @param ids Optional IDs object
+ * @param _ids Optional IDs object
  * @returns Parsed JSON data
  */
-async function pullData(config: Config, ids: Ids = {}): Promise<any> {
+export async function pullData(config: Config, _ids: Ids = {}): Promise<any> {
   try {
     const fileContent: Buffer = fs.readFileSync(config.integration)
     let data: any
@@ -42,10 +42,4 @@ async function pullData(config: Config, ids: Ids = {}): Promise<any> {
     console.error(error.message)
     process.exit(1)
   }
-}
-
-export {
-  Config,
-  Ids,
-  pullData,
 }

@@ -1,6 +1,6 @@
-import type { AxiosRequestConfig } from 'axios'
 import type { ResponseData } from '../services/api-client'
 import type { ETLConfig } from '../utils/etl-types'
+import type { RequestOptions } from '../utils/network'
 import * as fs from 'node:fs'
 import FormData from 'form-data'
 import { apiClient } from '../services/api-client'
@@ -296,8 +296,8 @@ function processUpdateOperation(params: {
   config: ETLConfig
   endpoint: string
   datapoint: Record<string, any>
-  options: AxiosRequestConfig
-  requestPromises: Array<{ url: string, options: AxiosRequestConfig }>
+  options: RequestOptions
+  requestPromises: Array<{ url: string, options: RequestOptions }>
 }): boolean {
   const { config, endpoint, datapoint, options, requestPromises } = params
 
@@ -391,8 +391,8 @@ function processIndividualCreation(params: {
   endpoint: string
   datapoint: Record<string, any>
   payloadKey: string | undefined
-  options: AxiosRequestConfig
-  requestPromises: Array<{ url: string, options: AxiosRequestConfig }>
+  options: RequestOptions
+  requestPromises: Array<{ url: string, options: RequestOptions }>
 }): boolean {
   const { config, endpoint, datapoint, payloadKey, options, requestPromises } = params
 
@@ -441,11 +441,11 @@ function processDataPoint(params: {
   datapoint: Record<string, any>
   updateKey: string | undefined
   payloadKey: string | undefined
-  options: AxiosRequestConfig
+  options: RequestOptions
   data: Record<string, any>
   bulkData: any[]
   multiTarget: boolean | undefined
-  requestPromises: Array<{ url: string, options: AxiosRequestConfig }>
+  requestPromises: Array<{ url: string, options: RequestOptions }>
 }): void {
   const { config, endpoint, datapoint, updateKey, payloadKey, options, data, bulkData, multiTarget } = params
 
@@ -514,7 +514,7 @@ function processEndpointData(params: {
   endpoint: string
   data: Record<string, any>
   multiTarget: boolean | undefined
-  requestPromises: Array<{ url: string, options: AxiosRequestConfig }>
+  requestPromises: Array<{ url: string, options: RequestOptions }>
 }): any[] {
   const { config, endpoint, data, multiTarget, requestPromises } = params
   const bulkData: any[] = []
@@ -558,8 +558,8 @@ function handleEndpointBulkData(params: {
   config: ETLConfig
   endpoint: string
   bulkData: any[]
-  options: AxiosRequestConfig
-  requestPromises: Array<{ url: string, options: AxiosRequestConfig }>
+  options: RequestOptions
+  requestPromises: Array<{ url: string, options: RequestOptions }>
 }): void {
   const { config, endpoint, bulkData, options, requestPromises } = params
 
@@ -592,7 +592,7 @@ function processMultiTargetBulkData(params: {
   multiBulkData: Record<string, any[]>
   multiTarget: NonNullable<any>
   data: Record<string, any>
-  requestPromises: Array<{ url: string, options: AxiosRequestConfig }>
+  requestPromises: Array<{ url: string, options: RequestOptions }>
 }): void {
   const { config, multiBulkData, multiTarget, data, requestPromises } = params
 
@@ -633,7 +633,7 @@ export async function loadData(
   config: ETLConfig,
   allData: Record<string, any>,
 ): Promise<void> {
-  const requestPromises: Array<{ url: string, options: AxiosRequestConfig }> = []
+  const requestPromises: Array<{ url: string, options: RequestOptions }> = []
   const data = allData
 
   validateDataAgainstConfig(data, config)
