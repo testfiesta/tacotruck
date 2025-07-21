@@ -3,12 +3,8 @@
     "target": "ESNext",
     "lib": ["ESNext"],
     "moduleDetection": "force",
-    "rootDir": ".",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "paths": {
-      "taze": ["./src/index.ts"]
-    },
     "resolveJsonModule": true,
     "strict": true,
     "strictNullChecks": true,
@@ -18,5 +14,6 @@
     "verbatimModuleSyntax": true,
     "skipDefaultLibCheck": true,
     "skipLibCheck": true
-  }
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
 }
