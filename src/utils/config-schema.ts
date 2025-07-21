@@ -31,9 +31,11 @@ const entityConfigSchema = z.object({
   endpoints: z.record(z.string(), endpointDefinitionSchema),
 })
 
+export const dataType = ['api', 'junit', 'json']
+
 const baseConfigSchema = z.object({
   name: z.string(),
-  type: z.enum(['api', 'junit', 'json']),
+  type: z.enum(dataType),
   base_path: z.string().optional(),
   auth: authSchema.optional(),
   requests_per_second: z.number().optional(),

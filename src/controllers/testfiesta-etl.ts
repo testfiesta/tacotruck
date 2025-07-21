@@ -1,5 +1,5 @@
 import type { ETLConfig } from '../utils/etl-types'
-import { loadConfig } from '../utils/config-loader'
+import { loadConfig } from '../utils/enhanced-config-loader'
 import * as etl from './etl'
 
 export class TestFiestaETL {
@@ -69,7 +69,15 @@ export class TestFiestaETL {
    * @returns A new TestFiestaETL instance
    */
   static async fromConfigFile(configPath: string, credentials?: Record<string, any>): Promise<TestFiestaETL> {
-    const config = await loadConfig(configPath, credentials)
-    return new TestFiestaETL(config as unknown as ETLConfig)
+    const result = await loadConfig({
+      configPath,
+      credentials,
+    })
+
+    if (!result.isOk) {
+      throw new Error('Failed to load config')
+    }
+
+    return new TestFiestaETL(result.unwrap() as unknown as ETLConfig)
   }
 }

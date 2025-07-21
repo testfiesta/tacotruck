@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as Commander from 'commander'
-import { getAvailableConfigs } from '../../utils/configHelpers'
-import * as configUtils from '../../utils/configuration'
+import { dataType } from '../../utils/config-schema'
+import * as enhancedLoader from '../../utils/enhanced-config-loader'
 
 interface Args {
   source: string
@@ -16,12 +16,10 @@ interface Args {
 }
 
 export function createMigrateCommand() {
-  const availableConfigs = getAvailableConfigs()
-
   const migrate = new Commander.Command('migrate')
     .option('-c, --credentials <path>', 'Path to credentials file for API connections. If not provided, environment variables will be used. (See README.)')
-    .requiredOption('-s, --source <source>', `For type api - One of: ${availableConfigs} or the path to a custom JSON api config.\nFor type junit - the path to a JUnit-style XML file.`)
-    .requiredOption('-t, --target <target>', `One of: ${availableConfigs}`)
+    .requiredOption('-s, --source <source>', `For type api - One of: ${dataType.join(', ')} or the path to a custom JSON api config.\nFor type junit - the path to a JUnit-style XML file.`)
+    .requiredOption('-t, --target <target>', `One of: ${dataType.join(', ')}`)
     .description('Migrate data from source to target')
     .addHelpText('after', `
     Examples:
@@ -46,7 +44,26 @@ export function createMigrateCommand() {
 }
 
 export async function run(args: Args) {
-  if (!args.credentials) {
+  let parsedCredentials: Record<string, any> | undefined
+  if (typeof args.credentials === 'string') {
+    console.warn(`Using credentials from file: ${args.credentials}`)
+    if (!fs.existsSync(args.credentials)) {
+      console.error(`Credentials file not found: ${args.credentials}`)
+      process.exit(1)
+    }
+
+    try {
+      parsedCredentials = JSON.parse(fs.readFileSync(args.credentials, 'utf-8'))
+    }
+    catch (error) {
+      console.error(`Failed to parse credentials file: ${args.credentials}`, error)
+      process.exit(1)
+    }
+  }
+  else if (args.credentials) {
+    parsedCredentials = args.credentials
+  }
+  else {
     const sourceEnvKey = `${args.source.toUpperCase()}_SOURCE_CREDENTIALS`
     const targetEnvKey = `${args.target.toUpperCase()}_TARGET_CREDENTIALS`
 
@@ -62,24 +79,58 @@ export async function run(args: Args) {
       console.error('Either provide this environment variable or use -c flag with a credentials file')
     }
   }
-  else {
-    console.warn(`Using credentials from file: ${args.credentials}`)
-    if (!fs.existsSync(args.credentials)) {
-      console.error(`Credentials file not found: ${args.credentials}`)
+
+  let parsedOverrides: Record<string, any> | undefined
+  if (typeof args.overrides === 'string') {
+    try {
+      parsedOverrides = JSON.parse(args.overrides)
+    }
+    catch (error) {
+      console.error(`Failed to parse overrides: ${args.overrides}`, error)
       process.exit(1)
     }
   }
+  else {
+    parsedOverrides = args.overrides
+  }
 
-  const config = new configUtils.PipeConfig({
-    source: args.source,
-    target: args.target,
-    credentials: args.credentials,
-    incremental: args.incremental,
-    ignore: args.ignore,
-    overrides: args.overrides,
-    dataTypes: args.dataTypes ? args.dataTypes.split(',') : undefined,
-    no_git: args.no_git,
+  const sourceConfigs = args.source.split(',').map((source) => {
+    const result = enhancedLoader.loadConfig({
+      configName: source,
+      credentials: parsedCredentials,
+      overrides: parsedOverrides,
+      dataTypes: args.dataTypes ? args.dataTypes.split(',') : undefined,
+      incremental: args.incremental,
+      noGit: args.no_git,
+    })
+
+    if (!result.isOk) {
+      console.error(`Failed to load source config: ${source}`)
+      process.exit(1)
+    }
+
+    return result.unwrap()
   })
+
+  const targetConfigs = args.target.split(',').map((target) => {
+    const result = enhancedLoader.loadConfig({
+      configName: target,
+      credentials: parsedCredentials,
+      overrides: parsedOverrides,
+      dataTypes: args.dataTypes ? args.dataTypes.split(',') : undefined,
+      incremental: args.incremental,
+      noGit: args.no_git,
+    })
+
+    if (!result.isOk) {
+      console.error(`Failed to load target config: ${target}`)
+      process.exit(1)
+    }
+
+    return result.unwrap()
+  })
+
+  const config = { sourceConfigs, targetConfigs }
 
   if (args.verbose) {
     console.warn('Using configuration:')

@@ -6,5 +6,5 @@ export default antfu({
     'no-console': 'warn',
     'node/prefer-global/process': 'off',
   },
-  ignores: ['configs/*.json', 'dist'],
+  ignores: ['configs/*.json', 'dist', '.vscode'],
 })

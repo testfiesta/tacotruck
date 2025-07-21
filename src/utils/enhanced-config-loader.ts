@@ -19,13 +19,22 @@ export interface ConfigLoaderOptions {
  * @param options Configuration loader options
  * @returns Result with validated configuration or error
  */
-export function loadConfig(options: ConfigLoaderOptions): Result<ConfigType, Error> {
+export function loadConfig(options: ConfigLoaderOptions = {}): Result<ConfigType, Error> {
   try {
     let configPath = options.configPath
     const configName = options.configName
 
     if (!configPath && !configName) {
-      return err(new Error('Either configPath or configName must be provided'))
+      const packageRoot = process.env.PACKAGE_ROOT || ''
+      if (packageRoot && fs.existsSync(`${packageRoot}/configs/default.json`)) {
+        configPath = `${packageRoot}/configs/default.json`
+      }
+      else if (fs.existsSync('./configs/default.json')) {
+        configPath = './configs/default.json'
+      }
+      else {
+        return err(new Error('No config parameters provided and no default config found'))
+      }
     }
 
     if (!configPath && configName) {
