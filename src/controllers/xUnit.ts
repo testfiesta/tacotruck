@@ -1,4 +1,4 @@
-import xUnitParser from '../utils/xunit-parser.js'
+import xUnitParser from '../utils/xunit-parser'
 
 interface Config {
   integration: string
