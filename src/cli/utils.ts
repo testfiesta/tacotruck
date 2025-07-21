@@ -1,4 +1,7 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import gradient from 'gradient-string'
+import asyncStorage from '../utils/async-storage'
 
 export const TACOTRUCK_TITLE = `
 88888888888                    88888888888                        888      
@@ -25,6 +28,19 @@ export const catppuccinTheme = {
   lavender: '#B4BEFE',
 }
 
+export function initPackageRoot(): string {
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname = path.dirname(__filename)
+  const packageRoot = path.resolve(__dirname, '../..')
+
+  asyncStorage.setItem('packageRoot', packageRoot)
+  return packageRoot
+}
+
+export function getPackageRoot(): string {
+  return asyncStorage.getItem('packageRoot')
+}
+
 export function renderTitle() {
   const terminalWidth = process.stdout.columns || 80
   const titleLines = TACOTRUCK_TITLE.split('\n')
@@ -36,11 +52,11 @@ export function renderTitle() {
     ║  Taco Truck  ║
     ╚══════════════════╝
     `
-    console.log(
+    console.warn(
       gradient(Object.values(catppuccinTheme)).multiline(simplifiedTitle),
     )
   }
   else {
-    console.log(gradient(Object.values(catppuccinTheme)).multiline(TACOTRUCK_TITLE))
+    console.warn(gradient(Object.values(catppuccinTheme)).multiline(TACOTRUCK_TITLE))
   }
 }

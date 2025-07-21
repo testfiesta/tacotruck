@@ -1,18 +1,11 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { Command } from 'commander'
 import * as pJson from '../../package.json'
-import asyncStorage from '../utils/async-storage'
 import * as migrate from './commands/migrate'
 import * as testfiesta from './commands/testfiesta'
 import * as testrails from './commands/testrails'
-import { renderTitle } from './utils'
+import { initPackageRoot, renderTitle } from './utils'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const packageRoot = path.resolve(__dirname, '../..')
-
-asyncStorage.setItem('packageRoot', packageRoot)
+initPackageRoot()
 
 const program = new Command()
 

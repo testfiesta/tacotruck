@@ -1,6 +1,7 @@
 import type { ConfigType, CredentialsConfig } from './config-schema'
 import type { Result } from './result'
 import * as fs from 'node:fs'
+import asyncStorage from './async-storage'
 import { validateConfig, validateCredentials } from './config-schema'
 import { err, ok } from './result'
 
@@ -25,7 +26,7 @@ export function loadConfig(options: ConfigLoaderOptions = {}): Result<ConfigType
     const configName = options.configName
 
     if (!configPath && !configName) {
-      const packageRoot = process.env.PACKAGE_ROOT || ''
+      const packageRoot = asyncStorage.getItem('packageRoot') || process.env.PACKAGE_ROOT || ''
       if (packageRoot && fs.existsSync(`${packageRoot}/configs/default.json`)) {
         configPath = `${packageRoot}/configs/default.json`
       }
@@ -38,7 +39,7 @@ export function loadConfig(options: ConfigLoaderOptions = {}): Result<ConfigType
     }
 
     if (!configPath && configName) {
-      const packageRoot = process.env.PACKAGE_ROOT || ''
+      const packageRoot = asyncStorage.getItem('packageRoot') || process.env.PACKAGE_ROOT || ''
 
       if (packageRoot && fs.existsSync(`${packageRoot}/configs/${configName}.json`)) {
         configPath = `${packageRoot}/configs/${configName}.json`
