@@ -36,6 +36,14 @@ export function createAuthenticatedOptions(
     if (config.auth.key && config.auth.payload) {
       options.headers[config.auth.key] = config.auth.payload
     }
+    else {
+      console.warn('Auth header not added:', {
+        hasKey: !!config.auth.key,
+        hasPayload: !!config.auth.payload,
+        key: config.auth.key,
+        payloadPrefix: config.auth.payload?.substring(0, 10),
+      })
+    }
   }
 
   return options
@@ -67,7 +75,8 @@ export async function processPostRequest(
 
     return ok(response)
   }
-  catch (error) {
+  catch (error: any) {
+    console.error('API Request Failed:', error.message)
     return err(error instanceof Error ? error : new Error(String(error)))
   }
 }

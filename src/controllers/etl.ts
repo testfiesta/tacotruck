@@ -33,7 +33,8 @@ function validateMultiBulkData(multiBulkData: Record<string, any[]>): boolean {
  * @returns The constructed URL
  */
 function buildEndpointUrl(config: ETLConfig, endpointPath: string | undefined): string {
-  return (config.baseUrl || '') + (config.typeConfig?.base_path || '') + (endpointPath || '')
+  const configAny = config as any
+  return (config.baseUrl || '') + (configAny.base_path || '') + (endpointPath || '')
 }
 
 const TARGET_CONCURRENCY = 5
@@ -301,11 +302,18 @@ function processUpdateOperation(params: {
 }): boolean {
   const { config, endpoint, datapoint, options, requestPromises } = params
 
-  const rawPath = config.typeConfig?.target?.[endpoint]?.endpoints?.update?.path
-  const dataKey = config.typeConfig?.target?.[endpoint]?.endpoints?.update?.data_key
+  // Use config directly instead of typeConfig
+  const configAny = config as any
+  const target = configAny.target || {}
+  const endpointConfig = target[endpoint] || {}
+  const endpoints = endpointConfig.endpoints || {}
+  const updateEndpoint = endpoints.update || {}
+
+  const rawPath = updateEndpoint.path
+  const dataKey = updateEndpoint.data_key
   const url = buildEndpointUrl(config, rawPath)
 
-  const requiredKeys = config.typeConfig?.target?.[endpoint]?.endpoints?.update?.required_keys ?? []
+  const requiredKeys = updateEndpoint.required_keys || []
   const { isValid, missingKeys } = validateRequiredKeys(datapoint, requiredKeys)
 
   if (!isValid) {
@@ -348,7 +356,14 @@ function processBulkCreation(params: {
 }): void {
   const { config, endpoint, datapoint, data, bulkData } = params
 
-  if (config.typeConfig?.target?.[endpoint]?.endpoints?.create?.include_source) {
+  // Use config directly instead of typeConfig
+  const configAny = config as any
+  const target = configAny.target || {}
+  const endpointConfig = target[endpoint] || {}
+  const endpoints = endpointConfig.endpoints || {}
+  const createEndpoint = endpoints.create || {}
+
+  if (createEndpoint.include_source) {
     datapoint.source = datapoint.source ?? data.source
   }
 
@@ -396,8 +411,15 @@ function processIndividualCreation(params: {
 }): boolean {
   const { config, endpoint, datapoint, payloadKey, options, requestPromises } = params
 
-  const rawPath = config.typeConfig?.target?.[endpoint]?.endpoints?.create?.single_path
-  const dataKey = config.typeConfig?.target?.[endpoint]?.endpoints?.create?.data_key || ''
+  // Use config directly instead of typeConfig
+  const configAny = config as any
+  const target = configAny.target || {}
+  const endpointConfig = target[endpoint] || {}
+  const endpoints = endpointConfig.endpoints || {}
+  const createEndpoint = endpoints.create || {}
+
+  const rawPath = createEndpoint.single_path
+  const dataKey = createEndpoint.data_key || ''
   const url = buildEndpointUrl(config, rawPath)
 
   let requestData: any
@@ -448,6 +470,11 @@ function processDataPoint(params: {
   requestPromises: Array<{ url: string, options: RequestOptions }>
 }): void {
   const { config, endpoint, datapoint, updateKey, payloadKey, options, data, bulkData, multiTarget } = params
+  const configAny = config as any
+  const target = configAny.target || {}
+  const endpointConfig = target[endpoint] || {}
+  const endpoints = endpointConfig.endpoints || {}
+  const createEndpoint = endpoints.create || {}
 
   if (updateKey && datapoint?.[updateKey]) {
     processUpdateOperation({
@@ -458,7 +485,7 @@ function processDataPoint(params: {
       requestPromises: params.requestPromises,
     })
   }
-  else if (config.typeConfig?.target?.[endpoint]?.endpoints?.create?.bulk_path || multiTarget) {
+  else if (createEndpoint.bulk_path || multiTarget) {
     processBulkCreation({
       config,
       endpoint,
@@ -490,9 +517,10 @@ function validateDataAgainstConfig(
 ): void {
   for (const dataEndpoint of Object.keys(data)) {
     if (dataEndpoint !== 'source' && !config.endpointSet.includes(dataEndpoint)) {
+      const configAny = config as any
       console.error(
         `Data found for [${dataEndpoint}], but no configuration `
-        + `for this data type exists for target [${config.typeConfig?.name}] so the data `
+        + `for this data type exists for target [${configAny.name}] so the data `
         + 'will be dropped.',
       )
     }
@@ -523,8 +551,16 @@ function processEndpointData(params: {
     return bulkData
   }
 
-  const updateKey = config.typeConfig?.target?.[endpoint]?.endpoints?.update?.update_key || undefined
-  const payloadKey = config.typeConfig?.target?.[endpoint]?.endpoints?.create?.payload_key || undefined
+  // Use config directly instead of typeConfig
+  const configAny = config as any
+  const target = configAny.target || {}
+  const endpointConfig = target[endpoint] || {}
+  const endpoints = endpointConfig.endpoints || {}
+  const updateEndpoint = endpoints.update || {}
+  const createEndpoint = endpoints.create || {}
+
+  const updateKey = updateEndpoint.update_key || undefined
+  const payloadKey = createEndpoint.payload_key || undefined
   const options = {}
 
   for (const datapoint of data[endpoint]) {
@@ -567,8 +603,15 @@ function handleEndpointBulkData(params: {
     return
   }
 
-  const rawPath = config.typeConfig?.target?.[endpoint]?.endpoints?.create?.bulk_path
-  const dataKey = config.typeConfig?.target?.[endpoint]?.endpoints?.create?.data_key || ''
+  // Use config directly instead of typeConfig
+  const configAny = config as any
+  const target = configAny.target || {}
+  const endpointConfig = target[endpoint] || {}
+  const endpoints = endpointConfig.endpoints || {}
+  const createEndpoint = endpoints.create || {}
+
+  const rawPath = createEndpoint.bulk_path
+  const dataKey = createEndpoint.data_key || ''
   const url = buildEndpointUrl(config, rawPath)
 
   const requestData = dataUtils.buildRequestData(dataKey, {}, bulkData)
@@ -638,7 +681,9 @@ export async function loadData(
 
   validateDataAgainstConfig(data, config)
 
-  const hasMultiTarget = !!config.typeConfig?.multi_target && typeof config.typeConfig.multi_target === 'object'
+  // Use config directly instead of typeConfig
+  const configAny = config as any
+  const hasMultiTarget = !!configAny.multi_target && typeof configAny.multi_target === 'object'
   const multiBulkData: Record<string, any[]> = {}
 
   for (const endpoint of config.endpointSet) {
@@ -669,11 +714,11 @@ export async function loadData(
     }
   }
 
-  if (hasMultiTarget && config.typeConfig?.multi_target) {
+  if (hasMultiTarget && configAny.multi_target) {
     processMultiTargetBulkData({
       config,
       multiBulkData,
-      multiTarget: config.typeConfig.multi_target,
+      multiTarget: configAny.multi_target,
       data,
       requestPromises,
     })

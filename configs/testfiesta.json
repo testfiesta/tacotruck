@@ -1,13 +1,15 @@
 {
   "name": "testfiesta",
   "type": "api",
-  "base_path": "",
+  "base_path": "https://staging.api.testfiesta.com/",
   "auth": {
     "type": "bearer",
-    "location": "header"
+    "location": "header",
+    "key": "Authorization",
+    "payload": "Bearer {token}"
   },
   "multi_target": {
-    "path": "v1/hassan1/projects/0__/data",
+    "path": "v1/samuelnoah45/projects/",
     "data_key": "entries",
     "include_source": true
   },

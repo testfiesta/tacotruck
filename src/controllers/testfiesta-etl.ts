@@ -1,5 +1,5 @@
 import type { ETLConfig } from '../utils/etl-types'
-import { loadConfig } from '../utils/enhanced-config-loader'
+import { bracketSubstitution, findSubstitutionKeys, loadConfig } from '../utils/enhanced-config-loader'
 import * as etl from './etl'
 
 export class TestFiestaETL {
@@ -7,6 +7,41 @@ export class TestFiestaETL {
 
   constructor(config: ETLConfig) {
     this.config = config
+
+    // Ensure we have a properly initialized configuration
+    this.initializeConfig()
+  }
+
+  /**
+   * Initialize configuration to work without relying on typeConfig
+   */
+  private initializeConfig(): void {
+    // Initialize endpointSet if it doesn't exist
+    if (!this.config.endpointSet) {
+      this.config.endpointSet = []
+
+      // Add endpoints from target configuration if available
+      if (this.config.target) {
+        this.config.endpointSet = Object.keys(this.config.target)
+      }
+    }
+
+    // Apply token to auth payload if available
+    if (this.config.auth?.payload && (this.config as any).credentials?.token) {
+      const keys = findSubstitutionKeys(this.config.auth.payload)
+      for (const key of keys) {
+        if (key === 'token' && (this.config as any).credentials.token) {
+          this.config.auth.payload = bracketSubstitution(
+            this.config.auth.payload,
+            'token',
+            (this.config as any).credentials.token,
+          )
+        }
+      }
+    }
+    else if (this.config.auth?.type === 'bearer' && !this.config.auth.payload) {
+      console.warn('Bearer auth is configured but no payload is set. Token will not be included in requests.')
+    }
   }
 
   /**
@@ -78,6 +113,13 @@ export class TestFiestaETL {
       throw new Error('Failed to load config')
     }
 
-    return new TestFiestaETL(result.unwrap() as unknown as ETLConfig)
+    const config = result.unwrap() as unknown as ETLConfig
+
+    // Attach credentials to config if provided
+    if (credentials && credentials.testfiesta && credentials.testfiesta.target) {
+      (config as any).credentials = credentials.testfiesta.target
+    }
+
+    return new TestFiestaETL(config)
   }
 }
