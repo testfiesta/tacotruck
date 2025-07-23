@@ -1,6 +1,7 @@
 import type { ConfigType, CredentialsConfig } from './config-schema'
 import type { Result } from './result'
 import * as fs from 'node:fs'
+import * as path from 'node:path'
 import asyncStorage from './async-storage'
 import { validateConfig, validateCredentials } from './config-schema'
 import { err, ok } from './result'
@@ -24,19 +25,6 @@ export function loadConfig(options: ConfigLoaderOptions = {}): Result<ConfigType
   try {
     let configPath = options.configPath
     const configName = options.configName
-
-    if (!configPath && !configName) {
-      const packageRoot = asyncStorage.getItem('packageRoot') || process.env.PACKAGE_ROOT || ''
-      if (packageRoot && fs.existsSync(`${packageRoot}/configs/default.json`)) {
-        configPath = `${packageRoot}/configs/default.json`
-      }
-      else if (fs.existsSync('./configs/default.json')) {
-        configPath = './configs/default.json'
-      }
-      else {
-        return err(new Error('No config parameters provided and no default config found'))
-      }
-    }
 
     if (!configPath && configName) {
       const packageRoot = asyncStorage.getItem('packageRoot') || process.env.PACKAGE_ROOT || ''
@@ -72,6 +60,16 @@ export function loadConfig(options: ConfigLoaderOptions = {}): Result<ConfigType
     if (options.overrides && typeof config === 'object' && config !== null) {
       config = { ...config, ...options.overrides }
     }
+
+    if (options.credentials && typeof config === 'object' && config !== null) {
+      const configName = options.configName || 'default'
+      if (options.credentials[configName] && options.credentials[configName].target) {
+        config = {
+          ...config,
+          credentials: options.credentials[configName].target,
+        }
+      }
+    }
     const validatedConfigResult = validateConfig(config)
     if (!validatedConfigResult.isOk) {
       return validatedConfigResult
@@ -94,22 +92,41 @@ export function loadConfig(options: ConfigLoaderOptions = {}): Result<ConfigType
 }
 
 /**
- * Load credentials from environment variables or provided object
+ * Load credentials from environment variables, file path, or provided object
  * @param integrationName Name of the integration
  * @param direction 'source' or 'target'
- * @param credentials Optional credentials object
+ * @param credentials Optional credentials object or path to credentials file
  * @returns Result with validated credentials or error
  */
 export function loadCredentials(
   integrationName: string,
   direction: 'source' | 'target',
-  credentials?: Record<string, any>,
+  credentials?: Record<string, any> | string,
 ): Result<CredentialsConfig, Error> {
   try {
     let credentialsData: unknown
+    let credentialsObj: Record<string, any> | undefined
 
-    if (credentials) {
-      credentialsData = credentials[integrationName]?.[direction]
+    if (typeof credentials === 'string') {
+      try {
+        const resolvedPath = path.resolve(process.cwd(), credentials)
+
+        if (!fs.existsSync(resolvedPath)) {
+          return err(new Error(`Credentials file not found: ${resolvedPath}`))
+        }
+
+        credentialsObj = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'))
+      }
+      catch (parseError) {
+        return err(new Error(`Failed to parse credentials file: ${parseError instanceof Error ? parseError.message : String(parseError)}`))
+      }
+    }
+    else {
+      credentialsObj = credentials
+    }
+
+    if (credentialsObj) {
+      credentialsData = credentialsObj[integrationName]?.[direction]
     }
     else {
       const envKey = `${integrationName.toUpperCase()}_${direction.toUpperCase()}_CREDENTIALS`

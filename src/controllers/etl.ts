@@ -226,10 +226,8 @@ export function transformData(
   config: ETLConfig,
   data: Record<string, any>,
 ): Record<string, any> {
-  // Apply source control info to the data
   const transformedData = applySourceControlInfo(data, config)
 
-  // Apply overrides if configured
   if (config.typeConfig?.overrides) {
     applyConfigOverrides(transformedData, config.typeConfig.overrides)
   }

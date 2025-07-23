@@ -8,25 +8,18 @@ export class TestFiestaETL {
   constructor(config: ETLConfig) {
     this.config = config
 
-    // Ensure we have a properly initialized configuration
     this.initializeConfig()
   }
 
-  /**
-   * Initialize configuration to work without relying on typeConfig
-   */
   private initializeConfig(): void {
-    // Initialize endpointSet if it doesn't exist
     if (!this.config.endpointSet) {
       this.config.endpointSet = []
 
-      // Add endpoints from target configuration if available
       if (this.config.target) {
         this.config.endpointSet = Object.keys(this.config.target)
       }
     }
 
-    // Apply token to auth payload if available
     if (this.config.auth?.payload && (this.config as any).credentials?.token) {
       const keys = findSubstitutionKeys(this.config.auth.payload)
       for (const key of keys) {
@@ -90,7 +83,6 @@ export class TestFiestaETL {
       runs: Array.isArray(runData) ? runData : [runData],
     }
 
-    // Transform and load the data
     const transformedData = this.transform(data)
     await this.load(transformedData)
 
@@ -98,14 +90,18 @@ export class TestFiestaETL {
   }
 
   /**
-   * Factory method to create a TestFiestaETL instance from a configuration file
-   * @param configPath Path to the configuration file
-   * @param credentials Optional credentials to use for authentication
+   * Factory method to create a TestFiestaETL instance from a configuration
+   * @param options Configuration options
+   * @param options.configPath Optional path to the configuration file
+   * @param options.credentials Optional credentials to use for authentication
    * @returns A new TestFiestaETL instance
    */
-  static async fromConfigFile(configPath: string, credentials?: Record<string, any>): Promise<TestFiestaETL> {
-    const result = await loadConfig({
+  static async fromConfig(options: { configPath?: string, credentials?: Record<string, any> } = {}): Promise<TestFiestaETL> {
+    const { configPath, credentials } = options
+
+    const result = loadConfig({
       configPath,
+      configName: 'testfiesta',
       credentials,
     })
 
@@ -114,11 +110,6 @@ export class TestFiestaETL {
     }
 
     const config = result.unwrap() as unknown as ETLConfig
-
-    // Attach credentials to config if provided
-    if (credentials && credentials.testfiesta && credentials.testfiesta.target) {
-      (config as any).credentials = credentials.testfiesta.target
-    }
 
     return new TestFiestaETL(config)
   }
