@@ -7,13 +7,15 @@ import { loadRunData } from '../../utils/run-data-loader'
 interface SubmitRunArgs {
   data: string
   credentials: string
+  projectKey: string
 }
 
 function submitRunCommand() {
   const submitRunCommand = new Commander.Command('run:submit')
     .description('submit test run to TestFiesta')
     .requiredOption('-d, --data <path>', 'path to test run data JSON file')
-    .requiredOption('-c, --credentials <path>', 'path to credentials JSON file')
+    .requiredOption('-k, --project-key <projectKey>', 'TestFiesta project key')
+    .option('-c, --credentials <path>', 'path to credentials JSON file')
     .action(async (args: SubmitRunArgs) => {
       await run(args).catch((e) => {
         p.log.error('Failed to submit test run')
@@ -44,15 +46,20 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   }
 
   try {
-    const credentials = loadCredentials('testfiesta', 'target', args.credentials).match({
-      ok: creds => ({ testfiesta: { target: creds } }),
-      err: error => handleError(error, 'Credentials validation error'),
-    })
+    let credentials: Record<string, any> | undefined
+    if (args.credentials) {
+      credentials = loadCredentials('testfiesta', 'target', args.credentials).match({
+        ok: creds => ({ testfiesta: { target: creds } }),
+        err: error => handleError(error, 'Credentials validation error'),
+      }) || undefined
 
-    if (credentials === null)
-      return
+      if (credentials === null)
+        return
+    }
+    const handle = 'temp_handel'
+    console.log('@@@ 1111', args.projectKey)
 
-    const testFiestaETL = await TestFiestaETL.fromConfig({ credentials })
+    const testFiestaETL = await TestFiestaETL.fromConfig({ credentials, params: { projectKey: args.projectKey, handle } })
 
     const runData = loadRunData(args.data).match({
       ok: data => data,

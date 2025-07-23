@@ -2,11 +2,20 @@ import type { ETLConfig } from '../utils/etl-types'
 import { bracketSubstitution, findSubstitutionKeys, loadConfig } from '../utils/enhanced-config-loader'
 import * as etl from './etl'
 
+interface TestFiestaETLOptions {
+  projectKey: string
+  handle: string
+}
 export class TestFiestaETL {
   private config: ETLConfig
-
-  constructor(config: ETLConfig) {
+  private token: string
+  private options: TestFiestaETLOptions
+  constructor(config: ETLConfig, options: TestFiestaETLOptions, credentials?: Record<string, any>) {
     this.config = config
+    this.options = options
+    this.token = credentials?.testfiesta?.target?.token
+      || process.env.TESTFIESTA_TOKEN
+      || ''
 
     this.initializeConfig()
   }
@@ -20,14 +29,14 @@ export class TestFiestaETL {
       }
     }
 
-    if (this.config.auth?.payload && (this.config as any).credentials?.token) {
+    if (this.config.auth?.payload) {
       const keys = findSubstitutionKeys(this.config.auth.payload)
       for (const key of keys) {
-        if (key === 'token' && (this.config as any).credentials.token) {
+        if (key === 'token' && this.token) {
           this.config.auth.payload = bracketSubstitution(
             this.config.auth.payload,
             'token',
-            (this.config as any).credentials.token,
+            this.token,
           )
         }
       }
@@ -96,13 +105,12 @@ export class TestFiestaETL {
    * @param options.credentials Optional credentials to use for authentication
    * @returns A new TestFiestaETL instance
    */
-  static async fromConfig(options: { configPath?: string, credentials?: Record<string, any> } = {}): Promise<TestFiestaETL> {
-    const { configPath, credentials } = options
+  static async fromConfig(options: { configPath?: string, credentials?: Record<string, any>, params: TestFiestaETLOptions }): Promise<TestFiestaETL> {
+    const { configPath, credentials, params } = options
 
     const result = loadConfig({
       configPath,
       configName: 'testfiesta',
-      credentials,
     })
 
     if (!result.isOk) {
@@ -111,6 +119,6 @@ export class TestFiestaETL {
 
     const config = result.unwrap() as unknown as ETLConfig
 
-    return new TestFiestaETL(config)
+    return new TestFiestaETL(config, params, credentials)
   }
 }

@@ -9,7 +9,6 @@ import { err, ok } from './result'
 export interface ConfigLoaderOptions {
   configPath?: string
   configName?: string
-  credentials?: Record<string, any>
   overrides?: Record<string, any>
   dataTypes?: string[]
   incremental?: boolean
@@ -61,15 +60,6 @@ export function loadConfig(options: ConfigLoaderOptions = {}): Result<ConfigType
       config = { ...config, ...options.overrides }
     }
 
-    if (options.credentials && typeof config === 'object' && config !== null) {
-      const configName = options.configName || 'default'
-      if (options.credentials[configName] && options.credentials[configName].target) {
-        config = {
-          ...config,
-          credentials: options.credentials[configName].target,
-        }
-      }
-    }
     const validatedConfigResult = validateConfig(config)
     if (!validatedConfigResult.isOk) {
       return validatedConfigResult
