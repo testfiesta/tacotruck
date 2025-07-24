@@ -41,6 +41,7 @@ const baseConfigSchema = z.object({
   requests_per_second: z.number().optional(),
   sourceThrottle: z.number().optional(),
   sourceThrottleTime: z.number().optional(),
+  target: z.record(z.string(), entityConfigSchema).optional(),
   typeConfig: z.object({
     source: typeMappingSchema.optional(),
     denormalized_keys: z.record(z.string(), z.record(z.string(), z.string())).optional(),
@@ -57,7 +58,6 @@ const apiConfigSchema = baseConfigSchema.extend({
   type: z.literal('api'),
   multi_target: multiTargetSchema.optional(),
   source: z.record(z.string(), entityConfigSchema).optional(),
-  target: z.record(z.string(), entityConfigSchema).optional(),
 })
 
 const jsonConfigSchema = baseConfigSchema.extend({
