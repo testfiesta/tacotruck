@@ -80,6 +80,10 @@ export async function processPostRequest(
 
     const response = await ky.post(url, mergedOptions)
 
+    if (!response.ok) {
+      return err(new Error('Post request failed'))
+    }
+
     return ok(response)
   }
   catch (error: any) {

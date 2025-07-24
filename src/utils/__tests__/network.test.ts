@@ -69,7 +69,10 @@ describe('network utils', () => {
       // Setup
       const mockResponseData = { id: 123, status: 'success' }
       const mockJsonPromise = Promise.resolve(mockResponseData)
-      const mockResponse = { json: () => mockJsonPromise } as any
+      const mockResponse = {
+        json: () => mockJsonPromise,
+        ok: true,
+      } as any
       vi.mocked(ky.post).mockResolvedValue(mockResponse)
 
       const authOptions: AuthOptions = {
@@ -116,7 +119,6 @@ describe('network utils', () => {
 
   describe('processGetRequest', () => {
     it('should make a GET request and process the response', async () => {
-      // Setup
       const mockResponseData = { items: [1, 2, 3] }
       const mockJsonPromise = Promise.resolve(mockResponseData)
       const mockResponse = { json: () => mockJsonPromise } as any

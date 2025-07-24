@@ -1,19 +1,20 @@
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaETL } from '../../controllers/testfiesta-etl'
-import { loadCredentials } from '../../utils/enhanced-config-loader'
 import { loadRunData } from '../../utils/run-data-loader'
 
 interface SubmitRunArgs {
   data: string
-  credentials: string
+  token: string
+  handle: string
 }
 
 function submitRunCommand() {
   const submitRunCommand = new Commander.Command('run:submit')
     .description('submit test run to TestFiesta')
     .requiredOption('-d, --data <path>', 'path to test run data JSON file')
-    .requiredOption('-c, --credentials <path>', 'path to credentials JSON file')
+    .requiredOption('-t, --token <token>', 'TestFiesta API token')
+    .requiredOption('-h, --handle <handle>', 'Organization handle')
     .action(async (args: SubmitRunArgs) => {
       await run(args).catch((e) => {
         p.log.error('Failed to submit test run')
@@ -44,15 +45,16 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   }
 
   try {
-    const credentials = loadCredentials('testfiesta', 'target', args.credentials).match({
-      ok: creds => ({ testfiesta: { target: creds } }),
-      err: error => handleError(error, 'Credentials validation error'),
+    const testFiestaETL = await TestFiestaETL.fromConfig({
+      credentials: { token: args.token, handle: args.handle },
+      etlOptions: {
+        baseUrl: 'http://localhost:5000',
+        enablePerformanceMonitoring: true,
+        strictMode: false,
+        retryAttempts: 3,
+        timeout: 5000,
+      },
     })
-
-    if (credentials === null)
-      return
-
-    const testFiestaETL = await TestFiestaETL.fromConfig({ credentials })
 
     const runData = loadRunData(args.data).match({
       ok: data => data,
@@ -62,14 +64,30 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     if (runData === null)
       return
 
-    const result = await testFiestaETL.submitTestRun(runData)
-
+    await testFiestaETL.submitMultiTarget(runData, 'runs')
     spinner.stop()
-    p.log.success('Test run submitted successfully')
-    p.log.info(`Result: ${JSON.stringify(result, null, 2)}`)
   }
   catch (error) {
     spinner.stop()
-    p.log.error(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`)
+
+    if (error instanceof Error) {
+      p.log.error(`Submission failed: ${error.message}`)
+
+      if ('type' in error && 'context' in error) {
+        p.log.error(`Error type: ${(error as any).type}`)
+        if ((error as any).context && Object.keys((error as any).context).length > 0) {
+          p.log.error(`Context: ${JSON.stringify((error as any).context, null, 2)}`)
+        }
+
+        if ('isRetryable' in error && (error as any).isRetryable) {
+          p.log.warn('This error might be retryable - consider running the command again')
+        }
+      }
+    }
+    else {
+      p.log.error(`Unexpected error: ${String(error)}`)
+    }
+
+    process.exit(1)
   }
 }
