@@ -189,7 +189,6 @@ export class TestFiestaETL extends ETLv2 {
     const result = loadConfig({
       configPath,
       configName: 'testfiesta',
-      credentials,
     })
 
     if (!result.isOk) {

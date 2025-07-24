@@ -55,7 +55,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
         timeout: 5000,
       },
     })
-
+    
     const runData = loadRunData(args.data).match({
       ok: data => data,
       err: error => handleError(error, 'Data error'),
