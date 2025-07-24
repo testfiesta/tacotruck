@@ -8,6 +8,21 @@ import { applySourceControlInfo, processBatches, processResponseData } from '../
 import * as dataUtils from '../utils/data'
 import { bracketSubstitution, findSubstitutionKeys } from '../utils/enhanced-config-loader'
 
+/**
+ * Options for ETL operations
+ */
+export interface ETLOptions {
+  /**
+   * Credentials for authentication and API access
+   */
+  credentials?: Record<string, any>
+
+  /**
+   * Additional configuration options
+   */
+  [key: string]: any
+}
+
 const TARGET_CONCURRENCY = 5
 
 export class ETL {
@@ -21,14 +36,26 @@ export class ETL {
   protected offsets: Record<string, any> = {}
   protected source_control: Record<string, Record<string, any>> = {}
   protected targetUrls: Record<string, Record<string, string>> = {}
+  protected credentials: Record<string, any> = {}
+  protected authOptions: {
+    type: string
+    location: 'header' | 'query' | 'body'
+    key?: string
+    payload?: string
+  } | null = null
 
   /**
    * Create a new ETL instance
    * @param configSchema The full configuration schema
+   * @param options Additional ETL options including credentials
    */
-  constructor(configSchema: ConfigType) {
+  constructor(configSchema: ConfigType, options: ETLOptions = {}) {
     this.config = configSchema
     this.apiClient = apiClient
+
+    this.credentials = options.credentials || {}
+
+    this.prepareAuthOptions(this.credentials)
     this.initializeConfig()
   }
 
@@ -36,11 +63,9 @@ export class ETL {
    * Initialize the configuration with default values and set up class properties from config
    */
   protected initializeConfig(): void {
-    // Set up base properties from config
-    this.direction = 'target' // Default direction
+    this.direction = 'target'
     this.integration = 'default'
 
-    // Set integration name if available in config
     if (this.config.type === 'api' || this.config.type === 'json' || this.config.type === 'junit') {
       if ('name' in this.config) {
         this.integration = this.config.name
@@ -50,7 +75,6 @@ export class ETL {
     this.offsets = {}
     this.source_control = {}
 
-    // Initialize endpoint set
     if (this.config.type === 'api' && this.config.source) {
       this.endpointSet = Object.keys(this.config.source)
     }
@@ -58,30 +82,156 @@ export class ETL {
       this.endpointSet = []
     }
 
-    // Set up base URL if available
-    // First check for baseUrl in the config (for test compatibility)
     if ('baseUrl' in this.config) {
       this.baseUrl = this.config.baseUrl as string
     }
-    // Otherwise use base_path if available
     else if (this.config.type === 'api' && this.config.base_path) {
       this.baseUrl = this.config.base_path
     }
 
-    // Precompute URLs for all targets
+    this.applyConfigSubstitutions()
     this.precomputeTargetUrls()
   }
 
   /**
    * Precomputes URLs for all targets to optimize URL construction
    */
+  /**
+   * Process all substitutions in a string
+   * @param value String containing substitution placeholders
+   * @param credentials Credentials object with values for substitution
+   * @returns String with substitutions applied
+   */
+  protected processSubstitutions(value: string, credentials: Record<string, any>): string {
+    let result = value
+    const keys = findSubstitutionKeys(value)
+
+    for (const key of keys) {
+      if (credentials[key] !== undefined) {
+        result = bracketSubstitution(result, key, credentials[key])
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Apply substitutions to configuration values
+   */
+  protected applyConfigSubstitutions(): void {
+    this.applySourceConfigSubstitutions(this.credentials)
+    this.applyTargetConfigSubstitutions(this.credentials)
+  }
+
+  /**
+   * Apply substitutions to source configuration values
+   * @param credentials Credentials object with values for substitution
+   */
+  /**
+   * Prepare authentication options without mutating the config object
+   * @param credentials Credentials object with values for substitution
+   */
+  protected prepareAuthOptions(credentials: Record<string, any>): void {
+    if (!this.config.auth) {
+      this.authOptions = null
+      return
+    }
+
+    this.authOptions = {
+      type: this.config.auth.type,
+      location: this.config.auth.location,
+    }
+
+    if (this.config.auth.key) {
+      this.authOptions.key = this.config.auth.key
+    }
+
+    if (this.config.auth.payload) {
+      this.authOptions.payload = this.processSubstitutions(this.config.auth.payload, credentials)
+    }
+  }
+
+  /**
+   * Get a copy of the config with processed authentication options
+   * @returns Config with processed auth options
+   */
+  protected getConfigWithAuth(): ConfigType {
+    const configWithAuth = { ...this.config }
+
+    if (this.authOptions) {
+      configWithAuth.auth = this.authOptions
+    }
+
+    return configWithAuth
+  }
+
+  protected applySourceConfigSubstitutions(credentials: Record<string, any>): void {
+    // Authentication options are now prepared in the constructor
+
+    if (this.config.auth?.type === 'bearer' && !this.config.auth.payload && this.authOptions && !this.authOptions.payload) {
+      console.warn('Bearer auth is configured but no payload is set. Token will not be included in requests.')
+    }
+
+    if (this.config.base_path) {
+      this.config.base_path = this.processSubstitutions(this.config.base_path, credentials)
+    }
+
+    if (this.config.type === 'api' && this.config.source) {
+      for (const entityType of Object.keys(this.config.source)) {
+        const entity = this.config.source[entityType]
+        if (entity?.endpoints) {
+          for (const operation of Object.keys(entity.endpoints)) {
+            const endpoint = entity.endpoints[operation]
+
+            if (endpoint.path) {
+              endpoint.path = this.processSubstitutions(endpoint.path, credentials)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Apply substitutions to target configuration values
+   * @param credentials Credentials object with values for substitution
+   */
+  protected applyTargetConfigSubstitutions(credentials: Record<string, any>): void {
+    if (this.config.type === 'api' && 'multi_target' in this.config && this.config.multi_target?.path) {
+      this.config.multi_target.path = this.processSubstitutions(
+        this.config.multi_target.path,
+        credentials,
+      )
+    }
+
+    if (this.config.target) {
+      for (const entityType of Object.keys(this.config.target)) {
+        const entity = this.config.target[entityType]
+        if (entity?.endpoints) {
+          for (const operation of Object.keys(entity.endpoints)) {
+            const endpoint = entity.endpoints[operation]
+
+            if (endpoint.bulk_path) {
+              endpoint.bulk_path = this.processSubstitutions(endpoint.bulk_path, credentials)
+            }
+            if (endpoint.single_path) {
+              endpoint.single_path = this.processSubstitutions(endpoint.single_path, credentials)
+            }
+            if (endpoint.path) {
+              endpoint.path = this.processSubstitutions(endpoint.path, credentials)
+            }
+          }
+        }
+      }
+    }
+  }
+
   private precomputeTargetUrls(): void {
     if (!this.config.target)
       return
 
     this.targetUrls = {}
 
-    // Iterate through all targets
     for (const entityType of Object.keys(this.config.target)) {
       const entity = this.config.target[entityType]
       if (!entity.endpoints)
@@ -200,7 +350,6 @@ export class ETL {
    * @returns Transformed data
    */
   protected transformData(data: Record<string, any>): Record<string, any> {
-    // Create a compatible config object for applySourceControlInfo
     const etlCompatConfig = {
       ...this.config,
       direction: this.direction,
@@ -212,9 +361,8 @@ export class ETL {
 
     const transformedData = applySourceControlInfo(data, etlCompatConfig as any)
 
-    // Apply overrides if available in the config
     if (this.config.type === 'api' && 'overrides' in this.config) {
-      const apiConfig = this.config as any // Type assertion to access overrides
+      const apiConfig = this.config as any
       if (apiConfig.overrides) {
         this.applyConfigOverrides(transformedData, apiConfig.overrides)
       }
@@ -239,10 +387,8 @@ export class ETL {
     const requestPromises: Array<{ url: string, options: RequestOptions }> = []
     const multiBulkData: Record<string, any[]> = {}
 
-    // Get multi-target configuration
     const multiTarget = (this.config as any).multi_target
 
-    // Process each endpoint's data
     for (const endpoint of Object.keys(data)) {
       if (endpoint === 'source') {
         continue
@@ -273,7 +419,6 @@ export class ETL {
       }
     }
 
-    // Process multi-target bulk data if available
     if (multiTarget && validateMultiBulkData(multiBulkData)) {
       this.processMultiTargetBulkData({
         multiBulkData,
@@ -283,7 +428,6 @@ export class ETL {
       })
     }
 
-    // Process all requests in batches
     if (requestPromises.length > 0) {
       await processBatches(
         requestPromises,
@@ -291,7 +435,7 @@ export class ETL {
         async (batch) => {
           const responses = await Promise.all(
             batch.map(request => apiClient.processPostRequest(
-              this.config as any,
+              this.authOptions,
               request.url,
               request.options,
             )),
@@ -365,9 +509,10 @@ export class ETL {
       offsets: this.offsets,
     }
 
-    const url = apiClient.buildUrl(etlCompatConfig as any, rawPath)
+    // Use base path and auth options directly
+    const url = apiClient.buildUrl(this.config.base_path, rawPath)
 
-    const response = await apiClient.processGetRequest(etlCompatConfig as any, url, {}, endpoint)
+    const response = await apiClient.processGetRequest(this.authOptions, url, {}, endpoint)
 
     if (response) {
       processResponseData(response, etlCompatConfig as any, data)
@@ -411,7 +556,7 @@ export class ETL {
       ids,
     )
 
-    const requestPromises = urls.map(url => apiClient.processGetRequest(etlCompatConfig as any, url, {}, endpoint))
+    const requestPromises = urls.map(url => apiClient.processGetRequest(this.authOptions, url, {}, endpoint))
 
     const responses = await Promise.all(requestPromises)
 
@@ -531,12 +676,13 @@ export class ETL {
 
     const rawPath = updateEndpoint.path
     const dataKey = updateEndpoint.data_key
-    
+
     // Use precomputed URL if available, otherwise build it
     let url: string
     if (this.targetUrls[endpoint]?.update) {
       url = this.targetUrls[endpoint].update
-    } else {
+    }
+    else {
       url = this.buildEndpointUrl(rawPath)
     }
 
@@ -647,7 +793,8 @@ export class ETL {
     let url: string
     if (this.targetUrls[endpoint]?.create) {
       url = this.targetUrls[endpoint].create
-    } else {
+    }
+    else {
       url = this.buildEndpointUrl(rawPath)
     }
 

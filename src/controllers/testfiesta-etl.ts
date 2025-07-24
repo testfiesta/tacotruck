@@ -1,100 +1,22 @@
 import type { ConfigType } from '../utils/config-schema'
+import type { ETLOptions } from './etl-base'
 import { apiClient } from '../services/api-client'
-import { bracketSubstitution, findSubstitutionKeys, loadConfig } from '../utils/enhanced-config-loader'
+import { loadConfig } from '../utils/enhanced-config-loader'
 import { ETL } from './etl-base'
 
 export class TestFiestaETL extends ETL {
   /**
    * Create a new TestFiestaETL instance
    * @param configSchema The full configuration schema
+   * @param options Additional ETL options including credentials
    */
-  constructor(configSchema: ConfigType) {
-    super(configSchema)
+  constructor(configSchema: ConfigType, options: ETLOptions = {}) {
+    super(configSchema, options)
     this.baseUrl = 'https://testfiesta.com/api/v1/'
   }
 
   protected override initializeConfig(): void {
     super.initializeConfig()
-    this.applyConfigSubstitutions()
-    this.prepareApiClient()
-  }
-
-  private prepareApiClient(): void {
-    if (!this.config.auth) {
-      this.config.auth = {
-        type: 'bearer',
-        location: 'header',
-        key: 'Authorization',
-        payload: 'Bearer {token}',
-      }
-    }
-
-    if (this.config.auth.payload) {
-      const credentials = (this.config as any).credentials || {}
-      this.config.auth.payload = this.processSubstitutions(this.config.auth.payload, credentials)
-    }
-  }
-
-  private applyConfigSubstitutions(): void {
-    const credentials = (this.config as any).credentials || {}
-
-    if (this.config.auth?.payload) {
-      this.config.auth.payload = this.processSubstitutions(this.config.auth.payload, credentials)
-    }
-    else if (this.config.auth?.type === 'bearer' && !this.config.auth.payload) {
-      console.warn('Bearer auth is configured but no payload is set. Token will not be included in requests.')
-    }
-
-    if (this.config.base_path) {
-      this.config.base_path = this.processSubstitutions(this.config.base_path, credentials)
-    }
-
-    if (this.config.type === 'api' && 'multi_target' in this.config && this.config.multi_target?.path) {
-      this.config.multi_target.path = this.processSubstitutions(
-        this.config.multi_target.path,
-        credentials,
-      )
-    }
-
-    if (this.config.target) {
-      for (const entityType of Object.keys(this.config.target)) {
-        const entity = this.config.target[entityType]
-        if (entity?.endpoints) {
-          for (const operation of Object.keys(entity.endpoints)) {
-            const endpoint = entity.endpoints[operation]
-
-            if (endpoint.bulk_path) {
-              endpoint.bulk_path = this.processSubstitutions(endpoint.bulk_path, credentials)
-            }
-            if (endpoint.single_path) {
-              endpoint.single_path = this.processSubstitutions(endpoint.single_path, credentials)
-            }
-            if (endpoint.path) {
-              endpoint.path = this.processSubstitutions(endpoint.path, credentials)
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Process all substitutions in a string
-   * @param value String containing substitution placeholders
-   * @param credentials Credentials object with values for substitution
-   * @returns String with substitutions applied
-   */
-  private processSubstitutions(value: string, credentials: Record<string, any>): string {
-    let result = value
-    const keys = findSubstitutionKeys(value)
-
-    for (const key of keys) {
-      if (credentials[key] !== undefined) {
-        result = bracketSubstitution(result, key, credentials[key])
-      }
-    }
-
-    return result
   }
 
   /**
@@ -126,8 +48,9 @@ export class TestFiestaETL extends ETL {
       formattedData.source = 'testfiesta'
     }
 
+    // Use auth options directly
     const response = await apiClient.processPostRequest(
-      this.config as any,
+      this.authOptions,
       submitUrl,
       { data: formattedData },
     )
@@ -157,6 +80,12 @@ export class TestFiestaETL extends ETL {
 
     const fullConfig = result.unwrap()
 
-    return new TestFiestaETL(fullConfig)
+    // Create ETLOptions from the provided options
+    const etlOptions: ETLOptions = {}
+    if (credentials) {
+      etlOptions.credentials = credentials
+    }
+
+    return new TestFiestaETL(fullConfig, etlOptions)
   }
 }

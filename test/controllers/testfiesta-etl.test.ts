@@ -1,4 +1,3 @@
-/* eslint-disable no-new */
 import type { ConfigType } from '../../src/utils/config-schema'
 import { describe, expect, it, vi } from 'vitest'
 import { TestFiestaETL } from '../../src/controllers/testfiesta-etl'
@@ -11,8 +10,8 @@ vi.mock('../../src/controllers/etl', () => ({
 }))
 
 describe('testFiestaETL', () => {
-  describe('config Substitution', () => {
-    it('should substitute {token} in auth.payload', () => {
+  describe('authentication handling', () => {
+    it('should prepare authOptions with bearer token from credentials', () => {
       const config: ConfigType = {
         name: 'test-config',
         type: 'api',
@@ -24,33 +23,57 @@ describe('testFiestaETL', () => {
         },
       }
 
-      ;(config as any).credentials = {
+      const credentials = {
         token: 'test-token-123',
       }
 
-      new TestFiestaETL(config)
+      const etl = new TestFiestaETL(config, { credentials })
 
-      expect(config.auth?.payload).toBe('Bearer test-token-123')
+      expect(config.auth?.payload).toBe('Bearer {token}')
+
+      expect((etl as any).authOptions).toEqual({
+        type: 'bearer',
+        location: 'header',
+        key: 'Authorization',
+        payload: 'Bearer test-token-123',
+      })
     })
 
-    it('should substitute {handle} in base_path', () => {
+    it('should handle missing auth configuration', () => {
       const config: ConfigType = {
+        name: 'test-config',
+        type: 'api',
+      }
+
+      const etl = new TestFiestaETL(config)
+
+      expect((etl as any).authOptions).toBeNull()
+    })
+  })
+
+  describe('config substitution', () => {
+    it('should substitute {handle} in base_path when accessing ETL instance', () => {
+      const originalConfig = {
         name: 'test-config',
         type: 'api',
         base_path: 'v1/{handle}/',
       }
 
-      ;(config as any).credentials = {
+      const config: ConfigType = JSON.parse(JSON.stringify(originalConfig))
+
+      const credentials = {
         handle: 'test-org',
       }
 
-      new TestFiestaETL(config)
+      const etl = new TestFiestaETL(config, { credentials })
 
       expect(config.base_path).toBe('v1/test-org/')
+
+      expect((etl as any).config.base_path).toBe('v1/test-org/')
     })
 
     it('should substitute {handle} and {projectKey} in multi_target path', () => {
-      const config: ConfigType = {
+      const originalConfig = {
         name: 'test-config',
         type: 'api',
         multi_target: {
@@ -60,18 +83,22 @@ describe('testFiestaETL', () => {
         },
       }
 
-      ;(config as any).credentials = {
+      const config: ConfigType = JSON.parse(JSON.stringify(originalConfig))
+
+      const credentials = {
         handle: 'test-org',
         projectKey: 'TEST-123',
       }
 
-      new TestFiestaETL(config)
+      const etl = new TestFiestaETL(config, { credentials })
 
       expect((config as any).multi_target.path).toBe('test-org/projects/TEST-123/data')
+
+      expect((etl as any).config.multi_target.path).toBe('test-org/projects/TEST-123/data')
     })
 
     it('should substitute placeholders in endpoint paths', () => {
-      const config: ConfigType = {
+      const originalConfig = {
         name: 'test-config',
         type: 'api',
         target: {
@@ -87,50 +114,65 @@ describe('testFiestaETL', () => {
         },
       }
 
-      ;(config as any).credentials = {
+      const config: ConfigType = JSON.parse(JSON.stringify(originalConfig))
+
+      const credentials = {
         handle: 'test-org',
         projectKey: 'TEST-123',
       }
-      new TestFiestaETL(config)
+
+      const etl = new TestFiestaETL(config, { credentials })
 
       expect((config.target?.projects as any).endpoints.create.bulk_path).toBe('/v1/test-org/projects/TEST-123/data')
+
+      expect((etl as any).config.target.projects.endpoints.create.bulk_path).toBe('/v1/test-org/projects/TEST-123/data')
     })
 
     it('should handle multiple substitutions in the same string', () => {
-      const config: ConfigType = {
+      const originalConfig = {
         name: 'test-config',
         type: 'api',
         base_path: 'v1/{handle}/{region}/',
       }
 
-      ;(config as any).credentials = {
+      const config: ConfigType = JSON.parse(JSON.stringify(originalConfig))
+
+      const credentials = {
         handle: 'test-org',
         region: 'us-west',
         token: 'test-token-123',
       }
 
-      new TestFiestaETL(config)
+      const etl = new TestFiestaETL(config, { credentials })
 
       expect(config.base_path).toBe('v1/test-org/us-west/')
+
+      expect((etl as any).config.base_path).toBe('v1/test-org/us-west/')
     })
 
     it('should not modify placeholders when credentials are missing', () => {
-      const config: ConfigType = {
+      const originalConfig = {
         name: 'test-config',
         type: 'api',
         base_path: 'v1/{handle}/{region}/',
       }
 
-      ;(config as any).credentials = {
+      const config: ConfigType = JSON.parse(JSON.stringify(originalConfig))
+
+      const credentials = {
         handle: 'test-org',
       }
 
-      new TestFiestaETL(config)
+      const etl = new TestFiestaETL(config, { credentials })
 
       expect(config.base_path).toBe('v1/test-org/{region}/')
-    })
 
-    it('should handle empty credentials gracefully', () => {
+      expect((etl as any).config.base_path).toBe('v1/test-org/{region}/')
+    })
+  })
+
+  describe('getConfigWithAuth', () => {
+    it('should return a copy of config with authOptions', () => {
       const config: ConfigType = {
         name: 'test-config',
         type: 'api',
@@ -143,10 +185,25 @@ describe('testFiestaETL', () => {
         },
       }
 
-      new TestFiestaETL(config)
+      const credentials = {
+        handle: 'test-org',
+        token: 'test-token-123',
+      }
 
-      expect(config.base_path).toBe('v1/{handle}/')
-      expect(config.auth?.payload).toBe('Bearer {token}')
+      const etl = new TestFiestaETL(config, { credentials })
+
+      const configWithAuth = (etl as any).getConfigWithAuth()
+
+      expect(configWithAuth).not.toBe(config)
+
+      expect(configWithAuth.base_path).toBe('v1/test-org/')
+
+      expect(configWithAuth.auth).toEqual({
+        type: 'bearer',
+        location: 'header',
+        key: 'Authorization',
+        payload: 'Bearer test-token-123',
+      })
     })
   })
 })

@@ -1,4 +1,4 @@
-import type { ConfigType } from '../config-schema'
+import type { AuthOptions } from '../network'
 import ky from 'ky'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -28,18 +28,14 @@ describe('network utils', () => {
 
   describe('createAuthenticatedOptions', () => {
     it('should create options with auth header', () => {
-      const config = {
-        name: 'test-api',
-        type: 'api' as const,
-        auth: {
-          type: 'bearer',
-          location: 'header' as const,
-          key: 'Authorization',
-          payload: 'Bearer token123',
-        },
-      } as ConfigType
+      const authOptions: AuthOptions = {
+        type: 'bearer',
+        location: 'header',
+        key: 'Authorization',
+        payload: 'Bearer token123',
+      }
 
-      const result = createAuthenticatedOptions(config)
+      const result = createAuthenticatedOptions(authOptions)
 
       expect(result).toEqual({
         headers: {
@@ -49,27 +45,20 @@ describe('network utils', () => {
     })
 
     it('should create options with auth query param', () => {
-      const config = {
-        name: 'test-api',
-        type: 'api' as const,
-        auth: {
-          type: 'bearer',
-          location: 'query' as const,
-        },
-      } as ConfigType
+      const authOptions: AuthOptions = {
+        type: 'bearer',
+        location: 'query',
+      }
 
-      const result = createAuthenticatedOptions(config)
+      const result = createAuthenticatedOptions(authOptions)
 
       expect(result).toEqual({})
     })
 
-    it('should return empty options if no auth in config', () => {
-      const config = {
-        name: 'test-api',
-        type: 'api' as const,
-      } as ConfigType
+    it('should return empty options if auth options is null', () => {
+      const authOptions = null
 
-      const result = createAuthenticatedOptions(config)
+      const result = createAuthenticatedOptions(authOptions)
 
       expect(result).toEqual({})
     })
@@ -83,23 +72,19 @@ describe('network utils', () => {
       const mockResponse = { json: () => mockJsonPromise } as any
       vi.mocked(ky.post).mockResolvedValue(mockResponse)
 
-      const config = {
-        name: 'test-api',
-        type: 'api' as const,
-        auth: {
-          type: 'bearer',
-          location: 'header' as const,
-          key: 'Authorization',
-          payload: 'Bearer token123',
-        },
-      } as ConfigType
+      const authOptions: AuthOptions = {
+        type: 'bearer',
+        location: 'header',
+        key: 'Authorization',
+        payload: 'Bearer token123',
+      }
 
       const options = {
         data: { foo: 'bar' },
         timeout: 5000,
       }
 
-      const result = await processPostRequest(config, 'https://example.com/api', options)
+      const result = await processPostRequest(authOptions, 'https://example.com/api', options)
 
       expect(result.isOk).toBe(true)
       expect(result.unwrap()).toBe(mockResponse)
@@ -115,18 +100,14 @@ describe('network utils', () => {
     it('should return error result when request fails', async () => {
       vi.mocked(ky.post).mockRejectedValue(new Error('Network error'))
 
-      const config = {
-        name: 'test-api',
-        type: 'api' as const,
-        auth: {
-          type: 'bearer',
-          location: 'header' as const,
-          key: 'Authorization',
-          payload: 'Bearer token123',
-        },
-      } as ConfigType
+      const authOptions: AuthOptions = {
+        type: 'bearer',
+        location: 'header',
+        key: 'Authorization',
+        payload: 'Bearer token123',
+      }
 
-      const result = await processPostRequest(config, 'https://example.com/api')
+      const result = await processPostRequest(authOptions, 'https://example.com/api')
 
       expect(result.isErr).toBe(true)
       expect(() => result.unwrap()).toThrow('Network error')
@@ -141,25 +122,21 @@ describe('network utils', () => {
       const mockResponse = { json: () => mockJsonPromise } as any
       vi.mocked(ky.get).mockResolvedValue(mockResponse)
 
-      const config = {
-        name: 'test-api',
-        type: 'api' as const,
-        auth: {
-          type: 'bearer',
-          location: 'header' as const,
-          key: 'Authorization',
-          payload: 'Bearer token123',
-        },
-      } as ConfigType
+      const authOptions: AuthOptions = {
+        type: 'bearer',
+        location: 'header',
+        key: 'Authorization',
+        payload: 'Bearer token123',
+      }
 
-      const result = await processGetRequest(config, 'https://example.com/api', {}, 'projects')
+      const result = await processGetRequest(authOptions, 'https://example.com/api', {}, 'projects')
 
       expect(result.isOk).toBe(true)
       if (result.isOk) {
         expect(result.unwrap()).toEqual({
           data: mockResponseData,
           source_type: 'projects',
-          target_type: 'projects',
+          target_type: 'unknown',
         })
       }
 
@@ -170,52 +147,17 @@ describe('network utils', () => {
       })
     })
 
-    it('should use target_type from config if available', async () => {
-      // Setup
-      const mockResponseData = { items: [1, 2, 3] }
-      const mockJsonPromise = Promise.resolve(mockResponseData)
-      const mockResponse = { json: () => mockJsonPromise } as any
-      vi.mocked(ky.get).mockResolvedValue(mockResponse)
-
-      const config = {
-        name: 'test-api',
-        type: 'api' as const,
-        typeConfig: {
-          source: {
-            projects: {
-              target_type: 'custom_projects',
-            },
-          },
-        },
-      } as ConfigType
-
-      const result = await processGetRequest(config, 'https://example.com/api', {}, 'projects')
-
-      expect(result.isOk).toBe(true)
-      if (result.isOk) {
-        expect(result.unwrap()).toEqual({
-          data: mockResponseData,
-          source_type: 'projects',
-          target_type: 'custom_projects',
-        })
-      }
-    })
-
     it('should handle errors properly', async () => {
       vi.mocked(ky.get).mockRejectedValue(new Error('Network error'))
 
-      const config = {
-        name: 'test-api',
-        type: 'api' as const,
-        auth: {
-          type: 'bearer',
-          location: 'header' as const,
-          key: 'Authorization',
-          payload: 'Bearer token123',
-        },
-      } as ConfigType
+      const authOptions: AuthOptions = {
+        type: 'bearer',
+        location: 'header',
+        key: 'Authorization',
+        payload: 'Bearer token123',
+      }
 
-      const result = await processGetRequest(config, 'https://example.com/api', {}, 'projects')
+      const result = await processGetRequest(authOptions, 'https://example.com/api', {}, 'projects')
 
       expect(result.isOk).toBe(false)
       if (!result.isOk) {
