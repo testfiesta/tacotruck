@@ -1,101 +1,174 @@
-import type { ETLConfig } from '../utils/etl-types'
-import { bracketSubstitution, findSubstitutionKeys, loadConfig } from '../utils/enhanced-config-loader'
-import * as etl from './etl'
+import type { ConfigType } from '../utils/config-schema'
+import type { ETLv2Options } from './etl-base-v2'
+import { apiClient } from '../services/api-client'
+import { loadConfig } from '../utils/enhanced-config-loader'
+import { ETLv2 } from './etl-base-v2'
 
-interface TestFiestaETLOptions {
-  projectKey: string
-  handle: string
-}
-export class TestFiestaETL {
-  private config: ETLConfig
-  private token: string
-  private options: TestFiestaETLOptions
-  constructor(config: ETLConfig, options: TestFiestaETLOptions, credentials?: Record<string, any>) {
-    this.config = config
-    this.options = options
-    this.token = credentials?.testfiesta?.target?.token
-      || process.env.TESTFIESTA_TOKEN
-      || ''
-
-    this.initializeConfig()
+export class TestFiestaETL extends ETLv2 {
+  /**
+   * Create a new TestFiestaETL instance
+   * @param configSchema The full configuration schema
+   * @param options Additional ETL options including credentials
+   */
+  constructor(configSchema: ConfigType, options: ETLv2Options = {}) {
+    super(configSchema, options)
   }
 
-  private initializeConfig(): void {
-    if (!this.config.endpointSet) {
-      this.config.endpointSet = []
+  /**
+   * Submit data using multi_target configuration
+   * @param dataType The type of data being submitted (for proper formatting)
+   * @returns The response from TestFiesta
+   */
+  async submitMultiTarget(data: any, dataType: string = 'runs'): Promise<Record<string, any>> {
+    const config = this.configManager.getConfig() as any
+    const multiTarget = config.multi_target
 
-      if (this.config.target) {
-        this.config.endpointSet = Object.keys(this.config.target)
-      }
+    if (!multiTarget || !multiTarget.path) {
+      throw new Error('No multi_target path defined in TestFiesta configuration')
     }
 
-    if (this.config.auth?.payload) {
-      const keys = findSubstitutionKeys(this.config.auth.payload)
-      for (const key of keys) {
-        if (key === 'token' && this.token) {
-          this.config.auth.payload = bracketSubstitution(
-            this.config.auth.payload,
-            'token',
-            this.token,
-          )
-        }
-      }
+    const formattedData: Record<string, any> = {}
+
+    if (multiTarget.data_key) {
+      formattedData[multiTarget.data_key] = Array.isArray(data)
+        ? { [dataType]: data }
+        : { [dataType]: [data] }
     }
-    else if (this.config.auth?.type === 'bearer' && !this.config.auth.payload) {
-      console.warn('Bearer auth is configured but no payload is set. Token will not be included in requests.')
+    else {
+      formattedData.data = Array.isArray(data)
+        ? { [dataType]: data }
+        : { [dataType]: [data] }
     }
+
+    if (multiTarget.include_source) {
+      formattedData.source = 'testfiesta'
+    }
+
+    const baseUrl = this.configManager.getBaseUrl()
+    const cleanBase = baseUrl.replace(/\/+$/, '')
+    const cleanPath = multiTarget.path.replace(/^\/+/, '')
+    const submitUrl = `${cleanBase}/${cleanPath}`
+
+    const authOptions = this.authManager.getProcessedAuthOptions()
+    const response = await apiClient.processPostRequest(
+      authOptions,
+      submitUrl,
+      { data: formattedData },
+    )
+
+    return response || {}
   }
 
   /**
-   * Execute the ETL process for TestFiesta
-   * @param ids Optional record of IDs to fetch specific resources
-   * @returns The processed data
+   * Submit data to a specific target endpoint using ETLv2's loadToTarget method
+   * @param targetType The target type (projects, suites, cases, plans, runs, executions)
+   * @param data The data to submit
+   * @param endpoint The endpoint type (create, update, etc.)
+   * @returns The response from TestFiesta
    */
-  async execute(ids: Record<string, Array<Record<string, any>>> = {}): Promise<Record<string, any>> {
-    return await etl.executeETL(this.config, ids)
+  async submitToTarget(
+    targetType: 'projects' | 'suites' | 'cases' | 'plans' | 'runs' | 'executions',
+    data: any,
+    endpoint: string = 'create',
+  ): Promise<Record<string, any>> {
+    return await this.loadToTarget(targetType, data, endpoint)
   }
 
   /**
-   * Extract data from TestFiesta
-   * @param ids Optional record of IDs to fetch specific resources
-   * @returns The extracted data
-   */
-  async extract(ids: Record<string, Array<Record<string, any>>> = {}): Promise<Record<string, any>> {
-    return await etl.extractData(this.config, ids)
-  }
-
-  /**
-   * Transform data according to TestFiesta mapping rules
-   * @param data The data to transform
-   * @returns The transformed data
-   */
-  transform(data: Record<string, any>): Record<string, any> {
-    return etl.transformData(this.config, data)
-  }
-
-  /**
-   * Load data to TestFiesta
-   * @param data The data to load
-   */
-  async load(data: Record<string, any>): Promise<void> {
-    await etl.loadData(this.config, data)
-  }
-
-  /**
-   * Submit test run data to TestFiesta
+   * Submit test run data to TestFiesta using ETLv2 enhanced workflow
    * @param runData The test run data to submit
    * @returns The response from TestFiesta
    */
   async submitTestRun(runData: any): Promise<Record<string, any>> {
-    const data: Record<string, any> = {
-      source: 'testfiesta',
-      runs: Array.isArray(runData) ? runData : [runData],
+    const etlResult = await this.execute({ runs: Array.isArray(runData) ? runData : [runData] })
+
+    if (etlResult.success) {
+      return etlResult.loadingResult?.responses || { success: true }
     }
+    else {
+      const errorMessage = etlResult.errors.map(e => e.message).join('; ')
+      throw new Error(`TestFiesta submission failed: ${errorMessage}`)
+    }
+  }
 
-    const transformedData = this.transform(data)
-    await this.load(transformedData)
+  /**
+   * Submit project data to TestFiesta using ETLv2 enhanced workflow
+   * @param projectData The project data to submit
+   * @returns The response from TestFiesta
+   */
+  async submitProjects(projectData: any): Promise<Record<string, any>> {
+    const etlResult = await this.execute({ projects: Array.isArray(projectData) ? projectData : [projectData] })
+    if (etlResult.success) {
+      return etlResult.loadingResult?.responses || { success: true }
+    }
+    else {
+      const errorMessage = etlResult.errors.map(e => e.message).join('; ')
+      throw new Error(`TestFiesta projects submission failed: ${errorMessage}`)
+    }
+  }
 
-    return transformedData
+  /**
+   * Submit test suite data to TestFiesta using ETLv2 enhanced workflow
+   * @param suiteData The test suite data to submit
+   * @returns The response from TestFiesta
+   */
+  async submitSuites(suiteData: any): Promise<Record<string, any>> {
+    const etlResult = await this.execute({ suites: Array.isArray(suiteData) ? suiteData : [suiteData] })
+    if (etlResult.success) {
+      return etlResult.loadingResult?.responses || { success: true }
+    }
+    else {
+      const errorMessage = etlResult.errors.map(e => e.message).join('; ')
+      throw new Error(`TestFiesta suites submission failed: ${errorMessage}`)
+    }
+  }
+
+  /**
+   * Submit test case data to TestFiesta using ETLv2 enhanced workflow
+   * @param caseData The test case data to submit
+   * @returns The response from TestFiesta
+   */
+  async submitCases(caseData: any): Promise<Record<string, any>> {
+    const etlResult = await this.execute({ cases: Array.isArray(caseData) ? caseData : [caseData] })
+    if (etlResult.success) {
+      return etlResult.loadingResult?.responses || { success: true }
+    }
+    else {
+      const errorMessage = etlResult.errors.map(e => e.message).join('; ')
+      throw new Error(`TestFiesta cases submission failed: ${errorMessage}`)
+    }
+  }
+
+  /**
+   * Submit test plan data to TestFiesta using ETLv2 enhanced workflow
+   * @param planData The test plan data to submit
+   * @returns The response from TestFiesta
+   */
+  async submitPlans(planData: any): Promise<Record<string, any>> {
+    const etlResult = await this.execute({ plans: Array.isArray(planData) ? planData : [planData] })
+    if (etlResult.success) {
+      return etlResult.loadingResult?.responses || { success: true }
+    }
+    else {
+      const errorMessage = etlResult.errors.map(e => e.message).join('; ')
+      throw new Error(`TestFiesta plans submission failed: ${errorMessage}`)
+    }
+  }
+
+  /**
+   * Submit test execution data to TestFiesta using ETLv2 enhanced workflow
+   * @param executionData The test execution data to submit
+   * @returns The response from TestFiesta
+   */
+  async submitExecutions(executionData: any): Promise<Record<string, any>> {
+    const etlResult = await this.execute({ executions: Array.isArray(executionData) ? executionData : [executionData] })
+    if (etlResult.success) {
+      return etlResult.loadingResult?.responses || { success: true }
+    }
+    else {
+      const errorMessage = etlResult.errors.map(e => e.message).join('; ')
+      throw new Error(`TestFiesta executions submission failed: ${errorMessage}`)
+    }
   }
 
   /**
@@ -103,10 +176,15 @@ export class TestFiestaETL {
    * @param options Configuration options
    * @param options.configPath Optional path to the configuration file
    * @param options.credentials Optional credentials to use for authentication
+   * @param options.etlOptions Optional ETLv2 options for enhanced functionality
    * @returns A new TestFiestaETL instance
    */
-  static async fromConfig(options: { configPath?: string, credentials?: Record<string, any>, params: TestFiestaETLOptions }): Promise<TestFiestaETL> {
-    const { configPath, credentials, params } = options
+  static async fromConfig(options: {
+    configPath?: string
+    credentials?: Record<string, any>
+    etlOptions?: ETLv2Options
+  } = {}): Promise<TestFiestaETL> {
+    const { configPath, credentials, etlOptions } = options
 
     const result = loadConfig({
       configPath,
@@ -114,11 +192,22 @@ export class TestFiestaETL {
     })
 
     if (!result.isOk) {
-      throw new Error('Failed to load config')
+      throw new Error('Failed to load TestFiesta configuration')
     }
 
-    const config = result.unwrap() as unknown as ETLConfig
+    const fullConfig = result.unwrap()
 
-    return new TestFiestaETL(config, params, credentials)
+    const finalEtlOptions: ETLv2Options = {
+      credentials,
+      enablePerformanceMonitoring: true,
+      strictMode: false,
+      retryAttempts: 3,
+      timeout: 30000,
+      validateData: true,
+      batchSize: 100,
+      maxConcurrency: 5,
+      ...etlOptions,
+    }
+    return new TestFiestaETL(fullConfig, finalEtlOptions)
   }
 }

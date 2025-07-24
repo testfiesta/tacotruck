@@ -1,5 +1,5 @@
 import type { ConfigType } from '../utils/config-schema'
-import type { RequestOptions } from '../utils/network'
+import type { AuthOptions, RequestOptions } from '../utils/network'
 import * as networkUtils from '../utils/network'
 import * as urlBuilder from '../utils/url-builder'
 
@@ -12,7 +12,7 @@ export interface ResponseData {
 export class ApiClient {
   /**
    * Process a network GET request with authentication headers
-   * @param config The endpoint configuration
+   * @param authOptions Authentication options
    * @param url The URL to request
    * @param options Additional request options
    * @param sourceType The source type for response data
@@ -20,17 +20,17 @@ export class ApiClient {
    * @returns Promise with response data or fallback data or null
    */
   async processGetRequest(
-    config: ConfigType,
+    authOptions: AuthOptions | null,
     url: string,
     options: RequestOptions = {},
     sourceType: string,
     fallbackData?: ResponseData,
   ): Promise<ResponseData | null> {
-    const result = await networkUtils.processGetRequest(config, url, options, sourceType)
+    const result = await networkUtils.processGetRequest(authOptions, url, options, sourceType)
 
     return result.match({
-      ok: value => value,
-      err: (error) => {
+      ok: (value: any) => value,
+      err: (error: Error) => {
         console.warn(`Request to ${url} failed: ${error.message}. Using fallback data.`)
         return fallbackData || null
       },
@@ -39,23 +39,23 @@ export class ApiClient {
 
   /**
    * Process a network POST request with authentication headers
-   * @param config The endpoint configuration
+   * @param authOptions Authentication options
    * @param url The URL to request
    * @param options Additional request options
    * @param fallbackResponse Optional fallback response to use if the request fails
    * @returns Promise with response data or fallback response
    */
   async processPostRequest(
-    config: ConfigType,
+    authOptions: AuthOptions | null,
     url: string,
     options: RequestOptions = {},
     fallbackResponse?: Response,
   ): Promise<Response | null> {
-    const result = await networkUtils.processPostRequest(config, url, options)
+    const result = await networkUtils.processPostRequest(authOptions, url, options)
 
     return result.match({
-      ok: value => value,
-      err: (error) => {
+      ok: (value: any) => value,
+      err: (error: Error) => {
         console.warn(`Request to ${url} failed: ${error.message}. Using fallback response.`)
         return fallbackResponse || null
       },
@@ -63,13 +63,13 @@ export class ApiClient {
   }
 
   /**
-   * Build a complete URL from configuration and path
-   * @param config The endpoint configuration
+   * Build a complete URL from base path and raw path
+   * @param basePath The base path (can be empty)
    * @param rawPath The raw path to build from
    * @returns The complete URL
    */
-  buildUrl(config: ConfigType, rawPath: string): string {
-    return (config.base_path || '') + rawPath
+  buildUrl(basePath: string | undefined, rawPath: string): string {
+    return (basePath || '') + rawPath
   }
 
   /**

@@ -1,16 +1,19 @@
-import type { ConfigType } from './config-schema'
 import type { Err, Result } from './result'
-
 import ky from 'ky'
 import PQueue from 'p-queue'
+
 import pThrottle from 'p-throttle'
 import { processBatchesWithLimit } from './batch-processor'
 import { err, ok } from './result'
 
-export interface GetResponseData {
-  data: any
-  source_type: string
-  target_type: string
+/**
+ * Authentication options interface
+ */
+export interface AuthOptions {
+  type: string
+  location: 'header' | 'query' | 'body'
+  key?: string
+  payload?: string
 }
 
 export interface RequestOptions {
@@ -23,25 +26,29 @@ export interface RequestOptions {
 
 /**
  * Create request options with authentication headers
- * @param config The endpoint configuration
+ * @param authOptions The authentication options
  * @returns Request options with authentication headers
  */
 export function createAuthenticatedOptions(
-  config: ConfigType,
+  authOptions: AuthOptions | null,
 ): RequestOptions {
   const options: RequestOptions = {}
 
-  if (config.auth?.location === 'header') {
+  if (!authOptions) {
+    return options
+  }
+
+  if (authOptions.location === 'header') {
     options.headers = {}
-    if (config.auth.key && config.auth.payload) {
-      options.headers[config.auth.key] = config.auth.payload
+    if (authOptions.key && authOptions.payload) {
+      options.headers[authOptions.key] = authOptions.payload
     }
     else {
       console.warn('Auth header not added:', {
-        hasKey: !!config.auth.key,
-        hasPayload: !!config.auth.payload,
-        key: config.auth.key,
-        payloadPrefix: config.auth.payload?.substring(0, 10),
+        hasKey: !!authOptions.key,
+        hasPayload: !!authOptions.payload,
+        key: authOptions.key,
+        payloadPrefix: authOptions.payload?.substring(0, 10),
       })
     }
   }
@@ -51,19 +58,19 @@ export function createAuthenticatedOptions(
 
 /**
  * Process a POST request with authentication headers
- * @param config The endpoint configuration
+ * @param authOptions Authentication options
  * @param url The URL to request
  * @param options Additional request options
  * @returns Promise with Result containing response data or error
  */
 export async function processPostRequest(
-  config: ConfigType,
+  authOptions: AuthOptions | null,
   url: string,
   options: RequestOptions = {},
 ): Promise<Result<any, Error>> {
   try {
-    const authOptions = createAuthenticatedOptions(config)
-    const mergedOptions = { ...authOptions, ...options }
+    const authRequestOptions = createAuthenticatedOptions(authOptions)
+    const mergedOptions = { ...authRequestOptions, ...options }
 
     const jsonData = options.data
     if (jsonData) {
@@ -73,6 +80,10 @@ export async function processPostRequest(
 
     const response = await ky.post(url, mergedOptions)
 
+    if (!response.ok) {
+      return err(new Error('Post request failed'))
+    }
+
     return ok(response)
   }
   catch (error: any) {
@@ -81,19 +92,20 @@ export async function processPostRequest(
   }
 }
 
+export interface GetResponseData {
+  data: any
+  source_type: string
+  target_type: string
+}
+
 export async function processGetRequest(
-  config: ConfigType,
+  authOptions: AuthOptions | null,
   url: string,
   options: RequestOptions = {},
   sourceType: string,
 ): Promise<Result<GetResponseData, Error>> {
-  const opts = { ...options }
-  if (config.auth?.location === 'header') {
-    opts.headers = opts.headers || {}
-    if (config.auth.key && config.auth.payload) {
-      opts.headers[config.auth.key] = config.auth.payload
-    }
-  }
+  const authRequestOptions = createAuthenticatedOptions(authOptions)
+  const opts = { ...authRequestOptions, ...options }
 
   try {
     const response = await ky.get(url, opts)
@@ -101,7 +113,7 @@ export async function processGetRequest(
     return ok({
       data,
       source_type: sourceType,
-      target_type: config.typeConfig?.source?.[sourceType]?.target_type || sourceType,
+      target_type: 'unknown',
     })
   }
   catch (error) {
@@ -141,8 +153,8 @@ export async function processBatchedRequests<R, E>(
     const batchResults = await processBatchesWithLimit(
       throttledRequests,
       batchSize,
-      async (batch) => {
-        const results = await Promise.all(batch.map(req => req()))
+      async (batch: Array<() => Promise<Result<R, E>>>) => {
+        const results = await Promise.all(batch.map((req: () => Promise<Result<R, E>>) => req()))
         console.warn(`Completed batch of ${batch.length} requests`)
         return results
       },
