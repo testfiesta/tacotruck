@@ -655,7 +655,6 @@ describe('eTLv2', () => {
 
       expect(mockLoadConfig).toHaveBeenCalledWith({
         configPath: './test-config.json',
-        credentials: mockCredentials,
       })
       expect(etl).toBeInstanceOf(ETLv2)
     })
@@ -723,7 +722,7 @@ describe('eTLv2', () => {
 
         const total = (etlv2 as any).calculateTotalRecords(data)
 
-        expect(total).toBe(6) // 2 projects + 3 users + 1 metadata object
+        expect(total).toBe(6)
       })
 
       it('should ignore source field in calculation', () => {
@@ -734,7 +733,7 @@ describe('eTLv2', () => {
 
         const total = (etlv2 as any).calculateTotalRecords(data)
 
-        expect(total).toBe(1) // Only projects count
+        expect(total).toBe(1)
       })
 
       it('should handle empty data', () => {

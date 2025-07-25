@@ -339,7 +339,6 @@ export class ETLv2 {
    */
   updateCredentials(credentials: Record<string, any>): void {
     try {
-      // Update credentials in all managers
       this.options.credentials = credentials
       this.configManager.updateCredentials(credentials)
       this.authManager.updateCredentials(credentials)
@@ -355,7 +354,6 @@ export class ETLv2 {
       this.errorManager.addError(etlError)
 
       if (this.options.strictMode) {
-        // Ensure we're throwing an AuthenticationError instance
         if (error instanceof AuthenticationError) {
           throw error
         }
@@ -566,7 +564,6 @@ export class ETLv2 {
 
     const result = loadConfig({
       configPath: options.configPath,
-      credentials: options.credentials,
     })
 
     if (!result.isOk) {

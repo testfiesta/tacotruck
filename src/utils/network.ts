@@ -1,3 +1,4 @@
+import type { Options } from 'ky'
 import type { Err, Result } from './result'
 import ky from 'ky'
 import PQueue from 'p-queue'
@@ -16,12 +17,8 @@ export interface AuthOptions {
   payload?: string
 }
 
-export interface RequestOptions {
-  headers?: Record<string, string>
-  json?: any
-  searchParams?: Record<string, string>
-  timeout?: number
-  [key: string]: any
+export interface RequestOptions extends Options {
+  data?: Record<string, unknown>
 }
 
 /**
@@ -31,8 +28,8 @@ export interface RequestOptions {
  */
 export function createAuthenticatedOptions(
   authOptions: AuthOptions | null,
-): RequestOptions {
-  const options: RequestOptions = {}
+): Options {
+  const options: Options = {}
 
   if (!authOptions) {
     return options
@@ -78,7 +75,11 @@ export async function processPostRequest(
       delete mergedOptions.data
     }
 
-    const response = await ky.post(url, mergedOptions)
+    const response = await ky.post(url, {
+      retry: 0,
+      timeout: 1000,
+      ...mergedOptions,
+    })
 
     if (!response.ok) {
       return err(new Error('Post request failed'))

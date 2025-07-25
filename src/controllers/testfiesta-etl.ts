@@ -19,29 +19,12 @@ export class TestFiestaETL extends ETLv2 {
    * @param dataType The type of data being submitted (for proper formatting)
    * @returns The response from TestFiesta
    */
-  async submitMultiTarget(data: any, dataType: string = 'runs'): Promise<Record<string, any>> {
+  async submitMultiTarget(data: any): Promise<Record<string, any>> {
     const config = this.configManager.getConfig() as any
     const multiTarget = config.multi_target
 
     if (!multiTarget || !multiTarget.path) {
       throw new Error('No multi_target path defined in TestFiesta configuration')
-    }
-
-    const formattedData: Record<string, any> = {}
-
-    if (multiTarget.data_key) {
-      formattedData[multiTarget.data_key] = Array.isArray(data)
-        ? { [dataType]: data }
-        : { [dataType]: [data] }
-    }
-    else {
-      formattedData.data = Array.isArray(data)
-        ? { [dataType]: data }
-        : { [dataType]: [data] }
-    }
-
-    if (multiTarget.include_source) {
-      formattedData.source = 'testfiesta'
     }
 
     const baseUrl = this.configManager.getBaseUrl()
@@ -53,7 +36,7 @@ export class TestFiestaETL extends ETLv2 {
     const response = await apiClient.processPostRequest(
       authOptions,
       submitUrl,
-      { data: formattedData },
+      { data },
     )
 
     return response || {}

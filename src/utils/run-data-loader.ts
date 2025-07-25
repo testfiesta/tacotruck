@@ -1,9 +1,9 @@
 import type { Result } from './result'
-
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-
 import { err, ok } from './result'
+
+import XUnitParser from './xunit-parser'
 
 export interface RunData {
   [key: string]: any
@@ -23,7 +23,11 @@ export function loadRunData(dataPath: string): Result<RunData, Error> {
       return ok(JSON.parse(fileContent))
     }
     else if (ext === '.xml') {
-      return ok({ resultsFilePath: resolvedPath })
+      const xmlParser = new XUnitParser()
+      const parsedData = xmlParser.parseContent(fileContent, {
+        integration: 'test',
+      })
+      return ok(parsedData)
     }
     else {
       return err(new Error(`Unsupported file format: ${ext}. Only JSON and XML files are supported.`))
