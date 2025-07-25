@@ -218,6 +218,7 @@ export class DataExtractor {
    * @param method The HTTP method
    * @returns The response data
    */
+  // eslint-disable-next-line unused-imports/no-unused-vars
   private async makeRequest(url: string, method: 'GET' | 'POST' = 'GET'): Promise<ResponseData> {
     let lastError: Error | null = null
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-new */
 import type { ConfigType } from '../../src/utils/config-schema'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ETLv2 } from '../../src/controllers/etl-base-v2'
@@ -674,7 +675,7 @@ describe('eTLv2', () => {
         unwrap: () => mockConfig,
       })
 
-      const etl = await ETLv2.fromConfig()
+      await ETLv2.fromConfig()
 
       expect(mockLoadConfig).toHaveBeenCalledWith({
         configPath: undefined,

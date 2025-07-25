@@ -567,6 +567,7 @@ export class DataLoader {
     }
 
     // Validate that data exists for configured targets
+    // eslint-disable-next-line unused-imports/no-unused-vars
     const configuredTargets = Object.keys(this.config.target)
     const dataKeys = Object.keys(data).filter(key => key !== 'source')
 

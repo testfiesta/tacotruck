@@ -87,6 +87,8 @@ export class DataTransformer {
     const transformedAt = new Date()
     const appliedRules: string[] = []
     const warnings: string[] = []
+
+    // eslint-disable-next-line unused-imports/no-unused-vars
     const errors: any[] = []
     const recordCounts: Record<string, number> = {}
 

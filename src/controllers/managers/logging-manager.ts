@@ -620,7 +620,7 @@ export class LoggingManager {
   private fileHandler(entry: LogEntry): void {
     // This would implement actual file writing in a real scenario
     // For now, it's a placeholder that could be implemented based on environment
-    const logLine = this.formatForFile(entry)
+    const _logLine = this.formatForFile(entry)
     // writeToFile(this.options.logFilePath, logLine)
   }
 

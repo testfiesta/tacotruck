@@ -1,14 +1,13 @@
-// Vitest setup file for ETL test suite
-import { vi } from 'vitest'
+/* eslint-disable ts/method-signature-style */
+/* eslint-disable ts/no-namespace */
+/* eslint-disable no-restricted-globals */
+import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest'
 
-// Global test configuration
 beforeAll(() => {
-  // Set test environment variables
   process.env.NODE_ENV = 'test'
 
-  // Suppress console output during tests unless debugging
   if (!process.env.DEBUG_TESTS) {
-    global.console = {
+    globalThis.console = {
       ...console,
       log: vi.fn(),
       debug: vi.fn(),
@@ -193,8 +192,8 @@ global.TestUtils = {
   }),
 }
 
-// Declare global types for TypeScript
 declare global {
+  // eslint-disable-next-line vars-on-top
   var TestUtils: typeof global.TestUtils
 
   namespace Vi {
@@ -308,7 +307,6 @@ expect.extend({
   },
 })
 
-// Mock common modules that might cause issues in tests
 vi.mock('fs', () => ({
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
@@ -323,7 +321,6 @@ vi.mock('path', async () => ({
   join: vi.fn().mockImplementation((...args) => args.join('/')),
 }))
 
-// Set up default fetch mock for API tests
 global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
@@ -333,7 +330,6 @@ global.fetch = vi.fn(() =>
   }),
 )
 
-// Error handling for unhandled promise rejections in tests
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason)
 })
