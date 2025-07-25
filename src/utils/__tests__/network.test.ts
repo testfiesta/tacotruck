@@ -84,7 +84,7 @@ describe('network utils', () => {
 
       const options = {
         data: { foo: 'bar' },
-        timeout: 5000,
+        timeout: 1000,
       }
 
       const result = await processPostRequest(authOptions, 'https://example.com/api', options)
@@ -96,7 +96,8 @@ describe('network utils', () => {
           Authorization: 'Bearer token123',
         },
         json: { foo: 'bar' },
-        timeout: 5000,
+        retry: 0,
+        timeout: 1000,
       })
     })
 

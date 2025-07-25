@@ -25,10 +25,10 @@ export function createMigrateCommand() {
     Examples:
     # Using environment variables for credentials (default)
     $ tacotruck migrate -s testrails -t testfiesta
-    
+
     # Using a credentials file
     $ tacotruck migrate -s testrails -t testfiesta -c ./credentials.json
-    
+
     Environment variables format:
     <SOURCE>_SOURCE_CREDENTIALS and <TARGET>_TARGET_CREDENTIALS
     Example: \n TESTFIESTA_SOURCE_CREDENTIALS='{"source":{"base_url":"https://api.example.com"}}' \n TESTRAILS_TARGET_CREDENTIALS='{"target":{"base_url":"https://api.example.com"}}'
@@ -53,15 +53,13 @@ export async function run(args: Args) {
     }
 
     try {
+      // eslint-disable-next-line unused-imports/no-unused-vars
       parsedCredentials = JSON.parse(fs.readFileSync(args.credentials, 'utf-8'))
     }
     catch (error) {
       console.error(`Failed to parse credentials file: ${args.credentials}`, error)
       process.exit(1)
     }
-  }
-  else if (args.credentials) {
-    parsedCredentials = args.credentials
   }
   else {
     const sourceEnvKey = `${args.source.toUpperCase()}_SOURCE_CREDENTIALS`
@@ -97,7 +95,6 @@ export async function run(args: Args) {
   const sourceConfigs = args.source.split(',').map((source) => {
     const result = enhancedLoader.loadConfig({
       configName: source,
-      credentials: parsedCredentials,
       overrides: parsedOverrides,
       dataTypes: args.dataTypes ? args.dataTypes.split(',') : undefined,
       incremental: args.incremental,
@@ -115,7 +112,6 @@ export async function run(args: Args) {
   const targetConfigs = args.target.split(',').map((target) => {
     const result = enhancedLoader.loadConfig({
       configName: target,
-      credentials: parsedCredentials,
       overrides: parsedOverrides,
       dataTypes: args.dataTypes ? args.dataTypes.split(',') : undefined,
       incremental: args.incremental,

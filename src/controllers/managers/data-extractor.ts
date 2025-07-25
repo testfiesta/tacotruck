@@ -219,15 +219,16 @@ export class DataExtractor {
    * @returns The response data
    */
   // eslint-disable-next-line unused-imports/no-unused-vars
-  private async makeRequest(url: string, method: 'GET' | 'POST' = 'GET'): Promise<ResponseData> {
+  private async makeRequest(url: string, method: 'GET' | 'POST' = 'GET'): Promise<ResponseData | null> {
     let lastError: Error | null = null
 
     for (let attempt = 1; attempt <= (this.options.retryAttempts || 3); attempt++) {
       try {
         const response = await apiClient.processGetRequest(
-          this.options.authOptions,
+          this.options.authOptions!,
           url,
           { timeout: this.options.timeout },
+          'source'
         )
 
         return response
