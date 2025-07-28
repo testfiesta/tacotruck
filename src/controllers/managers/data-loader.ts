@@ -219,13 +219,18 @@ export class DataLoader {
     const url = this.getTargetUrl(targetType, endpoint, target)
     const formattedData = this.formatDataForTarget(data, target)
 
-    console.log('url for loading to target', url)
+    console.warn('url for loading to target', url)
 
     try {
       const response = await apiClient.processPostRequest(
-        this.options.authOptions,
+        this.options.authOptions || null,
         url,
-        { data: formattedData },
+        {
+          json: formattedData,
+          timeout: this.options.timeout,
+          retry: this.options.retryAttempts,
+          retryDelay: this.options.retryDelay,
+        },
       )
 
       return response || {}
@@ -269,9 +274,14 @@ export class DataLoader {
         const batchPromises = batch.map(async (request) => {
           try {
             const response = await apiClient.processPostRequest(
-              this.options.authOptions,
+              this.options.authOptions || null,
               request.url,
-              request.options,
+              {
+                ...request.options,
+                timeout: this.options.timeout,
+                retry: this.options.retryAttempts,
+                retryDelay: this.options.retryDelay,
+              },
             )
             return {
               success: true,
@@ -342,7 +352,7 @@ export class DataLoader {
 
       requestPromises.push({
         url,
-        options: { data: formattedData },
+        options: { json: formattedData },
         endpoint,
         operation: 'bulk_create',
         data: endpointData,
@@ -357,7 +367,7 @@ export class DataLoader {
 
         requestPromises.push({
           url,
-          options: { data: formattedData },
+          options: { json: formattedData },
           endpoint,
           operation: 'single_create',
           data: item,
@@ -390,7 +400,7 @@ export class DataLoader {
 
       requestPromises.push({
         url,
-        options: { data: formattedData },
+        options: { json: formattedData },
         endpoint,
         operation: 'bulk_create',
         data: bulkData,
@@ -430,7 +440,7 @@ export class DataLoader {
 
     requestPromises.push({
       url,
-      options: { data: formattedData },
+      options: { json: formattedData },
       endpoint: 'multi_target',
       operation: 'multi_bulk_create',
       data: multiBulkData,
@@ -468,12 +478,10 @@ export class DataLoader {
    * @returns The complete URL
    */
   private getTargetUrl(targetType: string, operation: string, targetConfig: any): string {
-    // Try to get from precomputed URLs first
     if (this.targetUrls[targetType]?.[operation]) {
       return this.targetUrls[targetType][operation]
     }
 
-    // Fallback to building URL from config
     let path = ''
     if (operation === 'create' && targetConfig.bulk_path) {
       path = targetConfig.bulk_path
