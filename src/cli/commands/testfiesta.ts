@@ -50,8 +50,9 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       baseUrl: 'http://localhost:5000',
       enablePerformanceMonitoring: true,
       strictMode: false,
-      retryAttempts: 3,
-      timeout: 5000,
+      retryAttempts: 1,
+      retryDelay: 500,
+      timeout: 2000,
     },
   })
 
@@ -63,6 +64,13 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   if (runData === null)
     return
 
-  await testFiestaETL.submitMultiTarget(runData)
-  spinner.stop()
+  try {
+    await testFiestaETL.submitMultiTarget(runData)
+    spinner.stop()
+    p.log.success('Test run submitted successfully to TestFiesta')
+  }
+  catch (error) {
+    spinner.stop()
+    p.log.error(`Failed to submit test run: ${error instanceof Error ? error.message : String(error)}`)
+  }
 }

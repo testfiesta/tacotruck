@@ -33,13 +33,28 @@ export class TestFiestaETL extends ETLv2 {
     const submitUrl = `${cleanBase}/${cleanPath}`
 
     const authOptions = this.authManager.getProcessedAuthOptions()
-    const response = await apiClient.processPostRequest(
-      authOptions,
-      submitUrl,
-      { data },
-    )
+    try {
+      const response = await apiClient.processPostRequest(
+        authOptions,
+        submitUrl,
+        {
+          json: data,
+          timeout: this.options.timeout,
+          retry: this.options.retryAttempts,
+          retryDelay: this.options.retryDelay,
+        },
+      )
 
-    return response || {}
+      if (!response) {
+        throw new Error(`Failed to connect to TestFiesta server at ${submitUrl}`)
+      }
+
+      return response
+    }
+    catch (error) {
+      console.error(`Error submitting to TestFiesta: ${error instanceof Error ? error.message : String(error)}`)
+      throw new Error(`Failed to submit data to TestFiesta: ${error instanceof Error ? error.message : String(error)}`)
+    }
   }
 
   /**

@@ -126,12 +126,10 @@ export class AuthenticationManager {
     const processed = { ...this.authOptions }
 
     if (processed.payload) {
-      // Simple token substitution - replace {token} with actual token
       if (processed.payload.includes('{token}') && this.hasCredential('token')) {
         processed.payload = processed.payload.replace('{token}', this.getCredential('token'))
       }
 
-      // Replace other credential placeholders
       for (const [key, value] of Object.entries(this.credentials)) {
         const placeholder = `{${key}}`
         if (processed.payload.includes(placeholder)) {
