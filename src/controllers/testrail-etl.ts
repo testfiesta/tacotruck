@@ -1,6 +1,5 @@
 import type { ConfigType } from '../utils/config-schema'
 import type { ETLv2Options } from './etl-base-v2'
-import { apiClient } from '../services/api-client'
 import { loadConfig } from '../utils/enhanced-config-loader'
 import { ETLv2 } from './etl-base-v2'
 
@@ -12,34 +11,6 @@ export class TestRailETL extends ETLv2 {
    */
   constructor(configSchema: ConfigType, options: ETLv2Options = {}) {
     super(configSchema, options)
-  }
-
-  /**
-   * Submit data using multi_target configuration
-   * @param dataType The type of data being submitted (for proper formatting)
-   * @returns The response from TestRail
-   */
-  async submitMultiTarget(data: any): Promise<Record<string, any>> {
-    const config = this.configManager.getConfig() as any
-    const multiTarget = config.multi_target
-
-    if (!multiTarget || !multiTarget.path) {
-      throw new Error('No multi_target path defined in TestRail configuration')
-    }
-
-    const baseUrl = this.configManager.getBaseUrl()
-    const cleanBase = baseUrl.replace(/\/+$/, '')
-    const cleanPath = multiTarget.path.replace(/^\/+/, '')
-    const submitUrl = `${cleanBase}/${cleanPath}`
-
-    const authOptions = this.authManager.getProcessedAuthOptions()
-    const response = await apiClient.processPostRequest(
-      authOptions,
-      submitUrl,
-      { data },
-    )
-
-    return response || {}
   }
 
   /**

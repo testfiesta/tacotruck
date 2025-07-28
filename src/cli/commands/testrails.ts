@@ -7,7 +7,7 @@ import { loadRunData } from '../../utils/run-data-loader'
 interface SubmitRunArgs {
   data: string
   email: string
-  apiKey: string
+  password: string
   url: string
   projectId: string
   name?: string
@@ -22,11 +22,11 @@ function submitRunCommand() {
     .description('Submit test run to TestRail')
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
     .requiredOption('-e, --email <email>', 'TestRail email/username')
-    .requiredOption('-k, --api-key <key>', 'TestRail API key')
+    .requiredOption('-p, --password <password>', 'TestRail password or api key')
     .requiredOption('-u, --url <url>', 'TestRail instance URL (e.g., https://example.testrail.io)')
-    .requiredOption('-p, --project-id <id>', 'TestRail project ID')
+    .requiredOption('-i, --project-id <id>', 'TestRail project ID')
     .option('-n, --name <name>', 'Name for the test run')
-    .option('-D, --description <text>', 'Description for the test run')
+    .option('-D, --x <text>', 'Description for the test run')
     .option('-s, --suite-id <id>', 'TestRail suite ID (required for projects with multiple test suites)')
     .option('-a, --include-all', 'Include all test cases in the run')
     .option('-c, --case-ids <ids>', 'Comma-separated list of case IDs to include (only if --include-all is not set)')
@@ -63,7 +63,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     // Initialize TestRailETL with credentials and options
     const testRailETL = await TestRailETL.fromConfig({
       credentials: {
-        base64Credentials: Buffer.from(`${args.email}:${args.apiKey}`).toString('base64'),
+        base64Credentials: Buffer.from(`${args.email}:${args.password}`).toString('base64'),
         base_url: args.url,
         project_id: args.projectId,
       },
