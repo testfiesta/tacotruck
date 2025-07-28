@@ -66,7 +66,11 @@ export class TestRailETL extends ETLv2 {
     const etlResult = await this.execute({ runs: Array.isArray(runData) ? runData : [runData] })
 
     if (etlResult.success) {
-      return etlResult.loadingResult?.responses || { success: true }
+      const responses = etlResult.loadingResult?.responses
+      if (responses === null) {
+        throw new Error('TestRail submission timed out or received no response')
+      }
+      return responses || { success: true }
     }
     else {
       const errorMessage = etlResult.errors.map(e => e.message).join('; ')

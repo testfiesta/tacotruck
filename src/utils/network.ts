@@ -77,7 +77,7 @@ export async function processPostRequest(
 
     const response = await ky.post(url, {
       retry: 0,
-      timeout: 1000,
+      timeout: options.timeout || 30000,
       ...mergedOptions,
     })
 

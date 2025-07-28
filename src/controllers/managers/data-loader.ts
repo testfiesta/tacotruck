@@ -78,8 +78,6 @@ export class DataLoader {
     const errors: any[] = []
     const responses: Record<string, any> = {}
 
-    console.log('url for loading to target')
-
     try {
       this.validateLoadingConfig()
 
@@ -109,7 +107,7 @@ export class DataLoader {
         endpoints.push(endpoint)
         const endpointData = data[endpoint]
         recordCounts[endpoint] = Array.isArray(endpointData) ? endpointData.length : 1
-
+        console.log('endpointData', this.config.target[endpoint])
         try {
           const bulkData = this.processEndpointData({
             endpoint,
@@ -218,8 +216,6 @@ export class DataLoader {
 
     const url = this.getTargetUrl(targetType, endpoint, target)
     const formattedData = this.formatDataForTarget(data, target)
-
-    console.log('url for loading to target', url)
 
     try {
       const response = await apiClient.processPostRequest(

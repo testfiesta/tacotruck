@@ -238,10 +238,7 @@ export class ETLv2 {
     }
 
     try {
-      console.log('ids', JSON.stringify(ids, null, 2))
-
       const result = await this.dataExtractor.extract(ids)
-      console.log('result', result)
       if (this.options.enablePerformanceMonitoring) {
         this.performanceMonitor.recordProcessed(
           Object.values(result.metadata.recordCounts).reduce((a, b) => a + b, 0),
@@ -271,7 +268,6 @@ export class ETLv2 {
 
     try {
       const result = await this.dataTransformer.transform(data)
-      console.log('data', JSON.stringify(data, null, 2))
 
       if (this.options.enablePerformanceMonitoring) {
         this.performanceMonitor.recordProcessed(
