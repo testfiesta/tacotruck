@@ -63,6 +63,6 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   if (runData === null)
     return
 
-  await testFiestaETL.submitMultiTarget(runData)
+  await testFiestaETL.submitTestRun(runData)
   spinner.stop()
 }

@@ -98,6 +98,7 @@ export class ETLv2 {
       this.authManager = new AuthenticationManager({
         credentials: this.options.credentials,
       })
+
       this.authManager.initializeFromConfig(this.configManager.getConfig())
       this.authManager.validateAuthConfiguration()
 
@@ -129,7 +130,7 @@ export class ETLv2 {
    * @param ids Optional record of IDs to fetch specific resources
    * @returns Complete ETL result with data and metadata
    */
-  async execute(ids: Record<string, Array<Record<string, any>>> = {}): Promise<ETLResult> {
+  async execute(data: Record<string, Array<Record<string, any>>> = {}): Promise<ETLResult> {
     const startTime = new Date()
     let extractionResult: ExtractionResult | undefined
     let transformationResult: TransformationResult | undefined
@@ -141,9 +142,7 @@ export class ETLv2 {
     }
 
     try {
-      extractionResult = await this.extract(ids)
-
-      transformationResult = await this.transform(extractionResult.data)
+      transformationResult = await this.transform(data)
 
       loadingResult = await this.load(transformationResult.data)
 
@@ -239,8 +238,10 @@ export class ETLv2 {
     }
 
     try {
-      const result = await this.dataExtractor.extract(ids)
+      console.log('ids', JSON.stringify(ids, null, 2))
 
+      const result = await this.dataExtractor.extract(ids)
+      console.log('result', result)
       if (this.options.enablePerformanceMonitoring) {
         this.performanceMonitor.recordProcessed(
           Object.values(result.metadata.recordCounts).reduce((a, b) => a + b, 0),
@@ -270,6 +271,7 @@ export class ETLv2 {
 
     try {
       const result = await this.dataTransformer.transform(data)
+      console.log('data', JSON.stringify(data, null, 2))
 
       if (this.options.enablePerformanceMonitoring) {
         this.performanceMonitor.recordProcessed(

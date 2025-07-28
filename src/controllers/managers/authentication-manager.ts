@@ -194,8 +194,8 @@ export class AuthenticationManager {
    * Validate basic authentication
    */
   private validateBasicAuth(): void {
-    if (!this.hasCredential('username') || !this.hasCredential('password')) {
-      throw new Error('Basic authentication requires username and password credentials')
+    if (!this.hasCredential('base64Credentials')) {
+      throw new Error('Basic authentication requires base64Credentials')
     }
   }
 

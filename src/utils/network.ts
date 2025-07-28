@@ -38,7 +38,7 @@ export function createAuthenticatedOptions(
   if (authOptions.location === 'header') {
     options.headers = {}
     if (authOptions.key && authOptions.payload) {
-      options.headers[authOptions.key] = authOptions.payload
+      (options.headers as Record<string, string>)[authOptions.key] = authOptions.payload
     }
     else {
       console.warn('Auth header not added:', {
