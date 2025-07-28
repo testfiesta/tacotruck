@@ -107,7 +107,6 @@ export class DataLoader {
         endpoints.push(endpoint)
         const endpointData = data[endpoint]
         recordCounts[endpoint] = Array.isArray(endpointData) ? endpointData.length : 1
-        console.log('endpointData', this.config.target[endpoint])
         try {
           const bulkData = this.processEndpointData({
             endpoint,
@@ -219,7 +218,7 @@ export class DataLoader {
 
     try {
       const response = await apiClient.processPostRequest(
-        this.options.authOptions,
+        this.options.authOptions || null,
         url,
         { data: formattedData },
       )
@@ -265,7 +264,7 @@ export class DataLoader {
         const batchPromises = batch.map(async (request) => {
           try {
             const response = await apiClient.processPostRequest(
-              this.options.authOptions,
+              this.options.authOptions || null,
               request.url,
               request.options,
             )

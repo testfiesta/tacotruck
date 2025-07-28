@@ -145,6 +145,16 @@ export class DataExtractor {
 
     try {
       const response = await this.makeRequest(url, 'GET')
+      if (response === null) {
+        throw new NetworkError(
+          `No response received from ${endpoint}`,
+          {
+            endpoint,
+            url,
+            operation: 'extract',
+          },
+        )
+      }
       return this.processResponseData(response, endpoint)
     }
     catch (error) {
@@ -188,6 +198,16 @@ export class DataExtractor {
         const url = this.buildUrl(parameterizedPath)
 
         const response = await this.makeRequest(url, 'GET')
+        if (response === null) {
+          throw new NetworkError(
+            `No response received from ${endpoint}`,
+            {
+              endpoint,
+              url,
+              operation: 'extract',
+            },
+          )
+        }
         const processedData = this.processResponseData(response, endpoint)
 
         if (processedData) {
@@ -228,7 +248,7 @@ export class DataExtractor {
           this.options.authOptions!,
           url,
           { timeout: this.options.timeout },
-          'source'
+          'source',
         )
 
         return response
@@ -263,15 +283,16 @@ export class DataExtractor {
     }
 
     const endpointConfig = this.getEndpointConfig(endpoint)
+    const responseData = response as Record<string, any>
 
-    if (endpointConfig?.data_key && response[endpointConfig.data_key]) {
-      return response[endpointConfig.data_key]
+    if (endpointConfig?.data_key && responseData[endpointConfig.data_key]) {
+      return responseData[endpointConfig.data_key]
     }
 
     const commonDataKeys = ['data', 'results', 'items', 'entries']
     for (const key of commonDataKeys) {
-      if (response[key]) {
-        return response[key]
+      if (responseData[key]) {
+        return responseData[key]
       }
     }
 
