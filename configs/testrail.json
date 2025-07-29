@@ -206,7 +206,7 @@
       "endpoints": {
         "create": {
           "single_path": "api/v2/add_section/{project_id}",
-          "required": ["project_id", "suite_id"]
+          "required": ["project_id"]
         },
         "update": {
           "path": "api/v2/update_case/{id}",
@@ -247,7 +247,7 @@
       "target": "runs",
       "endpoints": {
         "create": {
-          "single_path": "index.php?/api/v2/add_run/1",
+          "single_path": "api/v2/add_run/{project_id}",
           "required": ["name", "project_id"]
         },
         "update": {

@@ -130,7 +130,7 @@ export class ETLv2 {
    * @param ids Optional record of IDs to fetch specific resources
    * @returns Complete ETL result with data and metadata
    */
-  async execute(data: Record<string, Array<Record<string, any>>> = {}): Promise<ETLResult> {
+  async execute(ids: Record<string, Array<Record<string, any>>> = {}): Promise<ETLResult> {
     const startTime = new Date()
     let extractionResult: ExtractionResult | undefined
     let transformationResult: TransformationResult | undefined
@@ -142,8 +142,8 @@ export class ETLv2 {
     }
 
     try {
-      transformationResult = await this.transform(data)
-
+      extractionResult = await this.extract(ids)
+      transformationResult = await this.transform(extractionResult.data)
       loadingResult = await this.load(transformationResult.data)
 
       if (this.options.enablePerformanceMonitoring) {
@@ -328,7 +328,7 @@ export class ETLv2 {
     data: any,
     endpoint: string = 'create',
   ): Promise<Record<string, any>> {
-    return await this.dataLoader.loadToTarget(targetType, data, endpoint)
+    return await this.dataLoader.loadToTarget(targetType, data, endpoint, this.configManager.getConfig())
   }
 
   /**

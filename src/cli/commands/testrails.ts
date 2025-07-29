@@ -51,7 +51,7 @@ export function createTestrailsCommand() {
 
 export async function run(args: SubmitRunArgs): Promise<void> {
   const spinner = p.spinner()
-  spinner.start('Submitting test run to TestRail')
+  spinner.start('Loading test data')
 
   const handleError = (error: Error, context: string): null => {
     spinner.stop()
@@ -60,7 +60,6 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   }
 
   try {
-    // Initialize TestRailETL with credentials and options
     const testRailETL = await TestRailETL.fromConfig({
       credentials: {
         base64Credentials: Buffer.from(`${args.email}:${args.password}`).toString('base64'),
@@ -85,9 +84,11 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     if (runData === null)
       return
 
-    await testRailETL.submitTestRun(runData)
     spinner.stop()
-
+    
+    console.log('Connecting to TestRail...')
+    
+    await testRailETL.submitTestRun(runData)
     p.log.success('Successfully created TestRail run')
   }
   catch (error) {
