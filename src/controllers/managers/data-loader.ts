@@ -8,6 +8,7 @@ import { ConfigurationError, ErrorManager, ETLErrorType, NetworkError, Validatio
 export interface LoadingOptions {
   authOptions?: AuthOptions | null
   baseUrl?: string
+  basePath?: string
   throttleCap?: number
   timeout?: number
   retryAttempts?: number
@@ -59,6 +60,7 @@ export class DataLoader {
       validateBeforeLoad: true,
       batchSize: 100,
       maxConcurrency: 5,
+      basePath: '',
       ...options,
     }
     this.errorManager = errorManager || new ErrorManager()
@@ -77,8 +79,6 @@ export class DataLoader {
     const endpoints: string[] = []
     const errors: any[] = []
     const responses: Record<string, any> = {}
-
-    console.log('url for loading to target')
 
     try {
       this.validateLoadingConfig()
@@ -509,14 +509,19 @@ export class DataLoader {
    */
   private buildEndpointUrl(path: string): string {
     const baseUrl = this.options.baseUrl || ''
+    const basePath = this.options.basePath || ''
 
     if (!baseUrl) {
       throw new ConfigurationError('Base URL is required for data loading')
     }
 
-    // Ensure proper URL construction
     const cleanBase = baseUrl.replace(/\/+$/, '')
+    const cleanBasePath = basePath.replace(/^\/+/, '').replace(/\/+$/, '')
     const cleanPath = path.replace(/^\/+/, '')
+
+    if (cleanBasePath) {
+      return `${cleanBase}/${cleanBasePath}/${cleanPath}`
+    }
 
     return `${cleanBase}/${cleanPath}`
   }
@@ -645,8 +650,7 @@ export class DataLoader {
   updateOptions(options: Partial<LoadingOptions>): void {
     this.options = { ...this.options, ...options }
 
-    // Recompute URLs if baseUrl changed
-    if (options.baseUrl) {
+    if (options.baseUrl || options.basePath !== undefined) {
       this.precomputeTargetUrls()
     }
   }

@@ -155,7 +155,12 @@ async function main() {
       validate: value => value.length === 0 ? 'Organization handle is required' : undefined,
     })
 
-    if (p.isCancel(token) || p.isCancel(orgHandle)) {
+    const projectKey = process.env.TESTFIESTA_PROJECT || 'random_project_key' || await p.text({
+      message: 'Enter your project key:',
+      validate: value => value.length === 0 ? 'Organization project is required' : undefined,
+    })
+
+    if (p.isCancel(token) || p.isCancel(orgHandle) || p.isCancel(projectKey)) {
       p.log.warning('Submission cancelled')
       process.exit(1)
     }
@@ -165,7 +170,7 @@ async function main() {
         p.log.warn(`CLI binary not found at path: ${BIN_PATH}`)
         p.log.info('Falling back to NPX for CLI execution')
 
-        const npxCommand = `npx tacotruck testfiesta run:submit -d "${JUNIT_REPORT_PATH}" -t "${token}" -h "${orgHandle}"`
+        const npxCommand = `npx tacotruck testfiesta run:submit -d "${JUNIT_REPORT_PATH}" -t "${token}" -h "${orgHandle}" -p "${projectKey}"`
         console.log(`Executing: ${npxCommand}`)
 
         execSync(npxCommand, {
@@ -184,7 +189,7 @@ async function main() {
         console.warn(`Warning: Could not make binary executable: ${err}`)
       }
 
-      const submitCommand = `"${BIN_PATH}" testfiesta run:submit -d "${JUNIT_REPORT_PATH}" -t "${token}" -h "${orgHandle}"`
+      const submitCommand = `"${BIN_PATH}" testfiesta run:submit -d "${JUNIT_REPORT_PATH}" -t "${token}" -h "${orgHandle}" -p "${projectKey}"`
       console.log(`Executing: ${submitCommand}`)
 
       const execOptions: ExecSyncOptions = {

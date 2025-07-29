@@ -1,7 +1,7 @@
 {
   "name": "testfiesta",
   "type": "api",
-  "base_path": "/v1/{handle}",
+  "base_path": "v1/{handle}",
   "auth": {
     "type": "bearer",
     "location": "header",
@@ -9,7 +9,7 @@
     "payload": "Bearer {token}"
   },
   "multi_target": {
-    "path": "/v1/{handle}/projects",
+    "path": "/projects/{projectKey}/data",
     "data_key": "entries",
     "include_source": true
   },
@@ -17,7 +17,7 @@
     "projects": {
       "endpoints": {
         "create": {
-          "bulk_path": "/v1/hussieny/projects/KEY1/TPJ/data",
+          "bulk_path": "/projects",
           "data_key": "entries",
           "include_source": true
         }

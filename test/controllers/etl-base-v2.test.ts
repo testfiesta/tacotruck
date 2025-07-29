@@ -245,7 +245,7 @@ describe('eTLv2', () => {
       expect(etlv2).toBeInstanceOf(ETLv2)
       expect(ConfigurationManager).toHaveBeenCalledWith(mockConfig, {
         credentials: undefined,
-        allowMutation: false,
+        allowMutation: true,
       })
     })
 
@@ -262,7 +262,7 @@ describe('eTLv2', () => {
 
       expect(ConfigurationManager).toHaveBeenCalledWith(mockConfig, {
         credentials: mockCredentials,
-        allowMutation: false,
+        allowMutation: true,
       })
       expect(AuthenticationManager).toHaveBeenCalledWith({
         credentials: mockCredentials,
