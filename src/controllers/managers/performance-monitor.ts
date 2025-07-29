@@ -52,7 +52,7 @@ export interface PerformanceSummary {
 export class PerformanceMonitor {
   private startTime: Date | null = null
   private phases: Map<string, PerformanceMetrics> = new Map()
-  private snapshots: PerformanceSnapshot[] = new Map()
+  private snapshots: PerformanceSnapshot[] = []
   private currentPhase: string | null = null
   private networkRequestCount = 0
   private networkSuccessCount = 0

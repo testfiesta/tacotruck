@@ -302,39 +302,73 @@ describe('configurationManager', () => {
     })
   })
 
-  describe('processSubstitutions', () => {
+  describe('placeholder substitution', () => {
     it('should handle multiple placeholders in a single string', () => {
-      const manager = new ConfigurationManager(mockConfig, { credentials: mockCredentials })
-      const result = manager.processSubstitutions(
-        'https://{environment}.api.com/v1/token/{token}',
-        mockCredentials,
+      const configWithMultiplePlaceholders = {
+        ...mockConfig,
+        base_path: '/{environment}/api/v1/{token}',
+      }
+
+      const manager = new ConfigurationManager(
+        configWithMultiplePlaceholders,
+        { credentials: mockCredentials },
       )
 
-      expect(result).toBe('https://staging.api.com/v1/token/test-token-123')
+      manager.applySubstitutions()
+      const config = manager.getConfig()
+
+      expect(config.base_path).toBe('/staging/api/v1/test-token-123')
     })
 
     it('should handle missing credentials gracefully', () => {
-      const manager = new ConfigurationManager(mockConfig, { credentials: {} })
-      const result = manager.processSubstitutions(
-        'https://api.com/{missing_credential}',
-        {},
+      const configWithMissingCredential = {
+        ...mockConfig,
+        base_path: '/api/{missing_credential}',
+      }
+
+      const manager = new ConfigurationManager(
+        configWithMissingCredential,
+        { credentials: {} },
       )
 
-      expect(result).toBe('https://api.com/{missing_credential}')
+      manager.applySubstitutions()
+      const config = manager.getConfig()
+
+      expect(config.base_path).toBe('/api/{missing_credential}')
     })
 
     it('should handle empty string input', () => {
-      const manager = new ConfigurationManager(mockConfig, { credentials: mockCredentials })
-      const result = manager.processSubstitutions('', mockCredentials)
+      const configWithEmptyPath = {
+        ...mockConfig,
+        base_path: '',
+      }
 
-      expect(result).toBe('')
+      const manager = new ConfigurationManager(
+        configWithEmptyPath,
+        { credentials: mockCredentials },
+      )
+
+      manager.applySubstitutions()
+      const config = manager.getConfig()
+
+      expect(config.base_path).toBe('')
     })
 
     it('should handle string without placeholders', () => {
-      const manager = new ConfigurationManager(mockConfig, { credentials: mockCredentials })
-      const result = manager.processSubstitutions('https://api.example.com', mockCredentials)
+      const configWithoutPlaceholders = {
+        ...mockConfig,
+        base_path: '/api/example',
+      }
 
-      expect(result).toBe('https://api.example.com')
+      const manager = new ConfigurationManager(
+        configWithoutPlaceholders,
+        { credentials: mockCredentials },
+      )
+
+      manager.applySubstitutions()
+      const config = manager.getConfig()
+
+      expect(config.base_path).toBe('/api/example')
     })
   })
 
