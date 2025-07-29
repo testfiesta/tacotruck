@@ -72,7 +72,6 @@ export async function processPostRequest(
   try {
     const { timeout = 30000, retryDelay = 1000, json, retry } = options
     const authRequestOptions = createAuthenticatedOptions(authOptions)
-    console.warn(`POST request to ${url} with timeout=${timeout}ms, retries=${retry ?? 0}, delay=${retryDelay}ms`)
 
     const response = await ofetch(url, {
       method: 'POST',
@@ -83,10 +82,6 @@ export async function processPostRequest(
       body: json,
       ...authRequestOptions,
     })
-
-    if (!response.ok) {
-      return err(new Error('Post request failed'))
-    }
 
     return ok(response)
   }

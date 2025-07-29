@@ -90,8 +90,9 @@ export class TestRailETL extends ETLv2 {
       const response = await this.createSection({
         name: 'Test section/folder',
       })
-      
-      // Handle the response properly - it might be a direct object or a Response object
+      if (!response.id) {
+        throw new Error('TestRail section creation received no response')
+      }
       let sectionResponse;
       if (response && typeof response.json === 'function') {
         sectionResponse = await response.json();
@@ -101,7 +102,6 @@ export class TestRailETL extends ETLv2 {
       
       this.updateCredentials({ ...this.options.credentials, section_id: sectionResponse.id })
       this.configManager.applySubstitutions()
-
       console.log(`${chalk.green('✓')} Created section`)
 
       const testCases = runData.executions || []

@@ -225,7 +225,6 @@ export class DataLoader {
     try {
       const response = await apiClient.processPostRequest(
         this.options.authOptions || null,
-        this.options.authOptions || null,
         url,
         {
           json: formattedData,
@@ -275,7 +274,6 @@ export class DataLoader {
         const batchPromises = batch.map(async (request) => {
           try {
             const response = await apiClient.processPostRequest(
-              this.options.authOptions || null,
               this.options.authOptions || null,
               request.url,
               {
@@ -510,7 +508,6 @@ export class DataLoader {
    */
   private buildEndpointUrl(path: string): string {
     const baseUrl = this.options.baseUrl || ''
-    const basePath = this.options.basePath || ''
 
     if (!baseUrl) {
       throw new ConfigurationError('Base URL is required for data loading')
