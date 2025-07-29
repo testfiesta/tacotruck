@@ -85,10 +85,9 @@ export class ETLv2 {
     })
 
     try {
-      // Initialize configuration manager
       this.configManager = new ConfigurationManager(configSchema, {
         credentials: this.options.credentials,
-        allowMutation: false,
+        allowMutation: true,
         baseUrl: this.options.baseUrl,
       })
 
@@ -480,6 +479,7 @@ export class ETLv2 {
       {
         authOptions,
         baseUrl,
+        basePath: config.base_path,
         throttleCap: this.options.maxConcurrency,
         timeout: this.options.timeout,
         retryAttempts: this.options.retryAttempts,

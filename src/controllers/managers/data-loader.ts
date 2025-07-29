@@ -8,6 +8,7 @@ import { ConfigurationError, ErrorManager, ETLErrorType, NetworkError, Validatio
 export interface LoadingOptions {
   authOptions?: AuthOptions | null
   baseUrl?: string
+  basePath?: string
   throttleCap?: number
   timeout?: number
   retryAttempts?: number
@@ -59,6 +60,7 @@ export class DataLoader {
       validateBeforeLoad: true,
       batchSize: 100,
       maxConcurrency: 5,
+      basePath: '',
       ...options,
     }
     this.errorManager = errorManager || new ErrorManager()
@@ -223,8 +225,14 @@ export class DataLoader {
     try {
       const response = await apiClient.processPostRequest(
         this.options.authOptions || null,
+        this.options.authOptions || null,
         url,
-        { data: formattedData },
+        {
+          json: formattedData,
+          timeout: this.options.timeout,
+          retry: this.options.retryAttempts,
+          retryDelay: this.options.retryDelay,
+        },
       )
       return response || {}
     }
@@ -268,8 +276,14 @@ export class DataLoader {
           try {
             const response = await apiClient.processPostRequest(
               this.options.authOptions || null,
+              this.options.authOptions || null,
               request.url,
-              request.options,
+              {
+                ...request.options,
+                timeout: this.options.timeout,
+                retry: this.options.retryAttempts,
+                retryDelay: this.options.retryDelay,
+              },
             )
             return {
               success: true,
@@ -340,7 +354,7 @@ export class DataLoader {
 
       requestPromises.push({
         url,
-        options: { data: formattedData },
+        options: { json: formattedData },
         endpoint,
         operation: 'bulk_create',
         data: endpointData,
@@ -355,7 +369,7 @@ export class DataLoader {
 
         requestPromises.push({
           url,
-          options: { data: formattedData },
+          options: { json: formattedData },
           endpoint,
           operation: 'single_create',
           data: item,
@@ -388,7 +402,7 @@ export class DataLoader {
 
       requestPromises.push({
         url,
-        options: { data: formattedData },
+        options: { json: formattedData },
         endpoint,
         operation: 'bulk_create',
         data: bulkData,
@@ -428,7 +442,7 @@ export class DataLoader {
 
     requestPromises.push({
       url,
-      options: { data: formattedData },
+      options: { json: formattedData },
       endpoint: 'multi_target',
       operation: 'multi_bulk_create',
       data: multiBulkData,
@@ -496,6 +510,7 @@ export class DataLoader {
    */
   private buildEndpointUrl(path: string): string {
     const baseUrl = this.options.baseUrl || ''
+    const basePath = this.options.basePath || ''
 
     if (!baseUrl) {
       throw new ConfigurationError('Base URL is required for data loading')
@@ -635,8 +650,7 @@ export class DataLoader {
   updateOptions(options: Partial<LoadingOptions>): void {
     this.options = { ...this.options, ...options }
 
-    // Recompute URLs if baseUrl changed
-    if (options.baseUrl) {
+    if (options.baseUrl || options.basePath !== undefined) {
       this.precomputeTargetUrls()
     }
   }

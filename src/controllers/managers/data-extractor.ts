@@ -145,17 +145,7 @@ export class DataExtractor {
 
     try {
       const response = await this.makeRequest(url, 'GET')
-      if (response === null) {
-        throw new NetworkError(
-          `No response received from ${endpoint}`,
-          {
-            endpoint,
-            url,
-            operation: 'extract',
-          },
-        )
-      }
-      return this.processResponseData(response, endpoint)
+      return response ? this.processResponseData(response as ResponseData, endpoint) : null
     }
     catch (error) {
       throw new NetworkError(
@@ -198,17 +188,7 @@ export class DataExtractor {
         const url = this.buildUrl(parameterizedPath)
 
         const response = await this.makeRequest(url, 'GET')
-        if (response === null) {
-          throw new NetworkError(
-            `No response received from ${endpoint}`,
-            {
-              endpoint,
-              url,
-              operation: 'extract',
-            },
-          )
-        }
-        const processedData = this.processResponseData(response, endpoint)
+        const processedData = response ? this.processResponseData(response as ResponseData, endpoint) : null
 
         if (processedData) {
           results.push(processedData)
@@ -247,7 +227,11 @@ export class DataExtractor {
         const response = await apiClient.processGetRequest(
           this.options.authOptions!,
           url,
-          { timeout: this.options.timeout },
+          {
+            timeout: this.options.timeout,
+            retry: this.options.retryAttempts,
+            retryDelay: this.options.retryDelay,
+          },
           'source',
         )
 
@@ -285,14 +269,14 @@ export class DataExtractor {
     const endpointConfig = this.getEndpointConfig(endpoint)
     const responseData = response as Record<string, any>
 
-    if (endpointConfig?.data_key && responseData[endpointConfig.data_key]) {
-      return responseData[endpointConfig.data_key]
+    if (endpointConfig?.data_key && (response as Record<string, any>)[endpointConfig.data_key]) {
+      return (response as Record<string, any>)[endpointConfig.data_key]
     }
 
     const commonDataKeys = ['data', 'results', 'items', 'entries']
     for (const key of commonDataKeys) {
-      if (responseData[key]) {
-        return responseData[key]
+      if ((response as Record<string, any>)[key]) {
+        return (response as Record<string, any>)[key]
       }
     }
 

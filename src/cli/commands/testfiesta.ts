@@ -6,7 +6,8 @@ import { loadRunData } from '../../utils/run-data-loader'
 interface SubmitRunArgs {
   data: string
   token: string
-  orgHandle: string
+  organization: string
+  project: string
 }
 
 function submitRunCommand() {
@@ -15,6 +16,7 @@ function submitRunCommand() {
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
     .requiredOption('-h, --organization <organization>', 'Organization handle')
+    .requiredOption('-p, --project <project>', 'Project key')
     .action(async (args: SubmitRunArgs) => {
       await run(args).catch((e) => {
         p.log.error('Failed to submit test run')
@@ -44,14 +46,21 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     return null
   }
 
+  const credentials = {
+    token: args.token,
+    handle: args.organization,
+    projectKey: args.project,
+  }
+
   const testFiestaETL = await TestFiestaETL.fromConfig({
-    credentials: { token: args.token, handle: args.orgHandle },
+    credentials,
     etlOptions: {
       baseUrl: 'http://localhost:5000',
       enablePerformanceMonitoring: true,
       strictMode: false,
-      retryAttempts: 3,
-      timeout: 5000,
+      retryAttempts: 1,
+      retryDelay: 500,
+      timeout: 2000,
     },
   })
 
@@ -63,6 +72,15 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   if (runData === null)
     return
 
-  await testFiestaETL.submitTestRun(runData)
-  spinner.stop()
+  try {
+    const loadResult = await testFiestaETL.load(runData)
+    if (loadResult.metadata.errors.length === 0) {
+      spinner.stop()
+      p.log.success('Test run submitted successfully to TestFiesta')
+    }
+  }
+  catch (error) {
+    spinner.stop()
+    p.log.error(`Failed to submit test run: ${error instanceof Error ? error.message : String(error)}`)
+  }
 }

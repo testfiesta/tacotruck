@@ -401,7 +401,7 @@ export class ErrorManager {
     return new ETLError(
       `Unknown error: ${String(error)}`,
       defaultType,
-      { ...context, originalError: error instanceof Error ? error : new Error(String(error)) },
+      { ...context, originalError: error as Error },
     )
   }
 }

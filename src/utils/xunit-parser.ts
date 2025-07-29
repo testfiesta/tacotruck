@@ -158,9 +158,10 @@ function parseJSONData(data: TestData, config: Config): ParsedData {
         if (config.ignoreConfig?.suites?.[key] === true) {
           // Delete both the original key and the mapped key
           delete normalizedSuite[key]
-          const mappedKey = XUnitParser.TEST_SUITES_MAPPING[key]
-          if (mappedKey) {
-            delete normalizedSuite[mappedKey]
+          const mappedKey = key as keyof typeof XUnitParser.TEST_SUITES_MAPPING
+          const targetKey = XUnitParser.TEST_SUITES_MAPPING[mappedKey]
+          if (targetKey) {
+            delete normalizedSuite[targetKey]
           }
         }
       })
@@ -195,9 +196,10 @@ function parseJSONData(data: TestData, config: Config): ParsedData {
             if (config.ignoreConfig?.executions?.[key] === true) {
               // Delete both the original key and the mapped key
               delete normalizedCase[key]
-              const mappedKey = XUnitParser.TEST_CASES_MAPPING[key]
-              if (mappedKey) {
-                delete normalizedCase[mappedKey]
+              const mappedKey = key as keyof typeof XUnitParser.TEST_CASES_MAPPING
+              const targetKey = XUnitParser.TEST_CASES_MAPPING[mappedKey]
+              if (targetKey) {
+                delete normalizedCase[targetKey]
               }
             }
           })
@@ -235,10 +237,11 @@ function parseJSONData(data: TestData, config: Config): ParsedData {
     if (config.ignoreConfig.suites && parsedData.suites.length > 0) {
       Object.keys(config.ignoreConfig.suites).forEach((key) => {
         if (config.ignoreConfig?.suites?.[key] === true) {
-          const mappedKey = XUnitParser.TEST_SUITES_MAPPING[key] || key
+          const mappedKey = key as keyof typeof XUnitParser.TEST_SUITES_MAPPING
+          const targetKey = XUnitParser.TEST_SUITES_MAPPING[mappedKey] || key
           // For each suite, delete the property if it exists
           parsedData.suites.forEach((suite) => {
-            delete suite[mappedKey]
+            delete suite[targetKey]
           })
         }
       })
@@ -247,10 +250,11 @@ function parseJSONData(data: TestData, config: Config): ParsedData {
     if (config.ignoreConfig.executions && parsedData.executions.length > 0) {
       Object.keys(config.ignoreConfig.executions).forEach((key) => {
         if (config.ignoreConfig?.executions?.[key] === true) {
-          const mappedKey = XUnitParser.TEST_CASES_MAPPING[key] || key
+          const mappedKey = key as keyof typeof XUnitParser.TEST_CASES_MAPPING
+          const targetKey = XUnitParser.TEST_CASES_MAPPING[mappedKey] || key
           // For each execution, delete the property if it exists
           parsedData.executions.forEach((execution) => {
-            delete execution[mappedKey]
+            delete execution[targetKey]
           })
         }
       })
