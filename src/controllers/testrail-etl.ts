@@ -1,9 +1,13 @@
 import type { ConfigType } from '../utils/config-schema'
 import type { ETLv2Options } from './etl-base-v2'
-import { loadConfig } from '../utils/enhanced-config-loader'
-import { ETLv2 } from './etl-base-v2'
-import cliProgress from 'cli-progress'
+
 import chalk from 'chalk'
+import cliProgress from 'cli-progress'
+
+import { loadConfig } from '../utils/enhanced-config-loader'
+import { processBatchedRequests } from '../utils/network'
+import { err, ok } from '../utils/result'
+import { ETLv2 } from './etl-base-v2'
 
 export class TestRailETL extends ETLv2 {
   /**
@@ -93,13 +97,14 @@ export class TestRailETL extends ETLv2 {
       if (!response.id) {
         throw new Error('TestRail section creation received no response')
       }
-      let sectionResponse;
+      let sectionResponse
       if (response && typeof response.json === 'function') {
-        sectionResponse = await response.json();
-      } else {
-        sectionResponse = response;
+        sectionResponse = await response.json()
       }
-      
+      else {
+        sectionResponse = response
+      }
+
       this.updateCredentials({ ...this.options.credentials, section_id: sectionResponse.id })
       this.configManager.applySubstitutions()
       console.log(`${chalk.green('✓')} Created section`)
@@ -108,78 +113,97 @@ export class TestRailETL extends ETLv2 {
       console.log(`Processing ${testCases.length} test cases ...`)
 
       const progressBar = new cliProgress.SingleBar({
-        format: (options, params, payload) => {
-          const barCompleteChar = '█';
-          const barIncompleteChar = '░';
-          const barSize = 30; // Fixed bar size
-          
-          const completeSize = Math.round(params.progress * barSize);
-          const incompleteSize = barSize - completeSize;
-          
-          const bar = barCompleteChar.repeat(completeSize) + barIncompleteChar.repeat(incompleteSize);
-          
-          const percentage = Math.floor(params.progress * 100);
-          const value = params.value;
-          const total = params.total;
-          
-          return chalk.cyan('⏳ ') + 
-                 chalk.magenta('[') + 
-                 chalk.blue(bar) + 
-                 chalk.magenta('] ') + 
-                 chalk.yellow(`${percentage}%`) + 
-                 chalk.white(' | ') + 
-                 chalk.green(`${value}`) + 
-                 chalk.white('/') + 
-                 chalk.green(`${total}`) + 
-                 chalk.white(' test cases');
+        format: (options, params, _payload) => {
+          const barCompleteChar = '█'
+          const barIncompleteChar = '░'
+          const barSize = 30
+
+          const completeSize = Math.round(params.progress * barSize)
+          const incompleteSize = barSize - completeSize
+
+          const bar = barCompleteChar.repeat(completeSize) + barIncompleteChar.repeat(incompleteSize)
+
+          const percentage = Math.floor(params.progress * 100)
+          const value = params.value
+          const total = params.total
+
+          return chalk.cyan('⏳ ')
+            + chalk.magenta('[')
+            + chalk.blue(bar)
+            + chalk.magenta('] ')
+            + chalk.yellow(`${percentage}%`)
+            + chalk.white(' | ')
+            + chalk.green(`${value}`)
+            + chalk.white('/')
+            + chalk.green(`${total}`)
+            + chalk.white(' test cases')
         },
         barCompleteChar: '█',
         barIncompleteChar: '░',
       })
-      
+
       progressBar.start(testCases.length, 0)
-      
-      const BATCH_SIZE = 5
+
       const caseIds: number[] = []
       let processedCount = 0
 
-      for (let i = 0; i < testCases.length; i += BATCH_SIZE) {
-        const batch = testCases.slice(i, i + BATCH_SIZE)
+      const requests = testCases.map((test: { name: string, [key: string]: any }) => {
+        return async () => {
+          try {
+            const response = await this.createTestCase({
+              title: test.name,
+              section_id: sectionResponse.id,
+            })
 
-        const batchPromises = batch.map((test: { name: string, [key: string]: any }) => {
-          return this.createTestCase({
-            title: test.name,
-            section_id: sectionResponse.id,
-          }).then(response => {
+            let result: Record<string, any>
             if (response && typeof response.json === 'function') {
-              return response.json();
+              result = await response.json()
             }
-            return response;
-          })
-        })
+            else {
+              result = response as Record<string, any>
+            }
 
-        try {
-          const results = await Promise.all(batchPromises)
+            processedCount++
+            progressBar.update(processedCount)
 
-          for (const result of results) {
+            return ok(result)
+          }
+          catch (error) {
+            processedCount++
+            progressBar.update(processedCount)
+            return err(error instanceof Error ? error : new Error(String(error)))
+          }
+        }
+      })
+
+      const batchResult = await processBatchedRequests<Record<string, any>, Error>(
+        requests,
+        this.options.maxConcurrency || 5,
+        this.options.batchSize || 10,
+        1000,
+        {
+          retry: this.options.retryAttempts,
+          retryDelay: 1000,
+          timeout: this.options.timeout,
+          silent: true,
+        },
+      )
+
+      if (batchResult.isOk) {
+        const results = batchResult.unwrap()
+        for (const result of results) {
+          if (result && result.id) {
             caseIds.push(result.id)
           }
-          
-          // Update progress bar
-          processedCount += batch.length
-          progressBar.update(processedCount > testCases.length ? testCases.length : processedCount)
         }
-        catch (error) {
-          console.error('Error creating test cases in batch:', error)
-        }
-
-        if (i + BATCH_SIZE < testCases.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        }
+      }
+      else {
+        const errorObj = batchResult as { error: Error }
+        console.error('Error creating test cases:', errorObj.error)
       }
 
       progressBar.stop()
-      
+
       console.log(`\n${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
 
       const run = {

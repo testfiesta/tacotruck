@@ -23,6 +23,7 @@ export interface RequestOptions extends FetchOptions {
   retryDelay?: number
   json?: Record<string, any>
   headers?: Record<string, any>
+  silent?: boolean
 }
 
 /**
@@ -171,12 +172,7 @@ export async function processBatchedRequests<R, E>(
   options: RequestOptions = {},
 ): Promise<Result<R[], E>> {
   try {
-    console.warn(`Processing ${requests.length} requests with concurrency ${concurrencyLimit}`)
-    console.warn(`Throttling to ${throttleLimit} requests per ${throttleInterval}ms`)
-
-    const { retry = 0, retryDelay = 1000, timeout = 30000 } = options
-
-    console.warn(`Using retry settings: attempts=${retry}, delay=${retryDelay}ms, timeout=${timeout}ms`)
+    const { retry = 0, retryDelay = 1000, silent = false } = options
 
     const throttle = pThrottle({
       limit: throttleLimit,
@@ -199,16 +195,20 @@ export async function processBatchedRequests<R, E>(
             attempts++
 
             if (attempts <= maxAttempts) {
-              console.warn(
-                `Request ${index} failed (attempt ${attempts}/${maxAttempts}). Retrying in ${retryDelay}ms...`,
-                error instanceof Error ? error.message : error,
-              )
+              if (!silent) {
+                console.warn(
+                  `Request ${index} failed (attempt ${attempts}/${maxAttempts}). Retrying in ${retryDelay}ms...`,
+                  error instanceof Error ? error.message : error,
+                )
+              }
             }
             else {
-              console.error(
-                `Request ${index} failed after ${maxAttempts} attempts.`,
-                error instanceof Error ? error.message : error,
-              )
+              if (!silent) {
+                console.error(
+                  `Request ${index} failed after ${maxAttempts} attempts.`,
+                  error instanceof Error ? error.message : error,
+                )
+              }
             }
 
             if (attempts > maxAttempts) {
@@ -230,7 +230,6 @@ export async function processBatchedRequests<R, E>(
       batchSize,
       async (batch: Array<() => Promise<Result<R, E>>>) => {
         const results = await Promise.all(batch.map((req: () => Promise<Result<R, E>>) => req()))
-        console.warn(`Completed batch of ${batch.length} requests`)
         return results
       },
       concurrencyLimit,
@@ -249,18 +248,27 @@ export async function processBatchedRequests<R, E>(
     }
 
     if (errors.length > 0) {
-      console.error(`${errors.length} requests failed out of ${batchResults.length}`)
+      if (!silent) {
+        console.error(`${errors.length} requests failed out of ${batchResults.length}`)
+      }
       return err(errors[0])
     }
 
     const successRate = results.length / requests.length * 100
-    console.warn(`Completed ${results.length}/${requests.length} requests (${successRate.toFixed(1)}%) with concurrency ${concurrencyLimit}, retry attempts: ${retry}`)
+    if (!silent) {
+      console.warn(`Completed ${results.length}/${requests.length} requests (${successRate.toFixed(1)}%) with concurrency ${concurrencyLimit}, retry attempts: ${retry}`)
+    }
     return ok(results)
   }
   catch (error) {
-    console.error('Batch processing failed:', error)
+    const { silent: isSilent = false } = options
+
+    if (!isSilent) {
+      console.error('Batch processing failed:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`Error details: ${errorMessage}`)
+    }
     const errorMessage = error instanceof Error ? error.message : String(error)
-    console.error(`Error details: ${errorMessage}`)
     return err(error instanceof Error ? error as E : new Error(`Batch processing error: ${errorMessage}`) as E)
   }
 }
