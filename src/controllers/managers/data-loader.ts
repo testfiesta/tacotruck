@@ -217,17 +217,13 @@ export class DataLoader {
     }
 
     const url = this.getTargetUrl(targetType, endpoint, target)
-    let formattedData = data
-    if (!['sections', 'cases', 'runs'].includes(targetType)) {
-      formattedData = this.formatDataForTarget(data, target)
-    }
 
     try {
       const response = await apiClient.processPostRequest(
         this.options.authOptions || null,
         url,
         {
-          json: formattedData,
+          json: data,
           timeout: this.options.timeout,
           retry: this.options.retryAttempts,
           retryDelay: this.options.retryDelay,
@@ -242,7 +238,7 @@ export class DataLoader {
           targetType,
           endpoint,
           url,
-          data: formattedData,
+          data,
           originalError: error instanceof Error ? error : new Error(String(error)),
         },
       )
@@ -514,12 +510,12 @@ export class DataLoader {
     }
 
     const cleanBase = baseUrl.replace(/\/+$/, '')
-    
+
     const basePath = this.config.base_path || ''
     const pathHasBasePath = path.startsWith(basePath)
-    
+
     const pathWithBase = pathHasBasePath ? path : (basePath + path).replace(/^\/+/, '')
-    
+
     return `${cleanBase}/${pathWithBase}`
   }
 

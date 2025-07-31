@@ -85,32 +85,122 @@ export class TestRailETL extends ETLv2 {
   }
 
   /**
+   * Create a test results in TestRail
+   * @param resultData The test result data to submit
+   * @returns The response from TestRail with the created test result
+   */
+  async createTestResult(resultData: any): Promise<Record<string, any>> {
+    try {
+      const response = await this.loadToTarget('results', resultData, 'create')
+
+      if (!response) {
+        throw new Error('TestRail test result creation received no response')
+      }
+
+      return response
+    }
+    catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      throw new Error(`TestRail test result creation failed: ${errorMessage}`)
+    }
+  }
+
+  /**
+   * Create a test suite in TestRail
+   * @param suiteData The test suite data to submit
+   * @returns The response from TestRail with the created test suite
+   */
+  async createTestSuite(suiteData: any): Promise<Record<string, any>> {
+    try {
+      const response = await this.loadToTarget('suites', suiteData, 'create')
+
+      if (!response) {
+        throw new Error('TestRail test suite creation received no response')
+      }
+
+      return response
+    }
+    catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      throw new Error(`TestRail test suite creation failed: ${errorMessage}`)
+    }
+  }
+
+  /**
    * Submit test run data to TestRail using direct loadToTarget method
    * @param runData The test run data to submit
    * @returns The response from TestRail
    */
   async submitTestRun(runData: any): Promise<Record<string, any>> {
     try {
-      const response = await this.createSection({
-        name: 'Test section/folder',
+      const sections = runData.sections || []
+      console.warn(`Processing ${sections.length} sections ...`)
+
+      // Create a map to store section ID mappings (generated_id -> actual_id)
+      const sectionIdMap = new Map()
+
+      // Create batch requests for sections
+      const sectionRequests = sections.map((section: { name: string, id: string, [key: string]: any }) => {
+        return async () => {
+          try {
+            const response = await this.createSection({
+              name: section.name,
+            })
+
+            let result: Record<string, any>
+            if (response && typeof response.json === 'function') {
+              result = await response.json()
+            }
+            else {
+              result = response as Record<string, any>
+            }
+
+            // Store the mapping between generated ID and actual ID
+            if (section.id && result.id) {
+              sectionIdMap.set(section.id, result.id)
+            }
+
+            return ok(result)
+          }
+          catch (error) {
+            return err(error instanceof Error ? error : new Error(String(error)))
+          }
+        }
       })
-      if (!response.id) {
-        throw new Error('TestRail section creation received no response')
-      }
-      let sectionResponse
-      if (response && typeof response.json === 'function') {
-        sectionResponse = await response.json()
+      const batchResult1 = await processBatchedRequests<Record<string, any>, Error>(
+        sectionRequests,
+        this.options.maxConcurrency || 5,
+        this.options.batchSize || 10,
+        1000,
+        {
+          retry: this.options.retryAttempts,
+          retryDelay: 1000,
+          timeout: this.options.timeout,
+          silent: true,
+        },
+      )
+
+      if (batchResult1.isOk) {
+        console.warn(`${chalk.green('✓')} Created ${sectionIdMap.size} sections`)
       }
       else {
-        sectionResponse = response
+        const errorObj = batchResult1 as { error: Error }
+        console.error('Error creating sections:', errorObj.error)
       }
 
-      this.updateCredentials({ ...this.options.credentials, section_id: sectionResponse.id })
-      this.configManager.applySubstitutions()
-      console.log(`${chalk.green('✓')} Created section`)
+      // Update cases with actual section IDs
+      const testCases = runData.cases || []
+      console.warn(`Processing ${testCases.length} test cases ...`)
 
-      const testCases = runData.executions || []
-      console.log(`Processing ${testCases.length} test cases ...`)
+      // Update section_id in test cases with actual IDs from the map
+      testCases.forEach((testCase: any) => {
+        if (testCase.section_id && sectionIdMap.has(testCase.section_id)) {
+          testCase.section_id = sectionIdMap.get(testCase.section_id)
+        }
+        else if (sectionIdMap.has('default')) {
+          testCase.section_id = sectionIdMap.get('default')
+        }
+      })
 
       const progressBar = new cliProgress.SingleBar({
         format: (options, params, _payload) => {
@@ -146,13 +236,18 @@ export class TestRailETL extends ETLv2 {
 
       const caseIds: number[] = []
       let processedCount = 0
+      const casesIdMap = new Map()
 
-      const requests = testCases.map((test: { name: string, [key: string]: any }) => {
+      const requests = testCases.map((testCase: { title: string, section_id: string, [key: string]: any }) => {
         return async () => {
           try {
+            if (this.options?.credentials?.section_id !== testCase.section_id) {
+              this.updateCredentials({ ...this.options.credentials, section_id: testCase.section_id })
+              this.configManager.applySubstitutions()
+            }
+
             const response = await this.createTestCase({
-              title: test.name,
-              section_id: sectionResponse.id,
+              title: testCase.title || testCase.name,
             })
 
             let result: Record<string, any>
@@ -161,6 +256,10 @@ export class TestRailETL extends ETLv2 {
             }
             else {
               result = response as Record<string, any>
+            }
+
+            if (testCase.id && result.id) {
+              casesIdMap.set(testCase.id, result.id)
             }
 
             processedCount++
@@ -207,18 +306,33 @@ export class TestRailETL extends ETLv2 {
       console.log(`\n${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
 
       const run = {
-        name: runData.runs && runData.runs[0] ? runData.runs[0].name : 'Test Run',
+        name: this.options?.credentials?.run_name,
         case_ids: caseIds,
         project_id: this.options.credentials?.project_id,
       }
 
-      console.log(`⏳ Creating test run with data`)
+      console.warn(`⏳ Creating test run with data`)
       const runResponse = await this.dataLoader.loadToTarget('runs', run, 'create', this.configManager.getConfig())
 
       if (!runResponse) {
         throw new Error('TestRail submission received no response')
       }
+      console.log(`\n${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
+      console.warn(`⏳ Creating test run with data`)
 
+      const testResults = runData.results || []
+      testResults.forEach((testResult: any) => {
+        if (testResult.case_id && casesIdMap.has(testResult.case_id)) {
+          testResult.case_id = casesIdMap.get(testResult.case_id)
+        }
+        else if (casesIdMap.has('default')) {
+          testResult.case_id = casesIdMap.get('default')
+        }
+      })
+      this.updateCredentials({ ...this.options.credentials, run_id: runResponse.id })
+      this.configManager.applySubstitutions()
+
+      await this.createTestResult({ results: testResults })
       return runResponse
     }
     catch (error) {

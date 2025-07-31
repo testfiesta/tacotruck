@@ -256,6 +256,17 @@
           "update_key": "id"
         }
       }
+    },
+    "results": {
+    "target": "results",
+    "endpoints": {
+      "create": {
+        "single_path": "api/v2/add_results_for_cases/{run_id}",
+        "batch_path": "api/v2/add_results_for_cases/{run_id}",
+        "required": ["name", "run_id"]
+      }
+     
     }
+  }
   }
 }

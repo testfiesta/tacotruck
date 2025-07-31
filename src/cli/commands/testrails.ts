@@ -10,6 +10,7 @@ interface SubmitRunArgs {
   password: string
   url: string
   projectId: string
+  runName: string
   name?: string
   description?: string
   suiteId?: string
@@ -25,7 +26,7 @@ function submitRunCommand() {
     .requiredOption('-p, --password <password>', 'TestRail password or api key')
     .requiredOption('-u, --url <url>', 'TestRail instance URL (e.g., https://example.testrail.io)')
     .requiredOption('-i, --project-id <id>', 'TestRail project ID')
-    .option('-n, --name <name>', 'Name for the test run')
+    .requiredOption('-n, --run-name <name>', 'Name for the test run')
     .option('-D, --x <text>', 'Description for the test run')
     .option('-s, --suite-id <id>', 'TestRail suite ID (required for projects with multiple test suites)')
     .option('-a, --include-all', 'Include all test cases in the run')
@@ -65,6 +66,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
         base64Credentials: Buffer.from(`${args.email}:${args.password}`).toString('base64'),
         base_url: args.url,
         project_id: args.projectId,
+        run_name: args.runName,
       },
       etlOptions: {
         baseUrl: args.url,
@@ -74,8 +76,8 @@ export async function run(args: SubmitRunArgs): Promise<void> {
         timeout: 30000,
       },
     })
+    console.log('Loading test data...')
 
-    // Load test run data
     const runData = loadRunData(args.data).match({
       ok: data => data,
       err: error => handleError(error, 'Data error'),
@@ -85,9 +87,8 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       return
 
     spinner.stop()
-    
+
     console.log('Connecting to TestRail...')
-    
     await testRailETL.submitTestRun(runData)
     p.log.success('Successfully created TestRail run')
   }
