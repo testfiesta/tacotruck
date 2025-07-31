@@ -3,6 +3,7 @@ import type { RequestOptions } from '../../utils/network'
 import type { AuthOptions } from './authentication-manager'
 import { apiClient } from '../../services/api-client'
 import { processBatches } from '../../utils/batch-processor'
+import { getLogger } from '../../utils/logger'
 import { ConfigurationError, ErrorManager, ETLErrorType, NetworkError, ValidationError } from './error-manager'
 
 export interface LoadingOptions {
@@ -13,6 +14,7 @@ export interface LoadingOptions {
   timeout?: number
   retryAttempts?: number
   retryDelay?: number
+  verbose?: boolean
   validateBeforeLoad?: boolean
   batchSize?: number
   maxConcurrency?: number
@@ -61,6 +63,7 @@ export class DataLoader {
       batchSize: 100,
       maxConcurrency: 5,
       basePath: '',
+      verbose: false,
       ...options,
     }
     this.errorManager = errorManager || new ErrorManager()
@@ -217,6 +220,12 @@ export class DataLoader {
     }
 
     const url = this.getTargetUrl(targetType, endpoint, target)
+    const formattedData = this.formatDataForTarget(data, target)
+
+    if (this.options.verbose) {
+      const logger = getLogger()
+      logger.warn('url for loading to target', { url })
+    }
 
     try {
       const response = await apiClient.processPostRequest(

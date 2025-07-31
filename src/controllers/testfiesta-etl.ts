@@ -2,6 +2,7 @@ import type { ConfigType } from '../utils/config-schema'
 import type { ETLv2Options } from './etl-base-v2'
 import { apiClient } from '../services/api-client'
 import { loadConfig } from '../utils/enhanced-config-loader'
+import { getLogger } from '../utils/logger'
 import { ETLv2 } from './etl-base-v2'
 
 export class TestFiestaETL extends ETLv2 {
@@ -52,7 +53,10 @@ export class TestFiestaETL extends ETLv2 {
       return response
     }
     catch (error) {
-      console.error(`Error submitting to TestFiesta: ${error instanceof Error ? error.message : String(error)}`)
+      if (this.options.verbose) {
+        const logger = getLogger()
+        logger.error(`Error submitting to TestFiesta: ${error instanceof Error ? error.message : String(error)}`)
+      }
       throw new Error(`Failed to submit data to TestFiesta: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -204,6 +208,7 @@ export class TestFiestaETL extends ETLv2 {
       validateData: true,
       batchSize: 100,
       maxConcurrency: 5,
+      verbose: false,
       ...etlOptions,
     }
     return new TestFiestaETL(fullConfig, finalEtlOptions)

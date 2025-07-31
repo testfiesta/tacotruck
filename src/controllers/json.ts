@@ -1,5 +1,6 @@
 import type { Buffer } from 'node:buffer'
 import * as fs from 'node:fs'
+import { getLogger } from '../utils/logger'
 
 export interface Config {
   integration: string
@@ -39,7 +40,8 @@ export async function pullData(config: Config, _ids: Ids = {}): Promise<any> {
     return data
   }
   catch (error: any) {
-    console.error(error.message)
+    const logger = getLogger()
+    logger.error(error.message)
     process.exit(1)
   }
 }

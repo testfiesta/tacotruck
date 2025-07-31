@@ -1,3 +1,4 @@
+import { getLogger } from '../utils/logger'
 import XUnitParser from '../utils/xunit-parser'
 
 interface Config {
@@ -36,6 +37,7 @@ export async function pullData(config: Config, _ids: Ids = {}): Promise<any> {
  * @param _data Data to push
  */
 export function pushData(_conf: Config, _data: any): void {
-  console.error('Invalid target config: Data cannot be pushed into xUnit format')
+  const logger = getLogger()
+  logger.error('Invalid target config: Data cannot be pushed into xUnit format')
   process.exit(1)
 }

@@ -1,8 +1,7 @@
 import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestRailETL } from '../../controllers/testrail-etl'
-import { loadRunData } from '../../utils/run-data-loader'
+import { initializeLogger, setVerbose } from '../../utils/logger'
 
 interface SubmitRunArgs {
   data: string
@@ -16,22 +15,17 @@ interface SubmitRunArgs {
   suiteId?: string
   includeAll?: boolean
   caseIds?: string
+  verbose?: boolean
 }
 
 function submitRunCommand() {
   const submitRunCommand = new Commander.Command('run:submit')
-    .description('Submit test run to TestRail')
-    .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
-    .requiredOption('-e, --email <email>', 'TestRail email/username')
-    .requiredOption('-p, --password <password>', 'TestRail password or api key')
-    .requiredOption('-u, --url <url>', 'TestRail instance URL (e.g., https://example.testrail.io)')
-    .requiredOption('-i, --project-id <id>', 'TestRail project ID')
-    .requiredOption('-n, --run-name <name>', 'Name for the test run')
-    .option('-D, --x <text>', 'Description for the test run')
-    .option('-s, --suite-id <id>', 'TestRail suite ID (required for projects with multiple test suites)')
-    .option('-a, --include-all', 'Include all test cases in the run')
-    .option('-c, --case-ids <ids>', 'Comma-separated list of case IDs to include (only if --include-all is not set)')
-    .action(async (args: SubmitRunArgs) => {
+    .description('submit test run to TestRails')
+    .option('-v, --verbose', 'Enable verbose logging')
+    .action(async (args: Args) => {
+      initializeLogger({ verbose: !!args.verbose })
+      setVerbose(!!args.verbose)
+
       await run(args).catch((e) => {
         p.log.error('Failed to submit test run')
         p.log.error(`✘ ${String(e)}`)

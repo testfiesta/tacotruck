@@ -1,23 +1,29 @@
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestFiestaETL } from '../../controllers/testfiesta-etl'
-import { loadRunData } from '../../utils/run-data-loader'
+import { TestFiestaETL } from '../../../controllers/testfiesta-etl'
+import { initializeLogger, setVerbose } from '../../../utils/logger'
+import { loadRunData } from '../../../utils/run-data-loader'
 
 interface SubmitRunArgs {
   data: string
   token: string
   organization: string
   project: string
+  verbose?: boolean
 }
 
-function submitRunCommand() {
+export function submitRunCommand() {
   const submitRunCommand = new Commander.Command('run:submit')
     .description('Submit test run to testfiesta')
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
     .requiredOption('-h, --organization <organization>', 'Organization handle')
     .requiredOption('-p, --project <project>', 'Project key')
+    .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: SubmitRunArgs) => {
+      initializeLogger({ verbose: !!args.verbose })
+      setVerbose(!!args.verbose)
+
       await run(args).catch((e) => {
         p.log.error('Failed to submit test run')
         p.log.error(`✘ ${String(e)}`)
@@ -26,14 +32,6 @@ function submitRunCommand() {
     })
 
   return submitRunCommand
-}
-
-export function createTestfiestaCommand() {
-  const tfCommand = new Commander.Command('testfiesta')
-    .description('TestFiesta platform specific commands')
-    .addCommand(submitRunCommand())
-
-  return tfCommand
 }
 
 export async function run(args: SubmitRunArgs): Promise<void> {
@@ -61,6 +59,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       retryAttempts: 1,
       retryDelay: 500,
       timeout: 2000,
+      verbose: args.verbose,
     },
   })
 

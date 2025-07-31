@@ -2,6 +2,7 @@ import type { ResponseData } from '../../services/api-client'
 import type { ConfigType } from '../../utils/config-schema'
 import type { AuthOptions } from './authentication-manager'
 import { apiClient } from '../../services/api-client'
+import { getLogger } from '../../utils/logger'
 import { ConfigurationError, ErrorManager, ETLErrorType, NetworkError } from './error-manager'
 
 export interface ExtractionOptions {
@@ -10,6 +11,7 @@ export interface ExtractionOptions {
   timeout?: number
   retryAttempts?: number
   retryDelay?: number
+  verbose?: boolean
 }
 
 export interface ExtractionResult {
@@ -38,6 +40,7 @@ export class DataExtractor {
       timeout: 30000,
       retryAttempts: 3,
       retryDelay: 1000,
+      verbose: false,
       ...options,
     }
     this.errorManager = errorManager || new ErrorManager()
@@ -78,8 +81,9 @@ export class DataExtractor {
           errors.push(etlError.toJSON())
 
           // Continue with other endpoints unless it's a critical error
-          if (!etlError.isRetryable) {
-            console.warn(`Failed to extract data from endpoint ${endpoint}: ${etlError.message}`)
+          if (!etlError.isRetryable && this.options.verbose) {
+            const logger = getLogger()
+            logger.warn(`Failed to extract data from endpoint ${endpoint}: ${etlError.message}`)
           }
         }
       }
@@ -178,7 +182,10 @@ export class DataExtractor {
     const results: any[] = []
 
     if (endpointIds.length === 0) {
-      console.warn(`No IDs provided for parameterized endpoint ${endpoint}`)
+      if (this.options.verbose) {
+        const logger = getLogger()
+        logger.warn(`No IDs provided for parameterized endpoint ${endpoint}`)
+      }
       return results
     }
 
