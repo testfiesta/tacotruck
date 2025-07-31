@@ -220,7 +220,6 @@ export class DataLoader {
     }
 
     const url = this.getTargetUrl(targetType, endpoint, target)
-    const formattedData = this.formatDataForTarget(data, target)
 
     if (this.options.verbose) {
       const logger = getLogger()
