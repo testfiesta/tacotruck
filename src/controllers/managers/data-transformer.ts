@@ -10,6 +10,7 @@ export interface TransformationOptions {
   offsets?: Record<string, any>
   validateOutput?: boolean
   strictMode?: boolean
+  verbose?: boolean
 }
 
 export interface TransformationResult {
@@ -71,6 +72,7 @@ export class DataTransformer {
       offsets: {},
       validateOutput: true,
       strictMode: false,
+      verbose: false,
       ...options,
     }
     this.errorManager = errorManager || new ErrorManager()

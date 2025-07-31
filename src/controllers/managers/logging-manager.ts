@@ -648,6 +648,7 @@ export class LoggingManager {
       }
       catch (error) {
         // Prevent handler errors from affecting logging
+        // Using console directly here to avoid infinite recursion
         console.error('Log handler error:', error)
       }
     })
