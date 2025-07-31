@@ -1,5 +1,6 @@
 import type { ConfigType } from '../utils/config-schema'
 import type { ExtractionResult, LoadingResult, PerformanceSummary, TransformationResult } from './managers'
+import { getLogger } from '../utils/logger'
 import {
   AuthenticationError,
   AuthenticationManager,
@@ -25,6 +26,7 @@ export interface ETLv2Options {
   validateData?: boolean
   batchSize?: number
   maxConcurrency?: number
+  verbose?: boolean
 }
 
 export interface ETLResult {
@@ -70,17 +72,20 @@ export class ETLv2 {
       enablePerformanceMonitoring: true,
       strictMode: false,
       retryAttempts: 3,
-      retryDelay: 1000,
       timeout: 30000,
       validateData: true,
       batchSize: 100,
       maxConcurrency: 5,
+      verbose: false,
       ...options,
     }
 
     this.errorManager = new ErrorManager(100, (error) => {
       if (this.options.strictMode && !error.isRetryable) {
-        console.error(`Critical ETL Error: ${error.getFormattedMessage()}`)
+        if (this.options.verbose) {
+          const logger = getLogger()
+          logger.error(`Critical ETL Error: ${error.getFormattedMessage()}`)
+        }
       }
     })
 
@@ -460,6 +465,7 @@ export class ETLv2 {
         timeout: this.options.timeout,
         retryAttempts: this.options.retryAttempts,
         retryDelay: this.options.retryDelay,
+        verbose: this.options.verbose,
       },
       this.errorManager,
     )
@@ -472,6 +478,7 @@ export class ETLv2 {
         endpointSet: this.configManager.getEndpointSet(),
         validateOutput: this.options.validateData,
         strictMode: this.options.strictMode,
+        verbose: this.options.verbose,
       },
       this.errorManager,
     )
@@ -489,6 +496,7 @@ export class ETLv2 {
         validateBeforeLoad: this.options.validateData,
         batchSize: this.options.batchSize,
         maxConcurrency: this.options.maxConcurrency,
+        verbose: this.options.verbose,
       },
       this.errorManager,
     )
@@ -500,8 +508,8 @@ export class ETLv2 {
   private updateDataManagerOptions(): void {
     const authOptions = this.authManager.getProcessedAuthOptions()
 
-    this.dataExtractor.updateOptions({ authOptions })
-    this.dataLoader.updateOptions({ authOptions })
+    this.dataExtractor.updateOptions({ authOptions, verbose: this.options.verbose })
+    this.dataLoader.updateOptions({ authOptions, verbose: this.options.verbose })
   }
 
   /**

@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaETL } from '../../../controllers/testfiesta-etl'
+import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
 
 interface SubmitRunArgs {
@@ -8,6 +9,7 @@ interface SubmitRunArgs {
   token: string
   organization: string
   project: string
+  verbose?: boolean
 }
 
 export function submitRunCommand() {
@@ -17,7 +19,11 @@ export function submitRunCommand() {
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
     .requiredOption('-h, --organization <organization>', 'Organization handle')
     .requiredOption('-p, --project <project>', 'Project key')
+    .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: SubmitRunArgs) => {
+      initializeLogger({ verbose: !!args.verbose })
+      setVerbose(!!args.verbose)
+
       await run(args).catch((e) => {
         p.log.error('Failed to submit test run')
         p.log.error(`✘ ${String(e)}`)
@@ -53,6 +59,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       retryAttempts: 1,
       retryDelay: 500,
       timeout: 2000,
+      verbose: args.verbose,
     },
   })
 

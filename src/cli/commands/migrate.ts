@@ -2,6 +2,7 @@ import * as fs from 'node:fs'
 import * as Commander from 'commander'
 import { dataType } from '../../utils/config-schema'
 import * as enhancedLoader from '../../utils/enhanced-config-loader'
+import { getLogger, initializeLogger, setVerbose } from '../../utils/logger'
 
 interface Args {
   source: string
@@ -20,6 +21,7 @@ export function createMigrateCommand() {
     .option('-c, --credentials <path>', 'Path to credentials file for API connections. If not provided, environment variables will be used. (See README.)')
     .requiredOption('-s, --source <source>', `For type api - One of: ${dataType.join(', ')} or the path to a custom JSON api config.\nFor type junit - the path to a JUnit-style XML file.`)
     .requiredOption('-t, --target <target>', `One of: ${dataType.join(', ')}`)
+    .option('-v, --verbose', 'Enable verbose logging', false)
     .description('Migrate data from source to target')
     .addHelpText('after', `
     Examples:
@@ -34,8 +36,11 @@ export function createMigrateCommand() {
     Example: \n TESTFIESTA_SOURCE_CREDENTIALS='{"source":{"base_url":"https://api.example.com"}}' \n TESTRAILS_TARGET_CREDENTIALS='{"target":{"base_url":"https://api.example.com"}}'
     `)
     .action(async (args: Args) => {
+      initializeLogger({ verbose: args.verbose })
+      setVerbose(!!args.verbose)
       await run(args).catch((e) => {
-        console.error(e)
+        const logger = getLogger()
+        logger.error(`Failed to migrate data: ${e instanceof Error ? e.message : String(e)}`)
         process.exit(1)
       })
     })
@@ -44,11 +49,12 @@ export function createMigrateCommand() {
 }
 
 export async function run(args: Args) {
+  const logger = getLogger()
   let parsedCredentials: Record<string, any> | undefined
   if (typeof args.credentials === 'string') {
-    console.warn(`Using credentials from file: ${args.credentials}`)
+    logger.info(`Using credentials from file: ${args.credentials}`)
     if (!fs.existsSync(args.credentials)) {
-      console.error(`Credentials file not found: ${args.credentials}`)
+      logger.error(`Credentials file not found: ${args.credentials}`)
       process.exit(1)
     }
 
@@ -57,7 +63,7 @@ export async function run(args: Args) {
       parsedCredentials = JSON.parse(fs.readFileSync(args.credentials, 'utf-8'))
     }
     catch (error) {
-      console.error(`Failed to parse credentials file: ${args.credentials}`, error)
+      logger.error(`Failed to parse credentials file: ${args.credentials}`, { error })
       process.exit(1)
     }
   }
@@ -65,16 +71,16 @@ export async function run(args: Args) {
     const sourceEnvKey = `${args.source.toUpperCase()}_SOURCE_CREDENTIALS`
     const targetEnvKey = `${args.target.toUpperCase()}_TARGET_CREDENTIALS`
 
-    console.warn(`No credentials file provided. Looking for environment variables: ${sourceEnvKey} and ${targetEnvKey}`)
+    logger.info(`No credentials file provided. Looking for environment variables: ${sourceEnvKey} and ${targetEnvKey}`)
 
     if (!process.env[sourceEnvKey]) {
-      console.error(`Missing environment variable: ${sourceEnvKey}`)
-      console.error('Either provide this environment variable or use -c flag with a credentials file')
+      logger.error(`Missing environment variable: ${sourceEnvKey}`)
+      logger.error('Either provide this environment variable or use -c flag with a credentials file')
     }
 
     if (!process.env[targetEnvKey]) {
-      console.error(`Missing environment variable: ${targetEnvKey}`)
-      console.error('Either provide this environment variable or use -c flag with a credentials file')
+      logger.error(`Missing environment variable: ${targetEnvKey}`)
+      logger.error('Either provide this environment variable or use -c flag with a credentials file')
     }
   }
 
@@ -84,7 +90,7 @@ export async function run(args: Args) {
       parsedOverrides = JSON.parse(args.overrides)
     }
     catch (error) {
-      console.error(`Failed to parse overrides: ${args.overrides}`, error)
+      logger.error(`Failed to parse overrides: ${args.overrides}`, { error })
       process.exit(1)
     }
   }
@@ -102,7 +108,7 @@ export async function run(args: Args) {
     })
 
     if (!result.isOk) {
-      console.error(`Failed to load source config: ${source}`)
+      logger.error(`Failed to load source config: ${source}`)
       process.exit(1)
     }
 
@@ -119,7 +125,7 @@ export async function run(args: Args) {
     })
 
     if (!result.isOk) {
-      console.error(`Failed to load target config: ${target}`)
+      logger.error(`Failed to load target config: ${target}`)
       process.exit(1)
     }
 
@@ -129,7 +135,6 @@ export async function run(args: Args) {
   const config = { sourceConfigs, targetConfigs }
 
   if (args.verbose) {
-    console.warn('Using configuration:')
-    console.warn(config)
+    logger.debug('Using configuration:', { config })
   }
 }
