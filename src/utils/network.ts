@@ -1,5 +1,7 @@
 import type { FetchOptions } from 'ofetch'
 import type { Err, Result } from './result'
+import chalk from 'chalk'
+import * as cliProgress from 'cli-progress'
 import { ofetch } from 'ofetch'
 import PQueue from 'p-queue'
 import pThrottle from 'p-throttle'
@@ -24,6 +26,8 @@ export interface RequestOptions extends FetchOptions {
   json?: Record<string, any>
   headers?: Record<string, any>
   silent?: boolean
+  showProgress?: boolean
+  progressLabel?: string
 }
 
 /**
@@ -172,12 +176,53 @@ export async function processBatchedRequests<R, E>(
   options: RequestOptions = {},
 ): Promise<Result<R[], E>> {
   try {
-    const { retry = 0, retryDelay = 1000, silent = false } = options
+    const {
+      retry = 0,
+      retryDelay = 1000,
+      silent = false,
+      showProgress = false,
+      progressLabel = 'requests',
+    } = options
 
     const throttle = pThrottle({
       limit: throttleLimit,
       interval: throttleInterval,
     })
+    console.warn('Processing', progressLabel, 'with concurrency limit:', concurrencyLimit, 'throttle limit:', throttleLimit, 'throttle interval:', throttleInterval)
+    let progressBar: cliProgress.SingleBar | undefined
+    if (showProgress && !silent) {
+      progressBar = new cliProgress.SingleBar({
+        format: (options, params, _payload) => {
+          const barCompleteChar = '█'
+          const barIncompleteChar = '░'
+          const barSize = 30
+
+          const completeSize = Math.round(params.progress * barSize)
+          const incompleteSize = barSize - completeSize
+
+          const bar = barCompleteChar.repeat(completeSize) + barIncompleteChar.repeat(incompleteSize)
+
+          const percentage = Math.floor(params.progress * 100)
+          const value = params.value
+          const total = params.total
+
+          return chalk.cyan('⏳ ')
+            + chalk.magenta('[')
+            + chalk.blue(bar)
+            + chalk.magenta('] ')
+            + chalk.yellow(`${percentage}%`)
+            + chalk.white(' | ')
+            + chalk.green(`${value}`)
+            + chalk.white('/')
+            + chalk.green(`${total}`)
+            + chalk.white(` ${progressLabel}`)
+        },
+        barCompleteChar: '█',
+        barIncompleteChar: '░',
+      })
+
+      progressBar.start(requests.length, 0)
+    }
 
     const throttledRequests = requests.map((req, index) => {
       return throttle(async () => {
@@ -188,6 +233,11 @@ export async function processBatchedRequests<R, E>(
         while (attempts <= maxAttempts) {
           try {
             const result = await req()
+
+            if (progressBar) {
+              progressBar.increment()
+            }
+
             return result as Result<R, E>
           }
           catch (error) {
@@ -219,6 +269,10 @@ export async function processBatchedRequests<R, E>(
           }
         }
 
+        if (progressBar) {
+          progressBar.increment()
+        }
+
         return err(lastError instanceof Error ? lastError : new Error(String(lastError))) as Result<R, E>
       })
     }) as Array<() => Promise<Result<R, E>>>
@@ -234,6 +288,10 @@ export async function processBatchedRequests<R, E>(
       },
       concurrencyLimit,
     )
+
+    if (progressBar) {
+      progressBar.stop()
+    }
 
     const results: R[] = []
     const errors: E[] = []
@@ -254,10 +312,6 @@ export async function processBatchedRequests<R, E>(
       return err(errors[0])
     }
 
-    const successRate = results.length / requests.length * 100
-    if (!silent) {
-      console.warn(`Completed ${results.length}/${requests.length} requests (${successRate.toFixed(1)}%) with concurrency ${concurrencyLimit}, retry attempts: ${retry}`)
-    }
     return ok(results)
   }
   catch (error) {

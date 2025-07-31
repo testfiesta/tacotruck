@@ -144,7 +144,8 @@ function parseJSONData(data: TestData, config: Config): ParsedData & { testrail?
   newTestRun.generated_source_id = testRunId
   parsedData.runs.push(newTestRun)
 
-  for (const suite of suiteData) {
+  const suitesToProcess = Array.isArray(suiteData) ? suiteData : [suiteData]
+  for (const suite of suitesToProcess) {
     let caseData = suite.testcase || []
     if (caseData && !Array.isArray(caseData)) {
       caseData = [caseData]

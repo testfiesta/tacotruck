@@ -2,7 +2,6 @@ import type { ConfigType } from '../utils/config-schema'
 import type { ETLv2Options } from './etl-base-v2'
 
 import chalk from 'chalk'
-import cliProgress from 'cli-progress'
 
 import { loadConfig } from '../utils/enhanced-config-loader'
 import { processBatchedRequests } from '../utils/network'
@@ -134,12 +133,9 @@ export class TestRailETL extends ETLv2 {
   async submitTestRun(runData: any): Promise<Record<string, any>> {
     try {
       const sections = runData.sections || []
-      console.warn(`Processing ${sections.length} sections ...`)
 
-      // Create a map to store section ID mappings (generated_id -> actual_id)
       const sectionIdMap = new Map()
 
-      // Create batch requests for sections
       const sectionRequests = sections.map((section: { name: string, id: string, [key: string]: any }) => {
         return async () => {
           try {
@@ -176,7 +172,9 @@ export class TestRailETL extends ETLv2 {
           retry: this.options.retryAttempts,
           retryDelay: 1000,
           timeout: this.options.timeout,
-          silent: true,
+          silent: false,
+          showProgress: true,
+          progressLabel: 'sections',
         },
       )
 
@@ -190,7 +188,6 @@ export class TestRailETL extends ETLv2 {
 
       // Update cases with actual section IDs
       const testCases = runData.cases || []
-      console.warn(`Processing ${testCases.length} test cases ...`)
 
       // Update section_id in test cases with actual IDs from the map
       testCases.forEach((testCase: any) => {
@@ -202,40 +199,7 @@ export class TestRailETL extends ETLv2 {
         }
       })
 
-      const progressBar = new cliProgress.SingleBar({
-        format: (options, params, _payload) => {
-          const barCompleteChar = '█'
-          const barIncompleteChar = '░'
-          const barSize = 30
-
-          const completeSize = Math.round(params.progress * barSize)
-          const incompleteSize = barSize - completeSize
-
-          const bar = barCompleteChar.repeat(completeSize) + barIncompleteChar.repeat(incompleteSize)
-
-          const percentage = Math.floor(params.progress * 100)
-          const value = params.value
-          const total = params.total
-
-          return chalk.cyan('⏳ ')
-            + chalk.magenta('[')
-            + chalk.blue(bar)
-            + chalk.magenta('] ')
-            + chalk.yellow(`${percentage}%`)
-            + chalk.white(' | ')
-            + chalk.green(`${value}`)
-            + chalk.white('/')
-            + chalk.green(`${total}`)
-            + chalk.white(' test cases')
-        },
-        barCompleteChar: '█',
-        barIncompleteChar: '░',
-      })
-
-      progressBar.start(testCases.length, 0)
-
       const caseIds: number[] = []
-      let processedCount = 0
       const casesIdMap = new Map()
 
       const requests = testCases.map((testCase: { title: string, section_id: string, [key: string]: any }) => {
@@ -262,14 +226,9 @@ export class TestRailETL extends ETLv2 {
               casesIdMap.set(testCase.id, result.id)
             }
 
-            processedCount++
-            progressBar.update(processedCount)
-
             return ok(result)
           }
           catch (error) {
-            processedCount++
-            progressBar.update(processedCount)
             return err(error instanceof Error ? error : new Error(String(error)))
           }
         }
@@ -284,7 +243,9 @@ export class TestRailETL extends ETLv2 {
           retry: this.options.retryAttempts,
           retryDelay: 1000,
           timeout: this.options.timeout,
-          silent: true,
+          silent: false,
+          showProgress: true,
+          progressLabel: 'test cases',
         },
       )
 
@@ -301,9 +262,7 @@ export class TestRailETL extends ETLv2 {
         console.error('Error creating test cases:', errorObj.error)
       }
 
-      progressBar.stop()
-
-      console.log(`\n${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
+      console.warn(`\n${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
 
       const run = {
         name: this.options?.credentials?.run_name,
@@ -317,7 +276,7 @@ export class TestRailETL extends ETLv2 {
       if (!runResponse) {
         throw new Error('TestRail submission received no response')
       }
-      console.log(`\n${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
+      console.warn(`\n${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
       console.warn(`⏳ Creating test run with data`)
 
       const testResults = runData.results || []

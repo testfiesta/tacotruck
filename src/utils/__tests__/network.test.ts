@@ -262,9 +262,7 @@ describe('network utils', () => {
 
       vi.mocked(globalThis.Promise).mockRestore()
 
-      expect(consoleWarnMock).toHaveBeenCalledWith('Processing 2 requests with concurrency 2')
-      expect(consoleWarnMock).toHaveBeenCalledWith('Throttling to 5 requests per 500ms')
-      expect(consoleWarnMock).toHaveBeenCalledWith('Using retry settings: attempts=0, delay=1000ms, timeout=15000ms')
+      expect(consoleWarnMock).toHaveBeenCalledWith('Processing', 'requests', 'with concurrency limit:', 2, 'throttle limit:', 5, 'throttle interval:', 500)
 
       consoleWarnMock.mockRestore()
       consoleErrorMock.mockRestore()

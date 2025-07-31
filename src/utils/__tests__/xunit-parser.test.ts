@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer'
 import * as fs from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import XUnitParser from '../xunit-parser'
+import XUnitParser from '../xunit-parser-v2'
 
 vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),

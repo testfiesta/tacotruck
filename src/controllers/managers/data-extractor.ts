@@ -267,7 +267,6 @@ export class DataExtractor {
     }
 
     const endpointConfig = this.getEndpointConfig(endpoint)
-    const responseData = response as Record<string, any>
 
     if (endpointConfig?.data_key && (response as Record<string, any>)[endpointConfig.data_key]) {
       return (response as Record<string, any>)[endpointConfig.data_key]
