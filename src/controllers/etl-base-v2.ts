@@ -102,6 +102,7 @@ export class ETLv2 {
       this.authManager = new AuthenticationManager({
         credentials: this.options.credentials,
       })
+
       this.authManager.initializeFromConfig(this.configManager.getConfig())
       this.authManager.validateAuthConfiguration()
 
@@ -146,9 +147,7 @@ export class ETLv2 {
 
     try {
       extractionResult = await this.extract(ids)
-
       transformationResult = await this.transform(extractionResult.data)
-
       loadingResult = await this.load(transformationResult.data)
 
       if (this.options.enablePerformanceMonitoring) {
@@ -244,7 +243,6 @@ export class ETLv2 {
 
     try {
       const result = await this.dataExtractor.extract(ids)
-
       if (this.options.enablePerformanceMonitoring) {
         this.performanceMonitor.recordProcessed(
           Object.values(result.metadata.recordCounts).reduce((a, b) => a + b, 0),
@@ -334,7 +332,7 @@ export class ETLv2 {
     data: any,
     endpoint: string = 'create',
   ): Promise<Record<string, any>> {
-    return await this.dataLoader.loadToTarget(targetType, data, endpoint)
+    return await this.dataLoader.loadToTarget(targetType, data, endpoint, this.configManager.getConfig())
   }
 
   /**

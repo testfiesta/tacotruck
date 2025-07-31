@@ -20,7 +20,10 @@
     "link_key": "_links.next"
   },
   "auth": {
-    "type": "basic"
+    "type": "basic",
+    "location": "header",
+    "key": "Authorization",
+    "payload": "Basic {base64Credentials}"
   },
   "source": {
     "projects": {
@@ -203,7 +206,7 @@
       "endpoints": {
         "create": {
           "single_path": "api/v2/add_section/{project_id}",
-          "required": ["project_id", "suite_id"]
+          "required": ["project_id"]
         },
         "update": {
           "path": "api/v2/update_case/{id}",
@@ -253,6 +256,17 @@
           "update_key": "id"
         }
       }
+    },
+    "results": {
+    "target": "results",
+    "endpoints": {
+      "create": {
+        "single_path": "api/v2/add_results_for_cases/{run_id}",
+        "batch_path": "api/v2/add_results_for_cases/{run_id}",
+        "required": ["name", "run_id"]
+      }
+     
     }
+  }
   }
 }

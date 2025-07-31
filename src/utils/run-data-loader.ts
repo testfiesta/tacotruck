@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { err, ok } from './result'
 
-import XUnitParser from './xunit-parser'
+import XUnitParser from './xunit-parser-v2'
 
 export interface RunData {
   [key: string]: any
@@ -24,7 +24,7 @@ export function loadRunData(dataPath: string): Result<RunData, Error> {
     }
     else if (ext === '.xml') {
       const xmlParser = new XUnitParser()
-      const parsedData = xmlParser.parseContent(fileContent, {
+      const parsedData = xmlParser.parseContentForTestRail(fileContent, {
         integration: 'test',
       })
       return ok(parsedData)

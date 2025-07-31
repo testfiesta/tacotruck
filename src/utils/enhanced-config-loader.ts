@@ -61,6 +61,7 @@ export function loadConfig(options: ConfigLoaderOptions = {}): Result<ConfigType
     }
 
     const validatedConfigResult = validateConfig(config)
+
     if (!validatedConfigResult.isOk) {
       return validatedConfigResult
     }

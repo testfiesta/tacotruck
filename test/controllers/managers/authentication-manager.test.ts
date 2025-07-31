@@ -9,6 +9,7 @@ describe('authenticationManager', () => {
     password: 'testpass',
     apiKey: 'test-api-key',
     api_key: 'alternative-api-key',
+    base64Credentials: 'dGVzdHVzZXI6dGVzdHBhc3M=',
   }
 
   const mockBearerConfig: ConfigType = {
@@ -31,6 +32,7 @@ describe('authenticationManager', () => {
       type: 'basic',
       location: 'header',
       key: 'Authorization',
+      payload: 'Basic {base64Credentials}',
     },
   }
 
@@ -86,6 +88,7 @@ describe('authenticationManager', () => {
         type: 'basic',
         location: 'header',
         key: 'Authorization',
+        payload: 'Basic {base64Credentials}',
       })
     })
 
@@ -377,7 +380,7 @@ describe('authenticationManager', () => {
       })
       managerWithoutBasicCreds.initializeFromConfig(mockBasicConfig)
 
-      expect(() => managerWithoutBasicCreds.validateAuthConfiguration()).toThrow('Basic authentication requires username and password credentials')
+      expect(() => managerWithoutBasicCreds.validateAuthConfiguration()).toThrow('Basic authentication requires base64Credentials')
     })
 
     it('should throw for API key auth without key field', () => {

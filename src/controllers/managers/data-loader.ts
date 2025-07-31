@@ -112,7 +112,6 @@ export class DataLoader {
         endpoints.push(endpoint)
         const endpointData = data[endpoint]
         recordCounts[endpoint] = Array.isArray(endpointData) ? endpointData.length : 1
-
         try {
           const bulkData = this.processEndpointData({
             endpoint,
@@ -209,8 +208,9 @@ export class DataLoader {
     targetType: string,
     data: any,
     endpoint: string = 'create',
+    newConfig?: ConfigType,
   ): Promise<Record<string, any>> {
-    const target = (this.config as any).target?.[targetType]?.endpoints?.[endpoint]
+    const target = (newConfig || this.config).target?.[targetType]?.endpoints?.[endpoint]
 
     if (!target) {
       throw new ConfigurationError(
@@ -220,7 +220,6 @@ export class DataLoader {
     }
 
     const url = this.getTargetUrl(targetType, endpoint, target)
-    const formattedData = this.formatDataForTarget(data, target)
 
     if (this.options.verbose) {
       const logger = getLogger()
@@ -232,13 +231,12 @@ export class DataLoader {
         this.options.authOptions || null,
         url,
         {
-          json: formattedData,
+          json: data,
           timeout: this.options.timeout,
           retry: this.options.retryAttempts,
           retryDelay: this.options.retryDelay,
         },
       )
-
       return response || {}
     }
     catch (error) {
@@ -248,7 +246,7 @@ export class DataLoader {
           targetType,
           endpoint,
           url,
-          data: formattedData,
+          data,
           originalError: error instanceof Error ? error : new Error(String(error)),
         },
       )
@@ -461,18 +459,16 @@ export class DataLoader {
    */
   private formatDataForTarget(data: any, targetConfig: any): Record<string, any> {
     const formattedData: Record<string, any> = {}
-
     if (targetConfig.data_key) {
-      formattedData[targetConfig.data_key] = Array.isArray(data) ? data : [data]
+      formattedData[targetConfig.data_key] = data
     }
     else {
-      formattedData.data = Array.isArray(data) ? data : [data]
+      formattedData.data = data
     }
 
     if (targetConfig.include_source) {
       formattedData.source = this.config.name || 'unknown'
     }
-
     return formattedData
   }
 
@@ -484,10 +480,11 @@ export class DataLoader {
    * @returns The complete URL
    */
   private getTargetUrl(targetType: string, operation: string, targetConfig: any): string {
-    if (this.targetUrls[targetType]?.[operation]) {
+    // Try to get from precomputed URLs first
+    if (this.targetUrls[targetType]?.[operation] && !this.targetUrls[targetType]?.[operation].includes('{')) {
       return this.targetUrls[targetType][operation]
     }
-
+    // Fallback to building URL from config
     let path = ''
     if (operation === 'create' && targetConfig.bulk_path) {
       path = targetConfig.bulk_path
@@ -515,21 +512,19 @@ export class DataLoader {
    */
   private buildEndpointUrl(path: string): string {
     const baseUrl = this.options.baseUrl || ''
-    const basePath = this.options.basePath || ''
 
     if (!baseUrl) {
       throw new ConfigurationError('Base URL is required for data loading')
     }
 
     const cleanBase = baseUrl.replace(/\/+$/, '')
-    const cleanBasePath = basePath.replace(/^\/+/, '').replace(/\/+$/, '')
-    const cleanPath = path.replace(/^\/+/, '')
 
-    if (cleanBasePath) {
-      return `${cleanBase}/${cleanBasePath}/${cleanPath}`
-    }
+    const basePath = this.config.base_path || ''
+    const pathHasBasePath = path.startsWith(basePath)
 
-    return `${cleanBase}/${cleanPath}`
+    const pathWithBase = pathHasBasePath ? path : (basePath + path).replace(/^\/+/, '')
+
+    return `${cleanBase}/${pathWithBase}`
   }
 
   /**

@@ -1,5 +1,7 @@
 import type { FetchOptions } from 'ofetch'
 import type { Err, Result } from './result'
+import chalk from 'chalk'
+import * as cliProgress from 'cli-progress'
 import { ofetch } from 'ofetch'
 import PQueue from 'p-queue'
 import pThrottle from 'p-throttle'
@@ -23,6 +25,9 @@ export interface RequestOptions extends FetchOptions {
   retryDelay?: number
   json?: Record<string, any>
   headers?: Record<string, any>
+  silent?: boolean
+  showProgress?: boolean
+  progressLabel?: string
 }
 
 /**
@@ -72,7 +77,6 @@ export async function processPostRequest(
   try {
     const { timeout = 30000, retryDelay = 1000, json, retry } = options
     const authRequestOptions = createAuthenticatedOptions(authOptions)
-    console.warn(`POST request to ${url} with timeout=${timeout}ms, retries=${retry ?? 0}, delay=${retryDelay}ms`)
 
     const response = await ofetch(url, {
       method: 'POST',
@@ -83,10 +87,6 @@ export async function processPostRequest(
       body: json,
       ...authRequestOptions,
     })
-
-    if (!response.ok) {
-      return err(new Error('Post request failed'))
-    }
 
     return ok(response)
   }
@@ -176,17 +176,53 @@ export async function processBatchedRequests<R, E>(
   options: RequestOptions = {},
 ): Promise<Result<R[], E>> {
   try {
-    console.warn(`Processing ${requests.length} requests with concurrency ${concurrencyLimit}`)
-    console.warn(`Throttling to ${throttleLimit} requests per ${throttleInterval}ms`)
-
-    const { retry = 0, retryDelay = 1000, timeout = 30000 } = options
-
-    console.warn(`Using retry settings: attempts=${retry}, delay=${retryDelay}ms, timeout=${timeout}ms`)
+    const {
+      retry = 0,
+      retryDelay = 1000,
+      silent = false,
+      showProgress = false,
+      progressLabel = 'requests',
+    } = options
 
     const throttle = pThrottle({
       limit: throttleLimit,
       interval: throttleInterval,
     })
+    console.warn('Processing', progressLabel, 'with concurrency limit:', concurrencyLimit, 'throttle limit:', throttleLimit, 'throttle interval:', throttleInterval)
+    let progressBar: cliProgress.SingleBar | undefined
+    if (showProgress && !silent) {
+      progressBar = new cliProgress.SingleBar({
+        format: (options, params, _payload) => {
+          const barCompleteChar = '█'
+          const barIncompleteChar = '░'
+          const barSize = 30
+
+          const completeSize = Math.round(params.progress * barSize)
+          const incompleteSize = barSize - completeSize
+
+          const bar = barCompleteChar.repeat(completeSize) + barIncompleteChar.repeat(incompleteSize)
+
+          const percentage = Math.floor(params.progress * 100)
+          const value = params.value
+          const total = params.total
+
+          return chalk.cyan('⏳ ')
+            + chalk.magenta('[')
+            + chalk.blue(bar)
+            + chalk.magenta('] ')
+            + chalk.yellow(`${percentage}%`)
+            + chalk.white(' | ')
+            + chalk.green(`${value}`)
+            + chalk.white('/')
+            + chalk.green(`${total}`)
+            + chalk.white(` ${progressLabel}`)
+        },
+        barCompleteChar: '█',
+        barIncompleteChar: '░',
+      })
+
+      progressBar.start(requests.length, 0)
+    }
 
     const throttledRequests = requests.map((req, index) => {
       return throttle(async () => {
@@ -197,6 +233,11 @@ export async function processBatchedRequests<R, E>(
         while (attempts <= maxAttempts) {
           try {
             const result = await req()
+
+            if (progressBar) {
+              progressBar.increment()
+            }
+
             return result as Result<R, E>
           }
           catch (error) {
@@ -204,16 +245,20 @@ export async function processBatchedRequests<R, E>(
             attempts++
 
             if (attempts <= maxAttempts) {
-              console.warn(
-                `Request ${index} failed (attempt ${attempts}/${maxAttempts}). Retrying in ${retryDelay}ms...`,
-                error instanceof Error ? error.message : error,
-              )
+              if (!silent) {
+                console.warn(
+                  `Request ${index} failed (attempt ${attempts}/${maxAttempts}). Retrying in ${retryDelay}ms...`,
+                  error instanceof Error ? error.message : error,
+                )
+              }
             }
             else {
-              console.error(
-                `Request ${index} failed after ${maxAttempts} attempts.`,
-                error instanceof Error ? error.message : error,
-              )
+              if (!silent) {
+                console.error(
+                  `Request ${index} failed after ${maxAttempts} attempts.`,
+                  error instanceof Error ? error.message : error,
+                )
+              }
             }
 
             if (attempts > maxAttempts) {
@@ -222,6 +267,10 @@ export async function processBatchedRequests<R, E>(
 
             await new Promise(resolve => setTimeout(resolve, retryDelay))
           }
+        }
+
+        if (progressBar) {
+          progressBar.increment()
         }
 
         return err(lastError instanceof Error ? lastError : new Error(String(lastError))) as Result<R, E>
@@ -235,11 +284,14 @@ export async function processBatchedRequests<R, E>(
       batchSize,
       async (batch: Array<() => Promise<Result<R, E>>>) => {
         const results = await Promise.all(batch.map((req: () => Promise<Result<R, E>>) => req()))
-        console.warn(`Completed batch of ${batch.length} requests`)
         return results
       },
       concurrencyLimit,
     )
+
+    if (progressBar) {
+      progressBar.stop()
+    }
 
     const results: R[] = []
     const errors: E[] = []
@@ -254,18 +306,23 @@ export async function processBatchedRequests<R, E>(
     }
 
     if (errors.length > 0) {
-      console.error(`${errors.length} requests failed out of ${batchResults.length}`)
+      if (!silent) {
+        console.error(`${errors.length} requests failed out of ${batchResults.length}`)
+      }
       return err(errors[0])
     }
 
-    const successRate = results.length / requests.length * 100
-    console.warn(`Completed ${results.length}/${requests.length} requests (${successRate.toFixed(1)}%) with concurrency ${concurrencyLimit}, retry attempts: ${retry}`)
     return ok(results)
   }
   catch (error) {
-    console.error('Batch processing failed:', error)
+    const { silent: isSilent = false } = options
+
+    if (!isSilent) {
+      console.error('Batch processing failed:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`Error details: ${errorMessage}`)
+    }
     const errorMessage = error instanceof Error ? error.message : String(error)
-    console.error(`Error details: ${errorMessage}`)
     return err(error instanceof Error ? error as E : new Error(`Batch processing error: ${errorMessage}`) as E)
   }
 }

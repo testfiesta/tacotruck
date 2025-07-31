@@ -456,7 +456,7 @@ describe('eTLv2', () => {
       const data = { test: 'data' }
       const result = await etlv2.loadToTarget('projects', data, 'create')
 
-      expect(mockDataLoader.loadToTarget).toHaveBeenCalledWith('projects', data, 'create')
+      expect(mockDataLoader.loadToTarget).toHaveBeenCalledWith('projects', data, 'create', mockConfigManager.getConfig())
       expect(result).toEqual({ success: true })
     })
   })

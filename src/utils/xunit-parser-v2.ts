@@ -18,6 +18,17 @@ interface ParsedData {
   runs: any[]
 }
 
+interface TestrailData {
+  suite: {
+    name: string
+    description?: string
+    [key: string]: any
+  }
+  sections: any[]
+  cases: any[]
+  results: any[]
+}
+
 interface Config {
   integration: string
   ignoreConfig?: {
@@ -86,7 +97,7 @@ function collapse(inputData: any): any {
   return data
 }
 
-function parseJSONData(data: TestData, config: Config): ParsedData {
+function parseJSONData(data: TestData, config: Config): ParsedData & { testrail?: TestrailData } {
   const parsedData: ParsedData = {
     suites: [],
     executions: [],
@@ -133,7 +144,8 @@ function parseJSONData(data: TestData, config: Config): ParsedData {
   newTestRun.generated_source_id = testRunId
   parsedData.runs.push(newTestRun)
 
-  for (const suite of suiteData) {
+  const suitesToProcess = Array.isArray(suiteData) ? suiteData : [suiteData]
+  for (const suite of suitesToProcess) {
     let caseData = suite.testcase || []
     if (caseData && !Array.isArray(caseData)) {
       caseData = [caseData]
@@ -261,7 +273,65 @@ function parseJSONData(data: TestData, config: Config): ParsedData {
     }
   }
 
-  return parsedData
+  // Convert to TestRail format
+  const testrailData: TestrailData = {
+    suite: {
+      name: data.testsuites?.name || 'Test Suite',
+      description: data.testsuites?.description || '',
+      created_at: new Date().toISOString(),
+    },
+    sections: [],
+    cases: [],
+    results: [],
+  }
+
+  // Convert suites to sections
+  for (const suite of parsedData.suites) {
+    testrailData.sections.push({
+      id: suite.generated_source_id || suite.source_id,
+      name: suite.name,
+      parentId: null,
+      created_at: suite.created_at || new Date().toISOString(),
+    })
+  }
+
+  // Convert executions to cases and results
+  for (const execution of parsedData.executions) {
+    const caseId = crypto.randomUUID()
+
+    // Create case
+    testrailData.cases.push({
+      id: caseId,
+      section_id: execution.test_suite_id,
+      title: execution.name,
+      custom_test_case_id: execution.name,
+    })
+
+    // Determine status_id based on execution data
+    let statusId = 1 // Default to Passed
+
+    if (execution.failure || execution.error) {
+      statusId = 5 // Failed
+    }
+    else if (execution.skipped) {
+      statusId = 4 // Retest (for skipped tests)
+    }
+
+    // Create result
+    testrailData.results.push({
+      case_id: caseId,
+      status_id: statusId,
+      comment: execution.system_out || '',
+      defects: execution.failure
+        ? execution.failure.message
+        : execution.error ? execution.error.message : '',
+    })
+  }
+
+  return {
+    ...parsedData,
+    testrail: testrailData,
+  }
 }
 
 class XUnitParser {
@@ -285,16 +355,17 @@ class XUnitParser {
   static TEST_CASES_MAPPING: Record<string, string> = {
     'name': 'name',
     'error': 'error',
+    'failure': 'failure',
     'system-out': 'system_out',
     'skipped': 'skipped',
   }
 
-  parseFile(config: Config): ParsedData {
+  parseFile(config: Config): ParsedData & { testrail?: TestrailData } {
     const content = fs.readFileSync(config.integration)
     return this.parseContent(content.toString(), config)
   }
 
-  parseContent(content: string, config: Config): ParsedData {
+  parseContent(content: string, config: Config): ParsedData & { testrail?: TestrailData } {
     const parser = new XMLParser({
       attributeNamePrefix: '',
       ignoreAttributes: false,
@@ -305,6 +376,45 @@ class XUnitParser {
       collapse(parser.parse(content)),
       config,
     )
+  }
+
+  /**
+   * Parses a file and returns data in TestRail format
+   * @param config Configuration object
+   * @returns Object containing sections, cases, and results arrays
+   */
+  parseFileForTestRail(config: Config): TestrailData {
+    const result = this.parseFile(config)
+    return result.testrail || {
+      suite: {
+        name: 'Default Suite',
+        description: '',
+        created_at: new Date().toISOString(),
+      },
+      sections: [],
+      cases: [],
+      results: [],
+    }
+  }
+
+  /**
+   * Parses content and returns data in TestRail format
+   * @param content XML content to parse
+   * @param config Configuration object
+   * @returns Object containing sections, cases, and results arrays
+   */
+  parseContentForTestRail(content: string, config: Config): TestrailData {
+    const result = this.parseContent(content, config)
+    return result.testrail || {
+      suite: {
+        name: 'Default Suite',
+        description: '',
+        created_at: new Date().toISOString(),
+      },
+      sections: [],
+      cases: [],
+      results: [],
+    }
   }
 }
 

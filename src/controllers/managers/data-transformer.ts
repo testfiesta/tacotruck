@@ -575,9 +575,9 @@ export class DataTransformer {
       throw new ValidationError('Input data must be an object')
     }
 
-    if (!data.source) {
-      throw new ValidationError('Input data must include a source field')
-    }
+    // if (!data.source) {
+    //   throw new ValidationError('Input data must include a source field')
+    // }
   }
 
   /**
