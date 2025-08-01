@@ -82,7 +82,6 @@ export async function run(args: SubmitRunArgs): Promise<void> {
         timeout: 30000,
       },
     })
-    console.log('Loading test data...')
 
     const runData = loadRunData(args.data).match({
       ok: data => data,
@@ -94,7 +93,6 @@ export async function run(args: SubmitRunArgs): Promise<void> {
 
     spinner.stop()
 
-    console.log('Connecting to TestRail...')
     await testRailETL.submitTestRun(runData)
     p.log.success('Successfully created TestRail run')
   }

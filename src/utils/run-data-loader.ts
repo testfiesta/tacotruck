@@ -1,9 +1,9 @@
 import type { Result } from './result'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { err, ok } from './result'
+import { JunitXmlParser } from './junit-xml-parser'
 
-import XUnitParser from './xunit-parser-v2'
+import { err, ok } from './result'
 
 export interface RunData {
   [key: string]: any
@@ -23,11 +23,8 @@ export function loadRunData(dataPath: string): Result<RunData, Error> {
       return ok(JSON.parse(fileContent))
     }
     else if (ext === '.xml') {
-      const xmlParser = new XUnitParser()
-      const parsedData = xmlParser.parseContentForTestRail(fileContent, {
-        integration: 'test',
-      })
-      return ok(parsedData)
+      const parsedResult = new JunitXmlParser(fileContent).build()
+      return ok(parsedResult)
     }
     else {
       return err(new Error(`Unsupported file format: ${ext}. Only JSON and XML files are supported.`))
