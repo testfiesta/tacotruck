@@ -267,7 +267,7 @@ export class TestRailETL extends ETLv2 {
       const run = {
         name: this.options?.credentials?.run_name,
         case_ids: caseIds,
-        project_id: this.options.credentials?.project_id,
+        include_all: false,
       }
 
       console.warn(`⏳ Creating test run with data`)
