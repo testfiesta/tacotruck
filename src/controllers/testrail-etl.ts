@@ -132,7 +132,7 @@ export class TestRailETL extends ETLv2 {
    */
   async submitTestRun(runData: any): Promise<Record<string, any>> {
     try {
-      const sections = runData.sections || []
+      const sections = runData.section || []
 
       const sectionIdMap = new Map()
 
@@ -187,7 +187,7 @@ export class TestRailETL extends ETLv2 {
       }
 
       // Update cases with actual section IDs
-      const testCases = runData.cases || []
+      const testCases = runData.testCase || []
 
       // Update section_id in test cases with actual IDs from the map
       testCases.forEach((testCase: any) => {
@@ -306,13 +306,35 @@ export class TestRailETL extends ETLv2 {
    * @returns The response from TestRail
    */
   async submitProjects(projectData: any): Promise<Record<string, any>> {
-    const etlResult = await this.execute({ projects: Array.isArray(projectData) ? projectData : [projectData] })
-    if (etlResult.success) {
-      return etlResult.loadingResult?.responses || { success: true }
+    console.warn(`⏳ Creating project`)
+    const response = await this.dataLoader.loadToTarget('projects', projectData, 'create', this.configManager.getConfig())
+    console.warn(`\n${chalk.green('✓')} Project Created`)
+    console.log("response", response);
+    
+    
+    if (response.id) {
+      return response
     }
     else {
-      const errorMessage = etlResult.errors.map(e => e.message).join('; ')
-      throw new Error(`TestRail projects submission failed: ${errorMessage}`)
+      throw new Error(`TestRail projects submission failed: ${response}`)
+    }
+  }
+   /**
+   * Submit project data to TestRail using ETLv2 enhanced workflow
+   * @param projectData The project data to submit
+   * @returns The response from TestRail
+   */
+  async deleteProjects(): Promise<Record<string, any>> {
+    console.warn(`⏳ Deleting Project`)
+    const response = await this.dataLoader.loadToTarget('projects', {}, 'delete', this.configManager.getConfig())
+    console.warn(`${chalk.green('✓')} Project Deleted successfully`)
+
+    
+    if (response) {
+      return response
+    }
+    else {
+      throw new Error(`TestRail projects submission failed: ${response}`)
     }
   }
 

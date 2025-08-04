@@ -1,9 +1,9 @@
 import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestRailETL } from '../../controllers/testrail-etl'
-import { initializeLogger, setVerbose } from '../../utils/logger'
-import { loadRunData } from '../../utils/run-data-loader'
+import { TestRailETL } from '../../../controllers/testrail-etl'
+import { initializeLogger, setVerbose } from '../../../utils/logger'
+import { loadRunData } from '../../../utils/run-data-loader'
 
 interface SubmitRunArgs {
   data: string
@@ -20,7 +20,7 @@ interface SubmitRunArgs {
   verbose?: boolean
 }
 
-function submitRunCommand() {
+export function submitRunCommand() {
   const submitRunCommand = new Commander.Command('run:submit')
     .description('Submit test run to TestRail')
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
@@ -46,14 +46,6 @@ function submitRunCommand() {
     })
 
   return submitRunCommand
-}
-
-export function createTestrailsCommand() {
-  const trCommand = new Commander.Command('testrails')
-    .description('TestRail platform specific commands')
-    .addCommand(submitRunCommand())
-
-  return trCommand
 }
 
 export async function run(args: SubmitRunArgs): Promise<void> {
