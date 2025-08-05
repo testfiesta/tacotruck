@@ -333,7 +333,7 @@ export class TestRailETL extends ETLv2 {
   async deleteProjects(): Promise<Record<string, any>> {
     console.warn(`⏳ Deleting Project`)
     const response = await this.dataLoader.loadToTarget('projects', {}, 'delete', this.configManager.getConfig())
-    console.warn(`${chalk.green('✓')} Project Deleted successfully`)
+    console.warn(`\n${chalk.green('✓')} Project Deleted successfully`)
 
     
     if (response) {
