@@ -1,11 +1,11 @@
 import type { FetchOptions } from 'ofetch'
 import type { Err, Result } from './result'
 import chalk from 'chalk'
-import * as cliProgress from 'cli-progress'
 import { ofetch } from 'ofetch'
 import PQueue from 'p-queue'
 import pThrottle from 'p-throttle'
 import { processBatchesWithLimit } from './batch-processor'
+import { createProgressBar, updateProgressBar, stopProgressBar } from './progress-bar'
 import { err, ok } from './result'
 
 /**
@@ -91,7 +91,7 @@ export async function processPostRequest(
     return ok(response)
   }
   catch (error: any) {
-    return err(error instanceof Error ? error : new Error(String(error)))
+    throw err(error instanceof Error ? error : new Error(String(error)))
   }
 }
 
@@ -120,7 +120,6 @@ export async function processGetRequest(
 
   const { timeout = 30000, retry, retryDelay = 1000, ...restOptions } = mergedOptions
 
-  console.warn(`GET request to ${url} with timeout=${timeout}ms, retries=${retry ?? 0}, delay=${retryDelay}ms`)
 
   try {
     const response = await ofetch({
@@ -140,13 +139,8 @@ export async function processGetRequest(
     })
   }
   catch (error) {
-    console.error(`GET request to ${url} failed:`, {
-      errorType: error instanceof Error ? error.name : typeof error,
-      message: error instanceof Error ? error.message : String(error),
-      timeout,
-      retry,
-    })
-    return err(error instanceof Error ? error : new Error(`Error fetching from ${url}: ${String(error)}`))
+  
+    throw err(error instanceof Error ? error : new Error(`Error fetching from ${url}: ${String(error)}`))
   }
 }
 
@@ -189,40 +183,13 @@ export async function processBatchedRequests<R, E>(
       interval: throttleInterval,
     })
     console.warn('Processing', progressLabel, 'with concurrency limit:', concurrencyLimit, 'throttle limit:', throttleLimit, 'throttle interval:', throttleInterval)
-    let progressBar: cliProgress.SingleBar | undefined
-    if (showProgress && !silent) {
-      progressBar = new cliProgress.SingleBar({
-        format: (options, params, _payload) => {
-          const barCompleteChar = '█'
-          const barIncompleteChar = '░'
-          const barSize = 30
-
-          const completeSize = Math.round(params.progress * barSize)
-          const incompleteSize = barSize - completeSize
-
-          const bar = barCompleteChar.repeat(completeSize) + barIncompleteChar.repeat(incompleteSize)
-
-          const percentage = Math.floor(params.progress * 100)
-          const value = params.value
-          const total = params.total
-
-          return chalk.cyan('⏳ ')
-            + chalk.magenta('[')
-            + chalk.blue(bar)
-            + chalk.magenta('] ')
-            + chalk.yellow(`${percentage}%`)
-            + chalk.white(' | ')
-            + chalk.green(`${value}`)
-            + chalk.white('/')
-            + chalk.green(`${total}`)
-            + chalk.white(` ${progressLabel}`)
-        },
-        barCompleteChar: '█',
-        barIncompleteChar: '░',
-      })
-
-      progressBar.start(requests.length, 0)
-    }
+    
+    const progressBar = createProgressBar({
+      total: requests.length,
+      label: progressLabel,
+      show: showProgress,
+      silent: silent
+    })
 
     const throttledRequests = requests.map((req, index) => {
       return throttle(async () => {
@@ -234,9 +201,7 @@ export async function processBatchedRequests<R, E>(
           try {
             const result = await req()
 
-            if (progressBar) {
-              progressBar.increment()
-            }
+            updateProgressBar(progressBar)
 
             return result as Result<R, E>
           }
@@ -289,9 +254,7 @@ export async function processBatchedRequests<R, E>(
       concurrencyLimit,
     )
 
-    if (progressBar) {
-      progressBar.stop()
-    }
+    stopProgressBar(progressBar)
 
     const results: R[] = []
     const errors: E[] = []
@@ -315,14 +278,8 @@ export async function processBatchedRequests<R, E>(
     return ok(results)
   }
   catch (error) {
-    const { silent: isSilent = false } = options
-
-    if (!isSilent) {
-      console.error('Batch processing failed:', error)
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error(`Error details: ${errorMessage}`)
-    }
+    
     const errorMessage = error instanceof Error ? error.message : String(error)
-    return err(error instanceof Error ? error as E : new Error(`Batch processing error: ${errorMessage}`) as E)
+    throw err(error instanceof Error ? error as E : new Error(`Batch processing error: ${errorMessage}`) as E)
   }
 }

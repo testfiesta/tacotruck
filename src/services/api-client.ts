@@ -31,7 +31,6 @@ export class ApiClient {
     return result.match({
       ok: (value: any) => value,
       err: (error: Error) => {
-        console.error(`Request to ${url} failed: ${error.message}`)
         return fallbackData || null
       },
     })
@@ -56,7 +55,6 @@ export class ApiClient {
     return result.match({
       ok: (value: any) => value,
       err: (error: Error) => {
-        console.error(`Request to ${url} failed: ${error.message}`)
         return fallbackResponse || null
       },
     })

@@ -247,21 +247,7 @@ describe('network utils', () => {
         retryAttempts: 2,
         retryDelay: 1000,
       }
-
-      const ok1 = ok('result1')
-      const ok2 = ok('result2')
-
-      const mockResult = ok([ok1.unwrap(), ok2.unwrap()])
-
-      vi.spyOn(globalThis, 'Promise').mockImplementation((executor) => {
-        executor(value => value, () => {})
-        return Promise.resolve(mockResult as any)
-      })
-
       await processBatchedRequests(mockRequests, 2, 5, 500, options)
-
-      vi.mocked(globalThis.Promise).mockRestore()
-
       expect(consoleWarnMock).toHaveBeenCalledWith('Processing', 'requests', 'with concurrency limit:', 2, 'throttle limit:', 5, 'throttle interval:', 500)
 
       consoleWarnMock.mockRestore()
@@ -287,19 +273,9 @@ describe('network utils', () => {
         () => Promise.resolve(ok('result3')),
       ]
 
-      const ok1 = ok('result1')
-      const ok2 = ok('result2')
-      const ok3 = ok('result3')
-      const mockResult = ok([ok1.unwrap(), ok2.unwrap(), ok3.unwrap()])
-
-      vi.spyOn(globalThis, 'Promise').mockImplementation((executor) => {
-        executor(value => value, () => {})
-        return Promise.resolve(mockResult)
-      })
-
+  
       await processBatchedRequests(mockRequests, 2, 5, 500, {})
 
-      vi.mocked(globalThis.Promise).mockRestore()
 
       consoleWarnMock.mockRestore()
     })

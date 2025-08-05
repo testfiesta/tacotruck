@@ -35,6 +35,9 @@
         },
         "get": {
           "path": "api/v2/get_project/{id}"
+        },
+        "delete": {
+          "path": "api/v2/delete_project/{project_id}"
         }
       },
       "mapping": {

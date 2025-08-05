@@ -4,6 +4,7 @@ import * as Commander from 'commander'
 import { TestRailETL } from '../../../controllers/testrail-etl'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
+import { transformXmlData, type XmlData } from '../../../utils/xml-transform'
 
 interface SubmitRunArgs {
   data: string
@@ -79,14 +80,16 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       ok: data => data,
       err: error => handleError(error, 'Data error'),
     })
-
+    
+    
+    const transformedData = transformXmlData(runData as XmlData)
     if (runData === null)
       return
 
     spinner.stop()
-
-    await testRailETL.submitTestRun(runData)
-    p.log.success('Successfully created TestRail run')
+   
+    await testRailETL.submitTestRun(transformedData)
+    p.log.success('Successfully submitted result to TestRail')
   }
   catch (error) {
     handleError(error instanceof Error ? error : new Error(String(error)), 'TestRail API error')

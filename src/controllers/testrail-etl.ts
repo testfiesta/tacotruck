@@ -112,7 +112,7 @@ export class TestRailETL extends ETLv2 {
   async createTestSuite(suiteData: any): Promise<Record<string, any>> {
     try {
       const response = await this.loadToTarget('suites', suiteData, 'create')
-
+    
       if (!response) {
         throw new Error('TestRail test suite creation received no response')
       }
@@ -132,15 +132,22 @@ export class TestRailETL extends ETLv2 {
    */
   async submitTestRun(runData: any): Promise<Record<string, any>> {
     try {
-      const sections = runData.section || []
+      console.warn(`\n⏳ Creating test suite`)
+      const suiteResponse = await this.createTestSuite({
+        name: runData.root.name,
+      })
+      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.bold('test suite')}`)
+      const sections = runData.sections || []
 
       const sectionIdMap = new Map()
 
       const sectionRequests = sections.map((section: { name: string, id: string, [key: string]: any }) => {
         return async () => {
           try {
+            
             const response = await this.createSection({
               name: section.name,
+              suite_id: suiteResponse.id,
             })
 
             let result: Record<string, any>
@@ -151,7 +158,6 @@ export class TestRailETL extends ETLv2 {
               result = response as Record<string, any>
             }
 
-            // Store the mapping between generated ID and actual ID
             if (section.id && result.id) {
               sectionIdMap.set(section.id, result.id)
             }
@@ -159,7 +165,7 @@ export class TestRailETL extends ETLv2 {
             return ok(result)
           }
           catch (error) {
-            return err(error instanceof Error ? error : new Error(String(error)))
+            throw err(error instanceof Error ? error : new Error(String(error)))
           }
         }
       })
@@ -179,17 +185,16 @@ export class TestRailETL extends ETLv2 {
       )
 
       if (batchResult1.isOk) {
-        console.warn(`${chalk.green('✓')} Created ${sectionIdMap.size} sections`)
+      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${sectionIdMap.size} ${chalk.bold('sections')}`)
+
       }
       else {
         const errorObj = batchResult1 as { error: Error }
         console.error('Error creating sections:', errorObj.error)
       }
 
-      // Update cases with actual section IDs
-      const testCases = runData.testCase || []
-
-      // Update section_id in test cases with actual IDs from the map
+      const testCases = runData.cases|| []
+     
       testCases.forEach((testCase: any) => {
         if (testCase.section_id && sectionIdMap.has(testCase.section_id)) {
           testCase.section_id = sectionIdMap.get(testCase.section_id)
@@ -198,6 +203,7 @@ export class TestRailETL extends ETLv2 {
           testCase.section_id = sectionIdMap.get('default')
         }
       })
+
 
       const caseIds: number[] = []
       const casesIdMap = new Map()
@@ -262,22 +268,22 @@ export class TestRailETL extends ETLv2 {
         console.error('Error creating test cases:', errorObj.error)
       }
 
-      console.warn(`\n${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
-
+      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created test run')}`)
+    
       const run = {
         name: this.options?.credentials?.run_name,
         case_ids: caseIds,
         include_all: false,
+        suite_id: suiteResponse.id,
       }
-
-      console.warn(`⏳ Creating test run with data`)
+      
+      console.warn(`\n⏳ Creating test run`)
       const runResponse = await this.dataLoader.loadToTarget('runs', run, 'create', this.configManager.getConfig())
 
       if (!runResponse) {
         throw new Error('TestRail submission received no response')
       }
-      console.warn(`\n${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
-      console.warn(`⏳ Creating test run with data`)
+      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
 
       const testResults = runData.results || []
       testResults.forEach((testResult: any) => {
@@ -290,8 +296,9 @@ export class TestRailETL extends ETLv2 {
       })
       this.updateCredentials({ ...this.options.credentials, run_id: runResponse.id })
       this.configManager.applySubstitutions()
-
+      console.warn(`\n⏳ Creating test results`)
       await this.createTestResult({ results: testResults })
+      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(testResults.length)} ${chalk.bold('test results')}`)
       return runResponse
     }
     catch (error) {
@@ -306,10 +313,9 @@ export class TestRailETL extends ETLv2 {
    * @returns The response from TestRail
    */
   async submitProjects(projectData: any): Promise<Record<string, any>> {
-    console.warn(`⏳ Creating project`)
+    console.warn(`\n⏳ Creating project`)
     const response = await this.dataLoader.loadToTarget('projects', projectData, 'create', this.configManager.getConfig())
-    console.warn(`\n${chalk.green('✓')} Project Created`)
-    console.log("response", response);
+    console.warn(`${chalk.green('✓')} Project Created`)
     
     
     if (response.id) {
