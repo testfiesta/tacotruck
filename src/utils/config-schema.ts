@@ -42,6 +42,7 @@ const baseConfigSchema = z.object({
   sourceThrottle: z.number().optional(),
   sourceThrottleTime: z.number().optional(),
   target: z.record(z.string(), entityConfigSchema).optional(),
+  source: z.record(z.string(), entityConfigSchema).optional(),
   typeConfig: z.object({
     source: typeMappingSchema.optional(),
     denormalized_keys: z.record(z.string(), z.record(z.string(), z.string())).optional(),

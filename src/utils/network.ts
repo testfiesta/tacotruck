@@ -115,15 +115,14 @@ export async function processGetRequest(
   options: RequestOptions = {},
   sourceType: string,
 ): Promise<Result<GetResponseData, Error>> {
+  
   const authRequestOptions = createAuthenticatedOptions(authOptions)
   const mergedOptions = { ...authRequestOptions, ...options }
 
   const { timeout = 30000, retry, retryDelay = 1000, ...restOptions } = mergedOptions
-
-
+  
   try {
-    const response = await ofetch({
-      url,
+    const response = await ofetch(url, {
       method: 'GET',
       retry,
       retryDelay,
@@ -131,12 +130,7 @@ export async function processGetRequest(
       timeout: Number(timeout) ? Number(timeout) : 0,
       ...restOptions,
     })
-    const data = await response.json()
-    return ok({
-      data,
-      source_type: sourceType,
-      target_type: 'unknown',
-    })
+   return ok(response)
   }
   catch (error) {
   

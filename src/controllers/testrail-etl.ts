@@ -132,22 +132,27 @@ export class TestRailETL extends ETLv2 {
    */
   async submitTestRun(runData: any): Promise<Record<string, any>> {
     try {
-      console.warn(`\n⏳ Creating test suite`)
-      const suiteResponse = await this.createTestSuite({
+      console.warn(`\n⏳ checking project mode`)
+      const projectResponse = await this.getProject()
+      console.warn(`${chalk.green('✓')} Project mode checked successfully`)
+      let suiteResponse: any
+      if (projectResponse.suite_mode == 3) {
+        console.warn(`\n⏳ Creating test suite`)
+        suiteResponse = await this.createTestSuite({
         name: runData.root.name,
       })
       console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.bold('test suite')}`)
+      }
+     
       const sections = runData.sections || []
-
       const sectionIdMap = new Map()
-
       const sectionRequests = sections.map((section: { name: string, id: string, [key: string]: any }) => {
         return async () => {
           try {
             
             const response = await this.createSection({
               name: section.name,
-              suite_id: suiteResponse.id,
+              suite_id: suiteResponse?.id || null,
             })
 
             let result: Record<string, any>
@@ -274,7 +279,7 @@ export class TestRailETL extends ETLv2 {
         name: this.options?.credentials?.run_name,
         case_ids: caseIds,
         include_all: false,
-        suite_id: suiteResponse.id,
+        suite_id: suiteResponse?.id || null,
       }
       
       console.warn(`\n⏳ Creating test run`)
@@ -283,7 +288,7 @@ export class TestRailETL extends ETLv2 {
       if (!runResponse) {
         throw new Error('TestRail submission received no response')
       }
-      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(caseIds.length)} ${chalk.bold('test cases')}`)
+      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created test run')}`)
 
       const testResults = runData.results || []
       testResults.forEach((testResult: any) => {
@@ -306,7 +311,15 @@ export class TestRailETL extends ETLv2 {
       throw new Error(`TestRail submission failed: ${errorMessage}`)
     }
   }
-
+   /**
+   * Get a specific project by ID from TestRail
+   * @param projectId The project ID to fetch
+   * @returns The specific project data
+   */
+  async getProject(): Promise<Record<string, any>> {
+    
+    return await this.dataExtractor.extract('projects', {}, 'get', this.configManager.getConfig())
+  }
   /**
    * Submit project data to TestRail using ETLv2 enhanced workflow
    * @param projectData The project data to submit

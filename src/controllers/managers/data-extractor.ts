@@ -51,60 +51,65 @@ export class DataExtractor {
    * @param ids Optional record of IDs to fetch specific resources
    * @returns Extraction result with data and metadata
    */
-  async extract(ids: Record<string, Array<Record<string, any>>> = {}): Promise<ExtractionResult> {
+  /**
+   * Extract data from source system based on configuration
+   * @param ids Optional record of IDs to fetch specific resources
+   * @param specificEndpoints Optional array of specific endpoints to extract
+   * @returns Extraction result with data and metadata
+   */
+    
+  async extract(sourceType: string,params: Record<string, any> = {}, fetchType: 'index' | 'get' = 'index',
+    newConfig?: ConfigType,
+  ): Promise<any> {
     const startTime = Date.now()
     const extractedAt = new Date()
     const data: Record<string, any> = {
       source: this.config.name || 'unknown',
     }
-    const recordCounts: Record<string, number> = {}
-    const errors: any[] = []
+    const source = (newConfig || this.config).source?.[sourceType]?.endpoints?.[fetchType]
+
+    if (!source) {
+      throw new ConfigurationError(
+        `No ${fetchType} endpoint defined for ${sourceType} in target configuration`,
+        { sourceType, fetchType },
+      )
+    }
+    const url = this.buildUrl(source.path||'')
+    if (this.options.verbose) {
+      const logger = getLogger()
+      logger.warn('url for loading to target', { url })
+    }
 
     try {
-      this.validateExtractionConfig()
-
-      const { endpoints, fetchType } = this.determineEndpointsAndFetchType(ids)
-
-      for (const endpoint of endpoints) {
-        try {
-          const endpointData = await this.extractEndpointData(endpoint, fetchType, ids)
-          data[endpoint] = endpointData
-          recordCounts[endpoint] = Array.isArray(endpointData) ? endpointData.length : 1
-        }
-        catch (error) {
-          const etlError = ErrorManager.handleError(
-            error,
-            ETLErrorType.DATA,
-            { endpoint, operation: 'extract', entityType: endpoint },
-          )
-          this.errorManager.addError(etlError)
-          errors.push(etlError.toJSON())
-
-          // Continue with other endpoints unless it's a critical error
-          if (!etlError.isRetryable && this.options.verbose) {
-            const logger = getLogger()
-            logger.warn(`Failed to extract data from endpoint ${endpoint}: ${etlError.message}`)
-          }
-        }
-      }
-
-      const duration = Date.now() - startTime
-
-      return {
-        data,
-        metadata: {
-          extractedAt,
-          endpoints,
-          recordCounts,
-          duration,
-          errors,
+      
+      const response = await apiClient.processGetRequest(
+        this.options.authOptions || null,
+        url,
+        {
+          json: data,
+          timeout: this.options.timeout,
+          retry: this.options.retryAttempts,
+          retryDelay: this.options.retryDelay,
         },
-      }
+        'source',
+      )
+
+      
+      return response || {}
     }
     catch (error) {
-      const etlError = ErrorManager.handleError(error, ETLErrorType.DATA)
-      this.errorManager.addError(etlError)
-      throw etlError
+      console.log(error);
+      
+      throw new NetworkError(
+        `Failed to load data to ${sourceType}.${fetchType}`,
+        {
+          sourceType,
+          fetchType,
+          url,
+          data,
+          originalError: error instanceof Error ? error : new Error(String(error)),
+        },
+      )
     }
   }
 
@@ -302,10 +307,11 @@ export class DataExtractor {
     }
 
     // Ensure proper URL construction
+    const base_path = this.config?.base_path?.replace(/\/+$/, '') || ''
     const cleanBase = baseUrl.replace(/\/+$/, '')
     const cleanPath = path.replace(/^\/+/, '')
 
-    return `${cleanBase}/${cleanPath}`
+    return `${cleanBase}/${base_path}/${cleanPath}`
   }
 
   /**
