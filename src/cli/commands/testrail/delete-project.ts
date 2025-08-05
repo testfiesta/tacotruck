@@ -68,7 +68,7 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
     })
 
     await testRailETL.deleteProjects()
-    
+
     spinner.stop()
     p.log.success(`Successfully deleted TestRail project with ID ${args.projectId}`)
   }

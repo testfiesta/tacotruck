@@ -1,10 +1,10 @@
 import type { ConfigType } from '../utils/config-schema'
 import type { ETLv2Options } from './etl-base-v2'
+import chalk from 'chalk'
 import { apiClient } from '../services/api-client'
 import { loadConfig } from '../utils/enhanced-config-loader'
 import { getLogger } from '../utils/logger'
 import { ETLv2 } from './etl-base-v2'
-import chalk from 'chalk'
 
 export class TestFiestaETL extends ETLv2 {
   /**
@@ -109,7 +109,7 @@ export class TestFiestaETL extends ETLv2 {
       throw new Error(`TestFiesta projects submission failed: ${errorMessage}`)
     }
   }
-  
+
   /**
    * Delete a project in TestFiesta
    * @param projectKey The key of the project to delete
@@ -118,12 +118,12 @@ export class TestFiestaETL extends ETLv2 {
   async deleteProject(): Promise<Record<string, any>> {
     try {
       console.warn(`⏳ Deleting Project`)
-        const response = await this.loadToTarget('projects', {}, 'delete')
+      const response = await this.loadToTarget('projects', {}, 'delete')
       console.warn(`\n${chalk.green('✓')} Project Deleted successfully`)
       if (!response) {
         throw new Error('TestFiesta project deletion received no response')
       }
-      
+
       return response
     }
     catch (error) {

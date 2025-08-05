@@ -1,11 +1,10 @@
 import type { FetchOptions } from 'ofetch'
 import type { Err, Result } from './result'
-import chalk from 'chalk'
 import { ofetch } from 'ofetch'
 import PQueue from 'p-queue'
 import pThrottle from 'p-throttle'
 import { processBatchesWithLimit } from './batch-processor'
-import { createProgressBar, updateProgressBar, stopProgressBar } from './progress-bar'
+import { createProgressBar, stopProgressBar, updateProgressBar } from './progress-bar'
 import { err, ok } from './result'
 
 /**
@@ -113,14 +112,12 @@ export async function processGetRequest(
   authOptions: AuthOptions | null,
   url: string,
   options: RequestOptions = {},
-  sourceType: string,
 ): Promise<Result<GetResponseData, Error>> {
-  
   const authRequestOptions = createAuthenticatedOptions(authOptions)
   const mergedOptions = { ...authRequestOptions, ...options }
 
   const { timeout = 30000, retry, retryDelay = 1000, ...restOptions } = mergedOptions
-  
+
   try {
     const response = await ofetch(url, {
       method: 'GET',
@@ -130,10 +127,9 @@ export async function processGetRequest(
       timeout: Number(timeout) ? Number(timeout) : 0,
       ...restOptions,
     })
-   return ok(response)
+    return ok(response)
   }
   catch (error) {
-  
     throw err(error instanceof Error ? error : new Error(`Error fetching from ${url}: ${String(error)}`))
   }
 }
@@ -177,12 +173,12 @@ export async function processBatchedRequests<R, E>(
       interval: throttleInterval,
     })
     console.warn('Processing', progressLabel, 'with concurrency limit:', concurrencyLimit, 'throttle limit:', throttleLimit, 'throttle interval:', throttleInterval)
-    
+
     const progressBar = createProgressBar({
       total: requests.length,
       label: progressLabel,
       show: showProgress,
-      silent: silent
+      silent,
     })
 
     const throttledRequests = requests.map((req, index) => {
@@ -272,7 +268,6 @@ export async function processBatchedRequests<R, E>(
     return ok(results)
   }
   catch (error) {
-    
     const errorMessage = error instanceof Error ? error.message : String(error)
     throw err(error instanceof Error ? error as E : new Error(`Batch processing error: ${errorMessage}`) as E)
   }

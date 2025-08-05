@@ -1,10 +1,11 @@
+import type { XmlData } from '../../../utils/xml-transform'
 import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestRailETL } from '../../../controllers/testrail-etl'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
-import { transformXmlData, type XmlData } from '../../../utils/xml-transform'
+import { transformXmlData } from '../../../utils/xml-transform'
 
 interface SubmitRunArgs {
   data: string
@@ -80,14 +81,13 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       ok: data => data,
       err: error => handleError(error, 'Data error'),
     })
-    
-    
+
     const transformedData = transformXmlData(runData as XmlData)
     if (runData === null)
       return
 
     spinner.stop()
-   
+
     await testRailETL.submitTestRun(transformedData)
     p.log.success('Successfully submitted result to TestRail')
   }

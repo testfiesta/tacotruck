@@ -38,7 +38,7 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
       credentials: {
         token: args.token,
         handle: args.organization,
-        project_id : args.projectId,
+        project_id: args.projectId,
       },
       etlOptions: {
         baseUrl: 'http://localhost:5000',
@@ -51,7 +51,7 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
     })
 
     await testFiestaETL.deleteProject()
-    
+
     spinner.stop()
     p.log.success(`Successfully deleted TestFiesta project with key ${args.projectId}`)
   }

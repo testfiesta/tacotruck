@@ -242,8 +242,7 @@ export class ETLv2 {
     }
 
     try {
-      const result = await this.dataExtractor.extract("projects", ids, 'get', this.configManager.getConfig())
-     
+      const result = await this.dataExtractor.extract('projects', ids, 'get', this.configManager.getConfig())
 
       return result
     }

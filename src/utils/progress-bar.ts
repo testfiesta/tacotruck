@@ -76,7 +76,7 @@ export function defaultProgressFormat(options: any, params: any, _payload: any):
  */
 export function updateProgressBar(
   progressBar: cliProgress.SingleBar | undefined,
-  increment: number = 1
+  increment: number = 1,
 ): void {
   if (progressBar) {
     progressBar.increment(increment)

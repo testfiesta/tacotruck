@@ -3,7 +3,7 @@ import type { ConfigType } from '../../utils/config-schema'
 import type { AuthOptions } from './authentication-manager'
 import { apiClient } from '../../services/api-client'
 import { getLogger } from '../../utils/logger'
-import { ConfigurationError, ErrorManager, ETLErrorType, NetworkError } from './error-manager'
+import { ConfigurationError, ErrorManager, NetworkError } from './error-manager'
 
 export interface ExtractionOptions {
   authOptions?: AuthOptions | null
@@ -57,15 +57,13 @@ export class DataExtractor {
    * @param specificEndpoints Optional array of specific endpoints to extract
    * @returns Extraction result with data and metadata
    */
-    
-  async extract(sourceType: string,params: Record<string, any> = {}, fetchType: 'index' | 'get' = 'index',
-    newConfig?: ConfigType,
-  ): Promise<any> {
-    const startTime = Date.now()
-    const extractedAt = new Date()
+
+  async extract(sourceType: string, params: Record<string, any> = {}, fetchType: 'index' | 'get' = 'index', newConfig?: ConfigType): Promise<any> {
     const data: Record<string, any> = {
       source: this.config.name || 'unknown',
     }
+    console.log(params)
+
     const source = (newConfig || this.config).source?.[sourceType]?.endpoints?.[fetchType]
 
     if (!source) {
@@ -74,14 +72,13 @@ export class DataExtractor {
         { sourceType, fetchType },
       )
     }
-    const url = this.buildUrl(source.path||'')
+    const url = this.buildUrl(source.path || '')
     if (this.options.verbose) {
       const logger = getLogger()
       logger.warn('url for loading to target', { url })
     }
 
     try {
-      
       const response = await apiClient.processGetRequest(
         this.options.authOptions || null,
         url,
@@ -94,12 +91,11 @@ export class DataExtractor {
         'source',
       )
 
-      
       return response || {}
     }
     catch (error) {
-      console.log(error);
-      
+      console.log(error)
+
       throw new NetworkError(
         `Failed to load data to ${sourceType}.${fetchType}`,
         {

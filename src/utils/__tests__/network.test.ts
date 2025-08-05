@@ -166,7 +166,7 @@ describe('network utils', () => {
         payload: 'Bearer token123',
       }
 
-      const result = await processGetRequest(authOptions, 'https://example.com/api', {}, 'projects')
+      const result = await processGetRequest(authOptions, 'https://example.com/api', {})
 
       expect(result.isOk).toBe(true)
       if (result.isOk) {
@@ -188,7 +188,7 @@ describe('network utils', () => {
         payload: 'Bearer token123',
       }
 
-      const result = await processGetRequest(authOptions, 'https://example.com/api', {}, 'projects')
+      const result = await processGetRequest(authOptions, 'https://example.com/api', {})
 
       expect(result.isOk).toBe(false)
       if (!result.isOk) {
@@ -221,7 +221,7 @@ describe('network utils', () => {
         retryDelay: 1500,
       }
 
-      const result = await processGetRequest(authOptions, 'https://example.com/api', options, 'projects')
+      const result = await processGetRequest(authOptions, 'https://example.com/api', options)
 
       expect(result.isOk).toBe(true)
       if (result.isOk) {
@@ -273,9 +273,7 @@ describe('network utils', () => {
         () => Promise.resolve(ok('result3')),
       ]
 
-  
       await processBatchedRequests(mockRequests, 2, 5, 500, {})
-
 
       consoleWarnMock.mockRestore()
     })

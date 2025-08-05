@@ -76,7 +76,7 @@ export interface TransformedData {
  * 3: Untested
  * 4: Retest/skipped
  * 5: Failed
- * 
+ *
  * @param data The parsed XML data
  * @returns Transformed data in the required format
  */
@@ -95,12 +95,12 @@ export function transformXmlData(data: XmlData): TransformedData {
 
   // Create sections from the section data
   const sectionMap = new Map<string, string>() // Map to store section name to ID mapping
-  
+
   if (data.section && data.section.length > 0) {
     for (const section of data.section) {
       const sectionId = crypto.randomUUID()
       sectionMap.set(section.name, sectionId)
-      
+
       result.sections.push({
         id: sectionId,
         name: section.name,
@@ -116,7 +116,7 @@ export function transformXmlData(data: XmlData): TransformedData {
       // Try to find the section this test case belongs to
       // First, try to match by classname to existing section names
       let sectionId = sectionMap.get(testCase.classname)
-      
+
       // If no direct match, try to find a section that contains the classname
       if (!sectionId) {
         for (const [sectionName, id] of sectionMap.entries()) {
@@ -126,16 +126,17 @@ export function transformXmlData(data: XmlData): TransformedData {
           }
         }
       }
-      
+
       // If still no match, use the first available section or create a default one
       if (!sectionId) {
         if (result.sections.length > 0) {
           sectionId = result.sections[0].id
-        } else {
+        }
+        else {
           // Create a default section if none exist
           const defaultSectionId = crypto.randomUUID()
           sectionMap.set('Default Section', defaultSectionId)
-          
+
           result.sections.push({
             id: defaultSectionId,
             name: 'Default Section',
@@ -145,7 +146,7 @@ export function transformXmlData(data: XmlData): TransformedData {
           sectionId = defaultSectionId
         }
       }
-      
+
       // Create a case
       const caseId = crypto.randomUUID()
       result.cases.push({
@@ -154,28 +155,31 @@ export function transformXmlData(data: XmlData): TransformedData {
         title: testCase.name,
         custom_test_case_id: testCase.name,
       })
-      
+
       // Determine status ID based on test case status
       let statusId = 1 // Default to Passed
       let comment = ''
       let defects = ''
-      
+
       if (testCase.status === 'failed' || testCase.failure) {
         statusId = 5 // Failed
         if (testCase.failure) {
           defects = testCase.failure.message || 'Test failed'
         }
-      } else if (testCase.status === 'skipped' || testCase.skipped) {
+      }
+      else if (testCase.status === 'skipped' || testCase.skipped) {
         statusId = 4 // Retest/skipped
         if (testCase.skipped) {
           comment = testCase.skipped.message || 'Test skipped'
         }
-      } else if (testCase.status === 'blocked') {
+      }
+      else if (testCase.status === 'blocked') {
         statusId = 2 // Blocked
-      } else if (testCase.status === 'untested') {
+      }
+      else if (testCase.status === 'untested') {
         statusId = 3 // Untested
       }
-      
+
       // Create result
       result.results.push({
         case_id: caseId,
@@ -185,6 +189,6 @@ export function transformXmlData(data: XmlData): TransformedData {
       })
     }
   }
-  
+
   return result
 }

@@ -112,7 +112,7 @@ export class TestRailETL extends ETLv2 {
   async createTestSuite(suiteData: any): Promise<Record<string, any>> {
     try {
       const response = await this.loadToTarget('suites', suiteData, 'create')
-    
+
       if (!response) {
         throw new Error('TestRail test suite creation received no response')
       }
@@ -136,20 +136,19 @@ export class TestRailETL extends ETLv2 {
       const projectResponse = await this.getProject()
       console.warn(`${chalk.green('✓')} Project mode checked successfully`)
       let suiteResponse: any
-      if (projectResponse.suite_mode == 3) {
+      if (projectResponse.suite_mode === 3) {
         console.warn(`\n⏳ Creating test suite`)
         suiteResponse = await this.createTestSuite({
-        name: runData.root.name,
-      })
-      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.bold('test suite')}`)
+          name: runData.root.name,
+        })
+        console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.bold('test suite')}`)
       }
-     
+
       const sections = runData.sections || []
       const sectionIdMap = new Map()
       const sectionRequests = sections.map((section: { name: string, id: string, [key: string]: any }) => {
         return async () => {
           try {
-            
             const response = await this.createSection({
               name: section.name,
               suite_id: suiteResponse?.id || null,
@@ -190,16 +189,15 @@ export class TestRailETL extends ETLv2 {
       )
 
       if (batchResult1.isOk) {
-      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${sectionIdMap.size} ${chalk.bold('sections')}`)
-
+        console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${sectionIdMap.size} ${chalk.bold('sections')}`)
       }
       else {
         const errorObj = batchResult1 as { error: Error }
         console.error('Error creating sections:', errorObj.error)
       }
 
-      const testCases = runData.cases|| []
-     
+      const testCases = runData.cases || []
+
       testCases.forEach((testCase: any) => {
         if (testCase.section_id && sectionIdMap.has(testCase.section_id)) {
           testCase.section_id = sectionIdMap.get(testCase.section_id)
@@ -208,7 +206,6 @@ export class TestRailETL extends ETLv2 {
           testCase.section_id = sectionIdMap.get('default')
         }
       })
-
 
       const caseIds: number[] = []
       const casesIdMap = new Map()
@@ -274,14 +271,14 @@ export class TestRailETL extends ETLv2 {
       }
 
       console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created test run')}`)
-    
+
       const run = {
         name: this.options?.credentials?.run_name,
         case_ids: caseIds,
         include_all: false,
         suite_id: suiteResponse?.id || null,
       }
-      
+
       console.warn(`\n⏳ Creating test run`)
       const runResponse = await this.dataLoader.loadToTarget('runs', run, 'create', this.configManager.getConfig())
 
@@ -311,15 +308,16 @@ export class TestRailETL extends ETLv2 {
       throw new Error(`TestRail submission failed: ${errorMessage}`)
     }
   }
-   /**
+
+  /**
    * Get a specific project by ID from TestRail
    * @param projectId The project ID to fetch
    * @returns The specific project data
    */
   async getProject(): Promise<Record<string, any>> {
-    
     return await this.dataExtractor.extract('projects', {}, 'get', this.configManager.getConfig())
   }
+
   /**
    * Submit project data to TestRail using ETLv2 enhanced workflow
    * @param projectData The project data to submit
@@ -329,8 +327,7 @@ export class TestRailETL extends ETLv2 {
     console.warn(`\n⏳ Creating project`)
     const response = await this.dataLoader.loadToTarget('projects', projectData, 'create', this.configManager.getConfig())
     console.warn(`${chalk.green('✓')} Project Created`)
-    
-    
+
     if (response.id) {
       return response
     }
@@ -338,7 +335,8 @@ export class TestRailETL extends ETLv2 {
       throw new Error(`TestRail projects submission failed: ${response}`)
     }
   }
-   /**
+
+  /**
    * Submit project data to TestRail using ETLv2 enhanced workflow
    * @param projectData The project data to submit
    * @returns The response from TestRail
@@ -348,7 +346,6 @@ export class TestRailETL extends ETLv2 {
     const response = await this.dataLoader.loadToTarget('projects', {}, 'delete', this.configManager.getConfig())
     console.warn(`\n${chalk.green('✓')} Project Deleted successfully`)
 
-    
     if (response) {
       return response
     }
