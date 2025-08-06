@@ -51,11 +51,7 @@ export function submitRunCommand() {
 }
 
 export async function run(args: SubmitRunArgs): Promise<void> {
-  const spinner = p.spinner()
-  spinner.start('Loading test data')
-
   const handleError = (error: Error, context: string): null => {
-    spinner.stop()
     p.log.error(`${context}: ${error.message}`)
     return null
   }
@@ -86,7 +82,6 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     if (runData === null)
       return
 
-    spinner.stop()
 
     await testRailETL.submitTestRun(transformedData)
     p.log.success('Successfully submitted result to TestRail')

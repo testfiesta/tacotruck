@@ -58,7 +58,7 @@ export class DataExtractor {
    * @returns Extraction result with data and metadata
    */
 
-  async extract(sourceType: string, params: Record<string, any> = {}, fetchType: 'index' | 'get' = 'index', newConfig?: ConfigType): Promise<any> {
+  async extract(sourceType: string, params: Record<string, any>, fetchType: 'index' | 'get' = 'index', newConfig?: ConfigType): Promise<any> {
     const data: Record<string, any> = {
       source: this.config.name || 'unknown',
     }

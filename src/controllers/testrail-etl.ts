@@ -7,6 +7,7 @@ import { loadConfig } from '../utils/enhanced-config-loader'
 import { processBatchedRequests } from '../utils/network'
 import { err, ok } from '../utils/result'
 import { ETLv2 } from './etl-base-v2'
+import * as p from '@clack/prompts'
 
 export class TestRailETL extends ETLv2 {
   /**
@@ -131,17 +132,18 @@ export class TestRailETL extends ETLv2 {
    * @returns The response from TestRail
    */
   async submitTestRun(runData: any): Promise<Record<string, any>> {
+    const spinner = p.spinner()
     try {
-      console.warn(`\n⏳ checking project mode`)
+      spinner.start('Checking project mode')
       const projectResponse = await this.getProject()
-      console.warn(`${chalk.green('✓')} Project mode checked successfully`)
+      spinner.stop('Project mode checked successfully')
       let suiteResponse: any
       if (projectResponse.suite_mode === 3) {
-        console.warn(`\n⏳ Creating test suite`)
+        spinner.start('Creating test suite')
         suiteResponse = await this.createTestSuite({
           name: runData.root.name,
         })
-        console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.bold('test suite')}`)
+        spinner.stop('Test suite created successfully')
       }
 
       const sections = runData.sections || []
@@ -189,11 +191,12 @@ export class TestRailETL extends ETLv2 {
       )
 
       if (batchResult1.isOk) {
-        console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${sectionIdMap.size} ${chalk.bold('sections')}`)
+        spinner.stop(`${sectionIdMap.size} sections created successfully`)
       }
       else {
         const errorObj = batchResult1 as { error: Error }
-        console.error('Error creating sections:', errorObj.error)
+        spinner.stop('Error creating sections')
+        throw new Error(`TestRail section creation failed: ${errorObj.error}`)
       }
 
       const testCases = runData.cases || []
@@ -270,7 +273,7 @@ export class TestRailETL extends ETLv2 {
         console.error('Error creating test cases:', errorObj.error)
       }
 
-      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created test run')}`)
+      spinner.stop('Test cases created successfully')
 
       const run = {
         name: this.options?.credentials?.run_name,
@@ -279,13 +282,14 @@ export class TestRailETL extends ETLv2 {
         suite_id: suiteResponse?.id || null,
       }
 
-      console.warn(`\n⏳ Creating test run`)
+      spinner.start('Creating test run')
       const runResponse = await this.dataLoader.loadToTarget('runs', run, 'create', this.configManager.getConfig())
 
       if (!runResponse) {
         throw new Error('TestRail submission received no response')
       }
-      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created test run')}`)
+      spinner.stop('Test run created successfully')
+      spinner.start('Creating test results')
 
       const testResults = runData.results || []
       testResults.forEach((testResult: any) => {
@@ -298,12 +302,12 @@ export class TestRailETL extends ETLv2 {
       })
       this.updateCredentials({ ...this.options.credentials, run_id: runResponse.id })
       this.configManager.applySubstitutions()
-      console.warn(`\n⏳ Creating test results`)
       await this.createTestResult({ results: testResults })
-      console.warn(`${chalk.green('✓')} ${chalk.bold('Successfully created')} ${chalk.cyan(testResults.length)} ${chalk.bold('test results')}`)
+      spinner.stop(`Test results created successfully`)
       return runResponse
     }
     catch (error) {
+      spinner.stop()
       const errorMessage = error instanceof Error ? error.message : String(error)
       throw new Error(`TestRail submission failed: ${errorMessage}`)
     }
@@ -324,9 +328,7 @@ export class TestRailETL extends ETLv2 {
    * @returns The response from TestRail
    */
   async submitProjects(projectData: any): Promise<Record<string, any>> {
-    console.warn(`\n⏳ Creating project`)
     const response = await this.dataLoader.loadToTarget('projects', projectData, 'create', this.configManager.getConfig())
-    console.warn(`${chalk.green('✓')} Project Created`)
 
     if (response.id) {
       return response
@@ -342,9 +344,10 @@ export class TestRailETL extends ETLv2 {
    * @returns The response from TestRail
    */
   async deleteProjects(): Promise<Record<string, any>> {
-    console.warn(`⏳ Deleting Project`)
+    const spinner = p.spinner()
+    spinner.start('Deleting Project')
     const response = await this.dataLoader.loadToTarget('projects', {}, 'delete', this.configManager.getConfig())
-    console.warn(`\n${chalk.green('✓')} Project Deleted successfully`)
+    spinner.stop('Project Deleted successfully')
 
     if (response) {
       return response
