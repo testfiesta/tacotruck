@@ -1,0 +1,86 @@
+{
+  "name": "@testfiesta/tacotruck",
+  "type": "module",
+  "version": "0.3.0",
+  "description": "Test/QA data pipeline by TestFiesta",
+  "author": "TestFiesta",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/testfiesta/tacotruck.git"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./cli/index": {
+      "import": "./dist/cli/index.js",
+      "require": "./dist/cli/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.cts",
+  "bin": {
+    "tacotruck": "bin/index.js"
+  },
+  "files": [
+    "bin",
+    "configs",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npx simple-git-hooks",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "release": "bumpp --commit --push --tag",
+    "tf:pipe": "tsx scripts/pipeline-submit-tf.ts"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "@inquirer/prompts": "^7.8.0",
+    "chalk": "^5.4.1",
+    "cli-progress": "^3.12.0",
+    "commander": "^14.0.0",
+    "delay": "^6.0.0",
+    "fast-xml-parser": "^5.2.5",
+    "form-data": "^4.0.3",
+    "gradient-string": "^3.0.0",
+    "ofetch": "^1.4.1",
+    "p-limit": "^6.2.0",
+    "p-queue": "^8.1.0",
+    "p-throttle": "^7.0.0",
+    "std-env": "^3.9.0",
+    "zod": "^4.0.5"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^4.17.0",
+    "@types/cli-progress": "^3.11.6",
+    "@types/node": "^24.0.13",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "bumpp": "^10.2.0",
+    "eslint": "^9.31.0",
+    "eslint-plugin-format": "^1.0.1",
+    "lint-staged": "^16.1.4",
+    "simple-git-hooks": "^2.13.1",
+    "tsdown": "^0.12.9",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
+  }
+}

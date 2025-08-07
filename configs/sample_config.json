@@ -1,0 +1,75 @@
+{
+  "name": "testrail", // The name of the service you're pulling data from/pushing data to.
+  "requests_per_second": 2, // The API rate limit for an API service.
+  "base_path": "index.php?", // The base API path to append to the base URL provided in the credentials file.
+  "denormalized_keys": { // Special case for APIs with denormalized key requirements.
+    "cases": { // The type of data you're trying to pull with denormalized keys.
+      "suites": { // The key that needs to be matched to match with the denormalized key.
+        "projects.id": "project_id" // The key in the URL and where you can find the matching data in the denormalized key.
+       }
+    }
+  },
+  "paging": { // Paging information.
+    "location": "response", // Where paging information is communicated.
+    "link_key": "_links.next", // The key to the "next page" link, if provided.
+    "options": { // Paging options.
+      "location": "querystring", // Where paging options are set.
+      "limit": { // The "limit" option sets the maximum number of results returned per request.
+        "key": "limit", // The key for communicating the "limit" option.
+        "value": "250" // The value you want for the "limit" option.
+      },
+      "offset": { // The "offset" option relates to seeking pages beyond the first page.
+        "key": "offset" // The key for communicating the "offset" option.
+      }
+    }
+  },
+  "auth": { // API authentication information
+    "type": "basic" // The type of authentication used - more data can be found in src/utils/auth.js
+  },
+  "source": { // Endpoints for using this service as a data "source"
+    "projects": { // The type of data we are working with.
+      "response_data_key": "projects", // The key under which data resides in the response object.
+      "target": "projects", // The key of this data in the intermediate representation.
+      "endpoints": { // Endpoints for the various actions that can be performed
+        "index": { // Type of action
+          "path": "api/v2/get_projects", // The API path to access the data. (Appended to base URL and base path.
+          "required": [] // Additional required keys for this path.
+        },
+      },
+      "mapping": { // Mapping of data keys and their corresponding keys in the intermediate representation.
+	"id": "source_id", // 'source_id' is a special key that should be mapped to the identifying field
+	"foo": "bar"  // All unmapped data fields will be stored under the 'custom_fields' key in the IR.
+      },
+      "limit": { // Limit how much data we pull from the API.
+        "cutoff": "hard", // Whether or not to save additional records that have already been pulled after the limit
+        "type": "count", // Can be 'count' or 'match for limiting by raw record cound or when a record match is found
+        "value": "10" // The count we are limiting by. Will keep additional records received.
+        ... or ...
+        "cutoff": "soft",
+        "type": "match",
+        "value": "id:2" // The key/value pair we're looking for in the response to limit by, separated by a ':'.
+        }               //   The matching record will _not_ be included.
+      }
+    }
+  },
+  "target": { // Endpoints for using this service as a data "target".
+    "projects": { // The type of data we are working with.
+      "target": "projects", // The key of this data in the intermediate representation.
+      "endpoints": { // Endpoints for the various actions that can be performed
+        "create": { // Type of action
+          "bulk_path": "", // Path for bulk creation
+          "single_path": "api/v2/add_project", // Path for individual creation
+          "required": ["name"] // Required fields
+          "data_key": "", // The key used for storing the POST/PATCH data
+          "include_source": false // Whether or not to include the data "source" when submitting
+        },
+        "update": {
+          "path": "api/v2/update_project/{id}", // Path for updates
+          "required": ["id", "name"], // Required fieds
+          "update_key": "id" // Key used to identify an update vs creation (default: "id")
+          "data_key": "" // The key used for storing the POST/PATCH data
+        }
+      }
+    }
+  }
+}

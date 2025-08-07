@@ -1,0 +1,72 @@
+{
+  "name": "testfiesta",
+  "type": "api",
+  "base_path": "v1/{handle}",
+  "auth": {
+    "type": "bearer",
+    "location": "header",
+    "key": "Authorization",
+    "payload": "Bearer {token}"
+  },
+  "multi_target": {
+    "path": "/projects/{projectKey}/data",
+    "data_key": "entries",
+    "include_source": true
+  },
+  "target": {
+    "projects": {
+      "endpoints": {
+        "create": {
+          "bulk_path": "/projects",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
+    },
+    "suites": {
+      "endpoints": {
+        "create": {
+          "bulk_path": "api/v1/data",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
+    },
+    "cases": {
+      "endpoints": {
+        "create": {
+          "bulk_path": "api/v1/data",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
+    },
+    "plans": {
+      "endpoints": {
+        "create": {
+          "bulk_path": "api/v1/data",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
+    },
+    "runs": {
+      "endpoints": {
+        "create": {
+          "bulk_path": "api/v1/data",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
+    },
+    "executions": {
+      "endpoints": {
+        "create": {
+          "bulk_path": "api/v1/data",
+          "data_key": "entries",
+          "include_source": true
+        }
+      }
+    }
+  }
+}
