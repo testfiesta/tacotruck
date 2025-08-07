@@ -242,7 +242,13 @@ export class ETLv2 {
     }
 
     try {
-      const result = await this.dataExtractor.extract('projects', ids, 'get', this.configManager.getConfig())
+      const result = await this.dataExtractor.extract(ids)
+      if (this.options.enablePerformanceMonitoring) {
+        this.performanceMonitor.recordProcessed(
+          Object.values(result.metadata.recordCounts).reduce((a, b) => a + b, 0),
+        )
+        this.performanceMonitor.endPhase()
+      }
 
       return result
     }
