@@ -4,6 +4,7 @@ import type { AuthOptions } from './authentication-manager'
 import { apiClient } from '../../services/api-client'
 import { processBatches } from '../../utils/batch-processor'
 import { getLogger } from '../../utils/logger'
+import { substituteUrlStrict } from '../../utils/url-substitutor'
 import { ConfigurationError, ErrorManager, ETLErrorType, NetworkError, ValidationError } from './error-manager'
 
 export interface LoadingOptions {
@@ -67,7 +68,6 @@ export class DataLoader {
       ...options,
     }
     this.errorManager = errorManager || new ErrorManager()
-    this.precomputeTargetUrls()
   }
 
   /**
@@ -209,6 +209,7 @@ export class DataLoader {
     data: any,
     endpoint: string = 'create',
     newConfig?: ConfigType,
+    params?: Record<string, any>,
   ): Promise<Record<string, any>> {
     const target = (newConfig || this.config).target?.[targetType]?.endpoints?.[endpoint]
 
@@ -219,7 +220,8 @@ export class DataLoader {
       )
     }
 
-    const url = this.getTargetUrl(targetType, endpoint, target)
+    const targetPath = this.getTargetUrl(targetType, endpoint, target)
+    const url = this.buildEndpointUrl(targetPath, params)
 
     if (this.options.verbose) {
       const logger = getLogger()
@@ -501,8 +503,7 @@ export class DataLoader {
         `No path configuration found for ${targetType}.${operation}`,
       )
     }
-
-    return this.buildEndpointUrl(path)
+    return path
   }
 
   /**
@@ -510,7 +511,7 @@ export class DataLoader {
    * @param path The endpoint path
    * @returns Complete URL
    */
-  private buildEndpointUrl(path: string): string {
+  private buildEndpointUrl(path: string, params?: Record<string, any>): string {
     const baseUrl = this.options.baseUrl || ''
 
     if (!baseUrl) {
@@ -523,48 +524,7 @@ export class DataLoader {
     const pathHasBasePath = path.startsWith(basePath)
 
     const pathWithBase = pathHasBasePath ? path : (basePath + path).replace(/^\/+/, '')
-
-    return `${cleanBase}/${pathWithBase}`
-  }
-
-  /**
-   * Precompute target URLs for performance optimization
-   */
-  private precomputeTargetUrls(): void {
-    if (!this.config.target || !this.options.baseUrl) {
-      return
-    }
-
-    this.targetUrls = {}
-
-    for (const entityType of Object.keys(this.config.target)) {
-      const entity = this.config.target[entityType]
-      if (!entity.endpoints)
-        continue
-
-      this.targetUrls[entityType] = {}
-
-      if (entity.endpoints.update?.path) {
-        this.targetUrls[entityType].update = this.buildEndpointUrl(entity.endpoints.update.path)
-      }
-
-      if (entity.endpoints.create) {
-        const createEndpoint = entity.endpoints.create
-        if (createEndpoint.single_path) {
-          this.targetUrls[entityType].create = this.buildEndpointUrl(createEndpoint.single_path)
-        }
-        if (createEndpoint.bulk_path) {
-          this.targetUrls[entityType].bulk = this.buildEndpointUrl(createEndpoint.bulk_path)
-        }
-      }
-    }
-
-    // Handle multi-target
-    if ('multi_target' in this.config && (this.config as any).multi_target?.path) {
-      this.targetUrls.multi_target = {
-        path: this.buildEndpointUrl((this.config as any).multi_target.path),
-      }
-    }
+    return substituteUrlStrict(`${cleanBase}/${pathWithBase}`, params || {})
   }
 
   /**
@@ -650,10 +610,6 @@ export class DataLoader {
    */
   updateOptions(options: Partial<LoadingOptions>): void {
     this.options = { ...this.options, ...options }
-
-    if (options.baseUrl || options.basePath !== undefined) {
-      this.precomputeTargetUrls()
-    }
   }
 
   /**

@@ -1,13 +1,11 @@
 import type { ConfigType } from '../utils/config-schema'
 import type { ETLv2Options } from './etl-base-v2'
 
-import chalk from 'chalk'
-
+import * as p from '@clack/prompts'
 import { loadConfig } from '../utils/enhanced-config-loader'
 import { processBatchedRequests } from '../utils/network'
 import { err, ok } from '../utils/result'
 import { ETLv2 } from './etl-base-v2'
-import * as p from '@clack/prompts'
 
 export class TestRailETL extends ETLv2 {
   /**
@@ -39,13 +37,13 @@ export class TestRailETL extends ETLv2 {
    * @param sectionData The section data to submit
    * @returns The response from TestRail with the created section
    */
-  async createSection(sectionData: any): Promise<Record<string, any>> {
+  async createSection(sectionData: any, params: any): Promise<Record<string, any>> {
     try {
       if (!sectionData.name) {
         throw new Error('name is required for creating a section')
       }
 
-      const response = await this.loadToTarget('sections', sectionData, 'create')
+      const response = await this.dataLoader.loadToTarget('sections', sectionData, 'create', this.configManager.getConfig(), params)
 
       if (!response) {
         throw new Error('TestRail section creation received no response')
@@ -64,13 +62,13 @@ export class TestRailETL extends ETLv2 {
    * @param caseData The test case data to submit
    * @returns The response from TestRail with the created test case
    */
-  async createTestCase(caseData: any): Promise<Record<string, any>> {
+  async createTestCase(caseData: any, params: any): Promise<Record<string, any>> {
     try {
       if (!caseData.title) {
         throw new Error('title is required for creating a test case')
       }
 
-      const response = await this.loadToTarget('cases', caseData, 'create')
+      const response = await this.dataLoader.loadToTarget('cases', caseData, 'create', this.configManager.getConfig(), params)
 
       if (!response) {
         throw new Error('TestRail test case creation received no response')
@@ -91,7 +89,7 @@ export class TestRailETL extends ETLv2 {
    */
   async createTestResult(resultData: any): Promise<Record<string, any>> {
     try {
-      const response = await this.loadToTarget('results', resultData, 'create')
+      const response = await this.dataLoader.loadToTarget('results', resultData, 'create', this.configManager.getConfig())
 
       if (!response) {
         throw new Error('TestRail test result creation received no response')
@@ -112,7 +110,8 @@ export class TestRailETL extends ETLv2 {
    */
   async createTestSuite(suiteData: any): Promise<Record<string, any>> {
     try {
-      const response = await this.loadToTarget('suites', suiteData, 'create')
+      console.log(suiteData)
+      const response = await this.dataLoader.loadToTarget('suites', suiteData, 'create', this.configManager.getConfig())
 
       if (!response) {
         throw new Error('TestRail test suite creation received no response')
@@ -131,22 +130,22 @@ export class TestRailETL extends ETLv2 {
    * @param runData The test run data to submit
    * @returns The response from TestRail
    */
-  async submitTestRun(runData: any): Promise<Record<string, any>> {
+  async submitTestRun(resultData: any, params: any, runName: string): Promise<Record<string, any>> {
     const spinner = p.spinner()
     try {
       spinner.start('Checking project mode')
-      const projectResponse = await this.getProject()
+      const projectResponse = await this.getProjectById(params.project_id)
       spinner.stop('Project mode checked successfully')
       let suiteResponse: any
       if (projectResponse.suite_mode === 3) {
         spinner.start('Creating test suite')
         suiteResponse = await this.createTestSuite({
-          name: runData.root.name,
+          name: resultData.root.name,
         })
         spinner.stop('Test suite created successfully')
       }
 
-      const sections = runData.sections || []
+      const sections = resultData.sections || []
       const sectionIdMap = new Map()
       const sectionRequests = sections.map((section: { name: string, id: string, [key: string]: any }) => {
         return async () => {
@@ -154,7 +153,7 @@ export class TestRailETL extends ETLv2 {
             const response = await this.createSection({
               name: section.name,
               suite_id: suiteResponse?.id || null,
-            })
+            }, params)
 
             let result: Record<string, any>
             if (response && typeof response.json === 'function') {
@@ -178,7 +177,7 @@ export class TestRailETL extends ETLv2 {
       const batchResult1 = await processBatchedRequests<Record<string, any>, Error>(
         sectionRequests,
         this.options.maxConcurrency || 5,
-        this.options.batchSize || 10,
+        this.options.batchSize || 5,
         1000,
         {
           retry: this.options.retryAttempts,
@@ -199,7 +198,7 @@ export class TestRailETL extends ETLv2 {
         throw new Error(`TestRail section creation failed: ${errorObj.error}`)
       }
 
-      const testCases = runData.cases || []
+      const testCases = resultData.cases || []
 
       testCases.forEach((testCase: any) => {
         if (testCase.section_id && sectionIdMap.has(testCase.section_id)) {
@@ -217,13 +216,13 @@ export class TestRailETL extends ETLv2 {
         return async () => {
           try {
             if (this.options?.credentials?.section_id !== testCase.section_id) {
-              this.updateCredentials({ ...this.options.credentials, section_id: testCase.section_id })
-              this.configManager.applySubstitutions()
+              // this.updateCredentials({ ...this.options.credentials, section_id: testCase.section_id })
+              // this.configManager.applySubstitutions()
             }
 
             const response = await this.createTestCase({
               title: testCase.title || testCase.name,
-            })
+            }, { section_id: testCase.section_id })
 
             let result: Record<string, any>
             if (response && typeof response.json === 'function') {
@@ -276,14 +275,14 @@ export class TestRailETL extends ETLv2 {
       spinner.stop('Test cases created successfully')
 
       const run = {
-        name: this.options?.credentials?.run_name,
+        name: runName,
         case_ids: caseIds,
         include_all: false,
         suite_id: suiteResponse?.id || null,
       }
 
       spinner.start('Creating test run')
-      const runResponse = await this.dataLoader.loadToTarget('runs', run, 'create', this.configManager.getConfig())
+      const runResponse = await this.dataLoader.loadToTarget('runs', run, 'create', this.configManager.getConfig(), params)
 
       if (!runResponse) {
         throw new Error('TestRail submission received no response')
@@ -291,7 +290,7 @@ export class TestRailETL extends ETLv2 {
       spinner.stop('Test run created successfully')
       spinner.start('Creating test results')
 
-      const testResults = runData.results || []
+      const testResults = resultData.results || []
       testResults.forEach((testResult: any) => {
         if (testResult.case_id && casesIdMap.has(testResult.case_id)) {
           testResult.case_id = casesIdMap.get(testResult.case_id)
@@ -318,8 +317,8 @@ export class TestRailETL extends ETLv2 {
    * @param projectId The project ID to fetch
    * @returns The specific project data
    */
-  async getProject(): Promise<Record<string, any>> {
-    return await this.dataExtractor.extract('projects', {}, 'get', this.configManager.getConfig())
+  async getProjectById(projectId: string): Promise<Record<string, any>> {
+    return await this.dataExtractor.extract('projects', { project_id: projectId }, 'get', this.configManager.getConfig())
   }
 
   /**

@@ -61,8 +61,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       credentials: {
         base64Credentials: Buffer.from(`${args.email}:${args.password}`).toString('base64'),
         base_url: args.url,
-        project_id: args.projectId,
-        run_name: args.runName,
+        // project_id: args.projectId,
       },
       etlOptions: {
         baseUrl: args.url,
@@ -82,8 +81,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     if (runData === null)
       return
 
-
-    await testRailETL.submitTestRun(transformedData)
+    await testRailETL.submitTestRun(transformedData, { project_id: args.projectId }, args.runName)
     p.log.success('Successfully submitted result to TestRail')
   }
   catch (error) {

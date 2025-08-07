@@ -173,7 +173,7 @@ describe('network utils', () => {
         expect(result.unwrap()).toEqual(mockResult)
       }
 
-      expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', {}, 'projects')
+        expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', {})
     })
 
     it('should handle errors properly', async () => {
@@ -195,7 +195,7 @@ describe('network utils', () => {
         expect(() => result.unwrap()).toThrow('Network error')
       }
 
-      expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', {}, 'projects')
+      expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', {})
     })
 
     it('should respect retryAttempts and retryDelay options for GET requests', async () => {
@@ -228,7 +228,7 @@ describe('network utils', () => {
         expect(result.unwrap()).toEqual(mockResult)
       }
 
-      expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', options, 'projects')
+      expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', options)
     })
   })
 

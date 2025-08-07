@@ -3,6 +3,7 @@ import type { ConfigType } from '../../utils/config-schema'
 import type { AuthOptions } from './authentication-manager'
 import { apiClient } from '../../services/api-client'
 import { getLogger } from '../../utils/logger'
+import { substituteUrlStrict } from '../../utils/url-substitutor'
 import { ConfigurationError, ErrorManager, NetworkError } from './error-manager'
 
 export interface ExtractionOptions {
@@ -58,11 +59,10 @@ export class DataExtractor {
    * @returns Extraction result with data and metadata
    */
 
-  async extract(sourceType: string, params: Record<string, any>, fetchType: 'index' | 'get' = 'index', newConfig?: ConfigType): Promise<any> {
+  async extract(sourceType: string, params?: Record<string, any>, fetchType: 'index' | 'get' = 'index', newConfig?: ConfigType): Promise<any> {
     const data: Record<string, any> = {
       source: this.config.name || 'unknown',
     }
-    console.log(params)
 
     const source = (newConfig || this.config).source?.[sourceType]?.endpoints?.[fetchType]
 
@@ -72,7 +72,7 @@ export class DataExtractor {
         { sourceType, fetchType },
       )
     }
-    const url = this.buildUrl(source.path || '')
+    const url = this.buildUrl(source.path || '', params || {})
     if (this.options.verbose) {
       const logger = getLogger()
       logger.warn('url for loading to target', { url })
@@ -295,7 +295,7 @@ export class DataExtractor {
    * @param path The path to append to base URL
    * @returns Complete URL
    */
-  private buildUrl(path: string): string {
+  private buildUrl(path: string, params?: Record<string, any>): string {
     const baseUrl = this.options.baseUrl || ''
 
     if (!baseUrl) {
@@ -307,7 +307,7 @@ export class DataExtractor {
     const cleanBase = baseUrl.replace(/\/+$/, '')
     const cleanPath = path.replace(/^\/+/, '')
 
-    return `${cleanBase}/${base_path}/${cleanPath}`
+    return substituteUrlStrict(`${cleanBase}/${base_path}/${cleanPath}`, params || {})
   }
 
   /**
