@@ -173,7 +173,7 @@ describe('network utils', () => {
         expect(result.unwrap()).toEqual(mockResult)
       }
 
-        expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', {})
+      expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', {})
     })
 
     it('should handle errors properly', async () => {
