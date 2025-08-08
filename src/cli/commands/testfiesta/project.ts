@@ -1,11 +1,18 @@
+import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
+import { TestFiestaETL } from '../../../controllers/testfiesta-etl'
+import { initializeLogger, setVerbose } from '../../../utils/logger'
 
 interface CreateProjectArgs {
   name: string
   key: string
-  organization: string
+  token: string
+  priority: number
+  status: number
+  handle: string
   verbose?: boolean
+  description?: string
+  customFields?: string
 }
 
 export function createProjectCommand() {
@@ -14,8 +21,10 @@ export function createProjectCommand() {
     .requiredOption('-n, --name <n>', 'Project name')
     .requiredOption('-k, --key <key>', 'Project key')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
-    .requiredOption('-h, --organization <organization>', 'Organization handle')
+    .requiredOption('-h, --handle <handle>', 'Organization handle')
     .option('-v, --verbose', 'Enable verbose logging')
+    .option('-d, --description <description>', 'Project description')
+    .option('-c, --custom-fields <customFields>', 'Custom fields as JSON string')
     .action(async (args: CreateProjectArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
@@ -26,6 +35,33 @@ export function createProjectCommand() {
 }
 
 export async function runCreateProject(_args: CreateProjectArgs & { verbose?: boolean }): Promise<void> {
-  const logger = getLogger()
-  logger.debug('Creating project in TestFiesta', { args: _args })
+  const spinner = p.spinner()
+  try {
+    spinner.start('Creating project in TestFiesta')
+    const testFiestaETL = await TestFiestaETL.fromConfig({
+      credentials: {
+        token: _args.token,
+      },
+      etlOptions: {
+        baseUrl: 'https://staging.api.testfiesta.com',
+        enablePerformanceMonitoring: false,
+        strictMode: false,
+        retryAttempts: 3,
+        timeout: 30000,
+      },
+    })
+    const customFields = _args.customFields ? JSON.parse(_args.customFields) : {}
+    await testFiestaETL.submitProjects({
+      name: _args.name,
+      key: _args.key,
+      customFields,
+    }, {
+      handle: _args.handle,
+    })
+    spinner.stop('Project created successfully')
+  }
+  catch (error) {
+    spinner.stop('Project creation failed')
+    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+  }
 }

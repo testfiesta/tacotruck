@@ -208,10 +208,9 @@ export class DataLoader {
     targetType: string,
     data: any,
     endpoint: string = 'create',
-    newConfig?: ConfigType,
     params?: Record<string, any>,
   ): Promise<Record<string, any>> {
-    const target = (newConfig || this.config).target?.[targetType]?.endpoints?.[endpoint]
+    const target = this.config.target?.[targetType]?.endpoints?.[endpoint]
 
     if (!target) {
       throw new ConfigurationError(
@@ -513,11 +512,9 @@ export class DataLoader {
    */
   private buildEndpointUrl(path: string, params?: Record<string, any>): string {
     const baseUrl = this.options.baseUrl || ''
-
     if (!baseUrl) {
       throw new ConfigurationError('Base URL is required for data loading')
     }
-
     const cleanBase = baseUrl.replace(/\/+$/, '')
 
     const basePath = this.config.base_path || ''

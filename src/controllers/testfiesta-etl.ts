@@ -99,14 +99,14 @@ export class TestFiestaETL extends ETLv2 {
    * @param projectData The project data to submit
    * @returns The response from TestFiesta
    */
-  async submitProjects(projectData: any): Promise<Record<string, any>> {
-    const etlResult = await this.execute({ projects: Array.isArray(projectData) ? projectData : [projectData] })
-    if (etlResult.success) {
-      return etlResult.loadingResult?.responses || { success: true }
+  async submitProjects(projectData: any, params: any): Promise<Record<string, any>> {
+    const response = await this.dataLoader.loadToTarget('projects', projectData, 'create', params)
+
+    if (response.uid) {
+      return response
     }
     else {
-      const errorMessage = etlResult.errors.map(e => e.message).join('; ')
-      throw new Error(`TestFiesta projects submission failed: ${errorMessage}`)
+      throw new Error(`TestFiesta projects submission failed: ${response}`)
     }
   }
 

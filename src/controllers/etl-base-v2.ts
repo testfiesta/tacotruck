@@ -242,10 +242,11 @@ export class ETLv2 {
     }
 
     try {
-      const result = await this.dataExtractor.extract(ids)
+      const result = await this.dataExtractor.extract(ids as any)
       if (this.options.enablePerformanceMonitoring) {
+        const recordCounts = Object.values(result.metadata.recordCounts).map(Number)
         this.performanceMonitor.recordProcessed(
-          Object.values(result.metadata.recordCounts).reduce((a, b) => a + b, 0),
+          recordCounts.reduce((a, b) => a + b, 0),
         )
         this.performanceMonitor.endPhase()
       }
@@ -274,8 +275,9 @@ export class ETLv2 {
       const result = await this.dataTransformer.transform(data)
 
       if (this.options.enablePerformanceMonitoring) {
+        const recordCounts = Object.values(result.metadata.recordCounts).map(Number)
         this.performanceMonitor.recordProcessed(
-          Object.values(result.metadata.recordCounts).reduce((a, b) => a + b, 0),
+          recordCounts.reduce((a, b) => a + b, 0),
         )
         this.performanceMonitor.endPhase()
       }
@@ -304,8 +306,9 @@ export class ETLv2 {
       const result = await this.dataLoader.load(data)
 
       if (this.options.enablePerformanceMonitoring) {
+        const recordCounts = Object.values(result.metadata.recordCounts).map(Number)
         this.performanceMonitor.recordProcessed(
-          Object.values(result.metadata.recordCounts).reduce((a, b) => a + b, 0),
+          recordCounts.reduce((a, b) => a + b, 0),
         )
         this.performanceMonitor.endPhase()
       }
