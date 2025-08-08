@@ -7,11 +7,8 @@ interface CreateProjectArgs {
   name: string
   key: string
   token: string
-  priority: number
-  status: number
   handle: string
   verbose?: boolean
-  description?: string
   customFields?: string
 }
 
@@ -23,8 +20,6 @@ export function createProjectCommand() {
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
     .requiredOption('-h, --handle <handle>', 'Organization handle')
     .option('-v, --verbose', 'Enable verbose logging')
-    .option('-d, --description <description>', 'Project description')
-    .option('-c, --custom-fields <customFields>', 'Custom fields as JSON string')
     .action(async (args: CreateProjectArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
