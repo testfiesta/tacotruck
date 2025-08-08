@@ -6,36 +6,39 @@ import {
 import * as networkUtils from '../utils/network'
 
 interface TestFiestaClientOptions {
-  baseUrl?: string
+  baseUrl: string
+  organization: string
   apiKey: string
 }
 
 export const createProjectSchema = z.object({
   name: z.string().min(1),
-  description: z.string().min(1),
+  key: z.string().min(1),
+  customFields: z.object().default({}),
 })
+
+type CreateProjectInput = z.infer<typeof createProjectSchema>
 
 export class TestFiestaClient {
   private baseUrl: string
   private apiKey: string
-  private configurationManager: ConfigurationManager | null
+  private organization: string
+  private configurationManager: ConfigurationManager
   protected authManager: AuthenticationManager | null
 
   constructor(options: TestFiestaClientOptions) {
     this.baseUrl = options.baseUrl ?? ''
     this.apiKey = options.apiKey
-    this.configurationManager = null
-    this.authManager = null
-
-    this.prepareConfigurationManager()
-    this.prepareAuthManager()
+    this.organization = options.organization
+    this.configurationManager = this.prepareConfigurationManager()
+    this.authManager = this.prepareAuthManager()
   }
 
-  private prepareConfigurationManager() {
-    this.configurationManager = new ConfigurationManager({
+  private prepareConfigurationManager(): ConfigurationManager {
+    const configurationManager = new ConfigurationManager({
       name: 'testfiesta',
       type: 'api',
-      base_path: 'v1/{handle}',
+      base_path: 'v1/{organization}',
       auth: {
         type: 'bearer',
         location: 'header',
@@ -68,24 +71,47 @@ export class TestFiestaClient {
       baseUrl: this.baseUrl,
       credentials: {
         apiKey: this.apiKey,
+        organization: this.organization,
       },
     })
 
-    this.configurationManager.applySubstitutions()
+    configurationManager.applySubstitutions()
+    return configurationManager
   }
 
   private prepareAuthManager() {
-    if (!this.configurationManager || !this.baseUrl) {
-      return
+    if (!this.configurationManager) {
+      return null
     }
-    this.authManager = new AuthenticationManager({
+    return new AuthenticationManager({
       credentials: this.configurationManager.getCredentials(),
     })
   }
 
+  private getProjectPath() {
+    const config = this.configurationManager.getConfig()
+
+    if (!config || !config.target) {
+      return ''
+    }
+
+    const projectEndpoints = Object.keys(config?.target)
+
+    if (!projectEndpoints || projectEndpoints.length === 0) {
+      return ''
+    }
+
+    const projectPath = config.target.projects.endpoints.create.path || ''
+    return projectPath
+  }
+
   async createProject(
-  ): Promise<void> {
-    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), '/projects')
+    createProjectInput: CreateProjectInput,
+  ) {
+    const project = createProjectSchema.safeParse(createProjectInput)
+    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), this.getProjectPath(), {
+      json: project,
+    })
 
     return result.match({
       ok: (value: any) => value,
