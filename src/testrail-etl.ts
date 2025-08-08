@@ -1,19 +1,19 @@
-import type { ConfigType } from '../utils/config-schema'
-import type { ETLv2Options } from './etl-base-v2'
+import type { ETLOptions } from './etl-base'
+import type { ConfigType } from './utils/config-schema'
 
 import * as p from '@clack/prompts'
-import { loadConfig } from '../utils/enhanced-config-loader'
-import { processBatchedRequests } from '../utils/network'
-import { err, ok } from '../utils/result'
-import { ETLv2 } from './etl-base-v2'
+import { ETL } from './etl-base'
+import { loadConfig } from './utils/enhanced-config-loader'
+import { processBatchedRequests } from './utils/network'
+import { err, ok } from './utils/result'
 
-export class TestRailETL extends ETLv2 {
+export class TestRailETL extends ETL {
   /**
    * Create a new TestRailETL instance
    * @param configSchema The full configuration schema
    * @param options Additional ETL options including credentials
    */
-  constructor(configSchema: ConfigType, options: ETLv2Options = {}) {
+  constructor(configSchema: ConfigType, options: ETLOptions = {}) {
     super(configSchema, options)
   }
 
@@ -431,7 +431,7 @@ export class TestRailETL extends ETLv2 {
   static async fromConfig(options: {
     configPath?: string
     credentials?: Record<string, any>
-    etlOptions?: ETLv2Options
+    etlOptions?: ETLOptions
   } = {}): Promise<TestRailETL> {
     const { configPath, credentials, etlOptions } = options
 
@@ -446,7 +446,7 @@ export class TestRailETL extends ETLv2 {
 
     const fullConfig = result.unwrap()
 
-    const finalEtlOptions: ETLv2Options = {
+    const finalEtlOptions = {
       credentials,
       enablePerformanceMonitoring: true,
       strictMode: false,

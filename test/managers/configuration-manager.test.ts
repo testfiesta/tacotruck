@@ -1,6 +1,6 @@
-import type { ConfigType } from '../../../src/utils/config-schema'
+import type { ConfigType } from '../../src/utils/config-schema'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { ConfigurationManager } from '../../../src/controllers/managers/configuration-manager'
+import { ConfigurationManager } from '../../src/managers/configuration-manager'
 
 describe('configurationManager', () => {
   const mockConfig: ConfigType = {

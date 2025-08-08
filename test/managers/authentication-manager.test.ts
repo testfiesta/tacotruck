@@ -1,6 +1,6 @@
-import type { ConfigType } from '../../../src/utils/config-schema'
+import type { ConfigType } from '../../src/utils/config-schema'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { AuthenticationManager } from '../../../src/controllers/managers/authentication-manager'
+import { AuthenticationManager } from '../../src/managers/authentication-manager'
 
 describe('authenticationManager', () => {
   const mockCredentials = {

@@ -1,18 +1,18 @@
-import type { ConfigType } from '../utils/config-schema'
-import type { ETLv2Options } from './etl-base-v2'
+import type { ETLOptions } from './etl-base'
+import type { ConfigType } from './utils/config-schema'
 import chalk from 'chalk'
-import { apiClient } from '../services/api-client'
-import { loadConfig } from '../utils/enhanced-config-loader'
-import { getLogger } from '../utils/logger'
-import { ETLv2 } from './etl-base-v2'
+import { ETL } from './etl-base'
+import { apiClient } from './services/api-client'
+import { loadConfig } from './utils/enhanced-config-loader'
+import { getLogger } from './utils/logger'
 
-export class TestFiestaETL extends ETLv2 {
+export class TestFiestaETL extends ETL {
   /**
    * Create a new TestFiestaETL instance
    * @param configSchema The full configuration schema
    * @param options Additional ETL options including credentials
    */
-  constructor(configSchema: ConfigType, options: ETLv2Options = {}) {
+  constructor(configSchema: ConfigType, options: ETLOptions = {}) {
     super(configSchema, options)
   }
 
@@ -207,7 +207,7 @@ export class TestFiestaETL extends ETLv2 {
   static async fromConfig(options: {
     configPath?: string
     credentials?: Record<string, any>
-    etlOptions?: ETLv2Options
+    etlOptions?: ETLOptions
   } = {}): Promise<TestFiestaETL> {
     const { configPath, credentials, etlOptions } = options
 
@@ -222,7 +222,7 @@ export class TestFiestaETL extends ETLv2 {
 
     const fullConfig = result.unwrap()
 
-    const finalEtlOptions: ETLv2Options = {
+    const finalEtlOptions = {
       credentials,
       enablePerformanceMonitoring: true,
       strictMode: false,

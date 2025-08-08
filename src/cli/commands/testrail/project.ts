@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import { select } from '@inquirer/prompts'
 import * as Commander from 'commander'
-import { TestRailETL } from '../../../controllers/testrail-etl'
+import { TestRailETL } from '../../../testrail-etl'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
 interface CreateProjectArgs {

@@ -1,5 +1,5 @@
-import type { LoggingOptions } from '../controllers/managers/logging-manager'
-import { LoggingManager, LogLevel } from '../controllers/managers/logging-manager'
+import type { LoggingOptions } from '../managers/logging-manager'
+import { LoggingManager, LogLevel } from '../managers/logging-manager'
 
 let logger: LoggingManager | null = null
 

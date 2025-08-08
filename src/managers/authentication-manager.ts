@@ -1,4 +1,4 @@
-import type { ConfigType } from '../../utils/config-schema'
+import type { ConfigType } from '../utils/config-schema'
 
 export interface AuthOptions {
   type: string

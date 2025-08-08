@@ -11,7 +11,7 @@ import {
   TimeoutError,
   TransformationError,
   ValidationError,
-} from '../../../src/controllers/managers/error-manager'
+} from '../../src/managers/error-manager'
 
 describe('errorManager', () => {
   let errorManager: ErrorManager
