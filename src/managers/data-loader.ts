@@ -208,10 +208,9 @@ export class DataLoader {
     targetType: string,
     data: any,
     endpoint: string = 'create',
-    newConfig?: ConfigType,
     params?: Record<string, any>,
   ): Promise<Record<string, any>> {
-    const target = (newConfig || this.config).target?.[targetType]?.endpoints?.[endpoint]
+    const target = this.config.target?.[targetType]?.endpoints?.[endpoint]
 
     if (!target) {
       throw new ConfigurationError(

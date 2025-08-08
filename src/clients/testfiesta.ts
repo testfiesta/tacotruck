@@ -85,7 +85,7 @@ export class TestFiestaClient {
 
   async createProject(
   ): Promise<void> {
-    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), 'hello')
+    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), '/projects')
 
     return result.match({
       ok: (value: any) => value,
@@ -97,7 +97,7 @@ export class TestFiestaClient {
 
   async deleteProject(
   ): Promise<void> {
-    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), 'hello')
+    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), '/projects')
 
     return result.match({
       ok: (value: any) => value,
@@ -109,7 +109,7 @@ export class TestFiestaClient {
 
   async getProjects(
   ): Promise<void> {
-    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), 'hello')
+    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), '/projects')
 
     return result.match({
       ok: (value: any) => value,
