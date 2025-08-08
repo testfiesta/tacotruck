@@ -1,10 +1,10 @@
-import type { ConfigType } from '../../utils/config-schema'
-import type { RequestOptions } from '../../utils/network'
+import type { ConfigType } from '../utils/config-schema'
+import type { RequestOptions } from '../utils/network'
 import type { AuthOptions } from './authentication-manager'
-import { apiClient } from '../../services/api-client'
-import { processBatches } from '../../utils/batch-processor'
-import { getLogger } from '../../utils/logger'
-import { substituteUrlStrict } from '../../utils/url-substitutor'
+import { apiClient } from '../services/api-client'
+import { processBatches } from '../utils/batch-processor'
+import { getLogger } from '../utils/logger'
+import { substituteUrlStrict } from '../utils/url-substitutor'
 import { ConfigurationError, ErrorManager, ETLErrorType, NetworkError, ValidationError } from './error-manager'
 
 export interface LoadingOptions {
@@ -208,10 +208,9 @@ export class DataLoader {
     targetType: string,
     data: any,
     endpoint: string = 'create',
-    newConfig?: ConfigType,
     params?: Record<string, any>,
   ): Promise<Record<string, any>> {
-    const target = (newConfig || this.config).target?.[targetType]?.endpoints?.[endpoint]
+    const target = this.config.target?.[targetType]?.endpoints?.[endpoint]
 
     if (!target) {
       throw new ConfigurationError(

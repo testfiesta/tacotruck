@@ -1,5 +1,5 @@
-import type { ConfigType } from '../../utils/config-schema'
-import { applySourceControlInfo } from '../../utils/batch-processor'
+import type { ConfigType } from '../utils/config-schema'
+import { applySourceControlInfo } from '../utils/batch-processor'
 import { ErrorManager, ETLErrorType, TransformationError, ValidationError } from './error-manager'
 
 export interface TransformationOptions {

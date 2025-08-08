@@ -1,9 +1,9 @@
-import type { ResponseData } from '../../services/api-client'
-import type { ConfigType } from '../../utils/config-schema'
+import type { ResponseData } from '../services/api-client'
+import type { ConfigType } from '../utils/config-schema'
 import type { AuthOptions } from './authentication-manager'
-import { apiClient } from '../../services/api-client'
-import { getLogger } from '../../utils/logger'
-import { substituteUrlStrict } from '../../utils/url-substitutor'
+import { apiClient } from '../services/api-client'
+import { getLogger } from '../utils/logger'
+import { substituteUrlStrict } from '../utils/url-substitutor'
 import { ConfigurationError, ErrorManager, NetworkError } from './error-manager'
 
 export interface ExtractionOptions {

@@ -1,7 +1,7 @@
 /* eslint-disable no-new */
-import type { ConfigType } from '../../src/utils/config-schema'
+import type { ConfigType } from '../src/utils/config-schema'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ETLv2 } from '../../src/controllers/etl-base-v2'
+import { ETL } from '../src/etl-base'
 import {
   AuthenticationError,
   AuthenticationManager,
@@ -12,15 +12,15 @@ import {
   DataTransformer,
   ErrorManager,
   PerformanceMonitor,
-} from '../../src/controllers/managers'
+} from '../src/managers'
 
-vi.mock('../../src/controllers/managers/configuration-manager')
-vi.mock('../../src/controllers/managers/authentication-manager')
-vi.mock('../../src/controllers/managers/data-extractor')
-vi.mock('../../src/controllers/managers/data-transformer')
-vi.mock('../../src/controllers/managers/data-loader')
-vi.mock('../../src/controllers/managers/performance-monitor')
-vi.mock('../../src/controllers/managers/error-manager')
+vi.mock('../src/managers/configuration-manager')
+vi.mock('../src/managers/authentication-manager')
+vi.mock('../src/managers/data-extractor')
+vi.mock('../src/managers/data-transformer')
+vi.mock('../src/managers/data-loader')
+vi.mock('../src/managers/performance-monitor')
+vi.mock('../src/managers/error-manager')
 
 describe('eTLv2', () => {
   const mockConfig: ConfigType = {
@@ -147,7 +147,7 @@ describe('eTLv2', () => {
     recommendations: ['Performance looks good!'],
   }
 
-  let etlv2: ETLv2
+  let etl: ETL
   let mockConfigManager: any
   let mockAuthManager: any
   let mockDataExtractor: any
@@ -240,9 +240,9 @@ describe('eTLv2', () => {
 
   describe('constructor', () => {
     it('should create a new ETLv2 instance with default options', () => {
-      etlv2 = new ETLv2(mockConfig)
+      etl = new ETL(mockConfig)
 
-      expect(etlv2).toBeInstanceOf(ETLv2)
+      expect(etl).toBeInstanceOf(ETL)
       expect(ConfigurationManager).toHaveBeenCalledWith(mockConfig, {
         credentials: undefined,
         allowMutation: true,
@@ -258,7 +258,7 @@ describe('eTLv2', () => {
         timeout: 60000,
       }
 
-      etlv2 = new ETLv2(mockConfig, options)
+      etl = new ETL(mockConfig, options)
 
       expect(ConfigurationManager).toHaveBeenCalledWith(mockConfig, {
         credentials: mockCredentials,
@@ -270,7 +270,7 @@ describe('eTLv2', () => {
     })
 
     it('should initialize all managers correctly', () => {
-      etlv2 = new ETLv2(mockConfig, { credentials: mockCredentials })
+      etl = new ETL(mockConfig, { credentials: mockCredentials })
 
       expect(mockConfigManager.validateConfiguration).toHaveBeenCalled()
       expect(mockConfigManager.applySubstitutions).toHaveBeenCalled()
@@ -284,7 +284,7 @@ describe('eTLv2', () => {
       })
 
       expect(() => {
-        etlv2 = new ETLv2(mockConfig, { strictMode: false })
+        etl = new ETL(mockConfig, { strictMode: false })
       }).not.toThrow()
 
       expect(mockErrorManager.addError).toHaveBeenCalled()
@@ -296,21 +296,21 @@ describe('eTLv2', () => {
       })
 
       expect(() => {
-        etlv2 = new ETLv2(mockConfig, { strictMode: true })
+        etl = new ETL(mockConfig, { strictMode: true })
       }).toThrow(ConfigurationError)
     })
   })
 
   describe('execute', () => {
     beforeEach(() => {
-      etlv2 = new ETLv2(mockConfig, {
+      etl = new ETL(mockConfig, {
         credentials: mockCredentials,
         enablePerformanceMonitoring: true,
       })
     })
 
     it('should execute complete ETL process successfully', async () => {
-      const result = await etlv2.execute()
+      const result = await etl.execute()
 
       expect(result.success).toBe(true)
       expect(result.data).toEqual(mockTransformationResult.data)
@@ -329,7 +329,7 @@ describe('eTLv2', () => {
     it('should execute with specific IDs', async () => {
       const ids = { projects: [{ id: 1 }] }
 
-      await etlv2.execute(ids)
+      await etl.execute(ids)
 
       expect(mockDataExtractor.extract).toHaveBeenCalledWith(ids)
     })
@@ -338,7 +338,7 @@ describe('eTLv2', () => {
       const extractionError = new Error('Extraction failed')
       mockDataExtractor.extract.mockRejectedValue(extractionError)
 
-      const result = await etlv2.execute()
+      const result = await etl.execute()
 
       expect(result.success).toBe(false)
       expect(result.data).toBeUndefined()
@@ -347,7 +347,7 @@ describe('eTLv2', () => {
     })
 
     it('should track performance metrics during execution', async () => {
-      await etlv2.execute()
+      await etl.execute()
 
       expect(mockPerformanceMonitor.startMonitoring).toHaveBeenCalled()
       expect(mockPerformanceMonitor.startPhase).toHaveBeenCalledWith('extract')
@@ -358,19 +358,19 @@ describe('eTLv2', () => {
     })
 
     it('should skip performance monitoring when disabled', async () => {
-      etlv2 = new ETLv2(mockConfig, {
+      etl = new ETL(mockConfig, {
         credentials: mockCredentials,
         enablePerformanceMonitoring: false,
       })
 
-      const result = await etlv2.execute()
+      const result = await etl.execute()
 
       expect(mockPerformanceMonitor.startMonitoring).not.toHaveBeenCalled()
       expect(result.performance).toBeUndefined()
     })
 
     it('should calculate metadata correctly', async () => {
-      const result = await etlv2.execute()
+      const result = await etl.execute()
 
       expect(result.metadata.startTime).toBeInstanceOf(Date)
       expect(result.metadata.endTime).toBeInstanceOf(Date)
@@ -383,7 +383,7 @@ describe('eTLv2', () => {
 
   describe('individual phase methods', () => {
     beforeEach(() => {
-      etlv2 = new ETLv2(mockConfig, {
+      etl = new ETL(mockConfig, {
         credentials: mockCredentials,
         enablePerformanceMonitoring: true,
       })
@@ -391,7 +391,7 @@ describe('eTLv2', () => {
 
     describe('extract', () => {
       it('should perform extraction with performance tracking', async () => {
-        const result = await etlv2.extract()
+        const result = await etl.extract()
 
         expect(result).toEqual(mockExtractionResult)
         expect(mockPerformanceMonitor.startPhase).toHaveBeenCalledWith('extract')
@@ -403,14 +403,14 @@ describe('eTLv2', () => {
         const extractionError = new Error('Extraction failed')
         mockDataExtractor.extract.mockRejectedValue(extractionError)
 
-        await expect(etlv2.extract()).rejects.toThrow('Extraction failed')
+        await expect(etl.extract()).rejects.toThrow('Extraction failed')
         expect(mockPerformanceMonitor.endPhase).toHaveBeenCalled()
       })
     })
 
     describe('transform', () => {
       it('should perform transformation with performance tracking', async () => {
-        const result = await etlv2.transform(mockExtractionResult.data)
+        const result = await etl.transform(mockExtractionResult.data)
 
         expect(result).toEqual(mockTransformationResult)
         expect(mockPerformanceMonitor.startPhase).toHaveBeenCalledWith('transform')
@@ -422,14 +422,14 @@ describe('eTLv2', () => {
         const transformationError = new Error('Transformation failed')
         mockDataTransformer.transform.mockRejectedValue(transformationError)
 
-        await expect(etlv2.transform(mockExtractionResult.data)).rejects.toThrow('Transformation failed')
+        await expect(etl.transform(mockExtractionResult.data)).rejects.toThrow('Transformation failed')
         expect(mockPerformanceMonitor.endPhase).toHaveBeenCalled()
       })
     })
 
     describe('load', () => {
       it('should perform loading with performance tracking', async () => {
-        const result = await etlv2.load(mockTransformationResult.data)
+        const result = await etl.load(mockTransformationResult.data)
 
         expect(result).toEqual(mockLoadingResult)
         expect(mockPerformanceMonitor.startPhase).toHaveBeenCalledWith('load')
@@ -441,7 +441,7 @@ describe('eTLv2', () => {
         const loadingError = new Error('Loading failed')
         mockDataLoader.load.mockRejectedValue(loadingError)
 
-        await expect(etlv2.load(mockTransformationResult.data)).rejects.toThrow('Loading failed')
+        await expect(etl.load(mockTransformationResult.data)).rejects.toThrow('Loading failed')
         expect(mockPerformanceMonitor.endPhase).toHaveBeenCalled()
       })
     })
@@ -449,12 +449,12 @@ describe('eTLv2', () => {
 
   describe('loadToTarget', () => {
     beforeEach(() => {
-      etlv2 = new ETLv2(mockConfig, { credentials: mockCredentials })
+      etl = new ETL(mockConfig, { credentials: mockCredentials })
     })
 
     it('should delegate to DataLoader', async () => {
       const data = { test: 'data' }
-      const result = await etlv2.loadToTarget('projects', data, 'create')
+      const result = await etl.loadToTarget('projects', data, 'create')
 
       expect(mockDataLoader.loadToTarget).toHaveBeenCalledWith('projects', data, 'create', mockConfigManager.getConfig())
       expect(result).toEqual({ success: true })
@@ -463,13 +463,13 @@ describe('eTLv2', () => {
 
   describe('updateCredentials', () => {
     beforeEach(() => {
-      etlv2 = new ETLv2(mockConfig, { credentials: mockCredentials })
+      etl = new ETL(mockConfig, { credentials: mockCredentials })
     })
 
     it('should update credentials across all managers', () => {
       const newCredentials = { token: 'new-token' }
 
-      etlv2.updateCredentials(newCredentials)
+      etl.updateCredentials(newCredentials)
 
       expect(mockConfigManager.updateCredentials).toHaveBeenCalledWith(newCredentials)
       expect(mockAuthManager.updateCredentials).toHaveBeenCalledWith(newCredentials)
@@ -479,33 +479,33 @@ describe('eTLv2', () => {
     })
 
     it('should handle credential update errors gracefully in non-strict mode', () => {
-      etlv2 = new ETLv2(mockConfig, { strictMode: false })
+      etl = new ETL(mockConfig, { strictMode: false })
       mockConfigManager.updateCredentials.mockImplementation(() => {
         throw new Error('Credential update failed')
       })
 
       expect(() => {
-        etlv2.updateCredentials({ token: 'new-token' })
+        etl.updateCredentials({ token: 'new-token' })
       }).not.toThrow()
 
       expect(mockErrorManager.addError).toHaveBeenCalled()
     })
 
     it('should throw credential update errors in strict mode', () => {
-      etlv2 = new ETLv2(mockConfig, { strictMode: true })
+      etl = new ETL(mockConfig, { strictMode: true })
       mockConfigManager.updateCredentials.mockImplementation(() => {
         throw new AuthenticationError('Credential update failed')
       })
 
       expect(() => {
-        etlv2.updateCredentials({ token: 'new-token' })
+        etl.updateCredentials({ token: 'new-token' })
       }).toThrow(AuthenticationError)
     })
   })
 
   describe('utility methods', () => {
     beforeEach(() => {
-      etlv2 = new ETLv2(mockConfig, {
+      etl = new ETL(mockConfig, {
         credentials: mockCredentials,
         enablePerformanceMonitoring: true,
       })
@@ -513,7 +513,7 @@ describe('eTLv2', () => {
 
     describe('getErrorSummary', () => {
       it('should return error summary from ErrorManager', () => {
-        const summary = etlv2.getErrorSummary()
+        const summary = etl.getErrorSummary()
 
         expect(mockErrorManager.getSummary).toHaveBeenCalled()
         expect(summary).toEqual({
@@ -528,16 +528,16 @@ describe('eTLv2', () => {
 
     describe('getPerformanceSummary', () => {
       it('should return performance summary when monitoring is enabled', () => {
-        const summary = etlv2.getPerformanceSummary()
+        const summary = etl.getPerformanceSummary()
 
         expect(mockPerformanceMonitor.getSummary).toHaveBeenCalled()
         expect(summary).toEqual(mockPerformanceSummary)
       })
 
       it('should return null when monitoring is disabled', () => {
-        etlv2 = new ETLv2(mockConfig, { enablePerformanceMonitoring: false })
+        etl = new ETL(mockConfig, { enablePerformanceMonitoring: false })
 
-        const summary = etlv2.getPerformanceSummary()
+        const summary = etl.getPerformanceSummary()
 
         expect(summary).toBeNull()
       })
@@ -545,20 +545,20 @@ describe('eTLv2', () => {
 
     describe('hasCriticalErrors', () => {
       it('should return false when no critical errors exist', () => {
-        expect(etlv2.hasCriticalErrors()).toBe(false)
+        expect(etl.hasCriticalErrors()).toBe(false)
         expect(mockErrorManager.hasCriticalErrors).toHaveBeenCalled()
       })
 
       it('should return true when critical errors exist', () => {
         mockErrorManager.hasCriticalErrors.mockReturnValue(true)
 
-        expect(etlv2.hasCriticalErrors()).toBe(true)
+        expect(etl.hasCriticalErrors()).toBe(true)
       })
     })
 
     describe('getConfigInfo', () => {
       it('should return configuration information', () => {
-        const configInfo = etlv2.getConfigInfo()
+        const configInfo = etl.getConfigInfo()
 
         expect(configInfo).toEqual({
           integration: 'test-etl',
@@ -574,7 +574,7 @@ describe('eTLv2', () => {
       it('should delegate to DataTransformer', () => {
         const rules = [{ name: 'test-rule', sourceField: 'test' }]
 
-        etlv2.addTransformationRules(rules)
+        etl.addTransformationRules(rules)
 
         expect(mockDataTransformer.addTransformationRules).toHaveBeenCalledWith(rules)
       })
@@ -584,7 +584,7 @@ describe('eTLv2', () => {
       it('should delegate to DataTransformer', () => {
         const mappings = [{ source: 'old_field', target: 'new_field' }]
 
-        etlv2.addFieldMappings(mappings)
+        etl.addFieldMappings(mappings)
 
         expect(mockDataTransformer.addFieldMappings).toHaveBeenCalledWith(mappings)
       })
@@ -594,15 +594,15 @@ describe('eTLv2', () => {
       it('should delegate to PerformanceMonitor when monitoring is enabled', () => {
         const metadata = { checkpoint: 'test' }
 
-        etlv2.takePerformanceSnapshot(metadata)
+        etl.takePerformanceSnapshot(metadata)
 
         expect(mockPerformanceMonitor.takeSnapshot).toHaveBeenCalledWith(metadata)
       })
 
       it('should not call PerformanceMonitor when monitoring is disabled', () => {
-        etlv2 = new ETLv2(mockConfig, { enablePerformanceMonitoring: false })
+        etl = new ETL(mockConfig, { enablePerformanceMonitoring: false })
 
-        etlv2.takePerformanceSnapshot()
+        etl.takePerformanceSnapshot()
 
         expect(mockPerformanceMonitor.takeSnapshot).not.toHaveBeenCalled()
       })
@@ -610,7 +610,7 @@ describe('eTLv2', () => {
 
     describe('reset', () => {
       it('should reset all managers', () => {
-        etlv2.reset()
+        etl.reset()
 
         expect(mockErrorManager.clear).toHaveBeenCalled()
         expect(mockPerformanceMonitor.reset).toHaveBeenCalled()
@@ -619,9 +619,9 @@ describe('eTLv2', () => {
       })
 
       it('should not reset performance monitor when monitoring is disabled', () => {
-        etlv2 = new ETLv2(mockConfig, { enablePerformanceMonitoring: false })
+        etl = new ETL(mockConfig, { enablePerformanceMonitoring: false })
 
-        etlv2.reset()
+        etl.reset()
 
         expect(mockPerformanceMonitor.reset).not.toHaveBeenCalled()
       })
@@ -632,13 +632,13 @@ describe('eTLv2', () => {
     const mockLoadConfig = vi.fn()
 
     beforeEach(() => {
-      vi.doMock('../../src/utils/enhanced-config-loader', () => ({
+      vi.doMock('../src/utils/enhanced-config-loader', () => ({
         loadConfig: mockLoadConfig,
       }))
     })
 
     afterEach(() => {
-      vi.doUnmock('../../src/utils/enhanced-config-loader')
+      vi.doUnmock('../src/utils/enhanced-config-loader')
     })
 
     it('should create ETLv2 instance from config file', async () => {
@@ -647,7 +647,7 @@ describe('eTLv2', () => {
         unwrap: () => mockConfig,
       })
 
-      const etl = await ETLv2.fromConfig({
+      await ETL.fromConfig({
         configPath: './test-config.json',
         credentials: mockCredentials,
         etlOptions: { strictMode: true },
@@ -656,7 +656,7 @@ describe('eTLv2', () => {
       expect(mockLoadConfig).toHaveBeenCalledWith({
         configPath: './test-config.json',
       })
-      expect(etl).toBeInstanceOf(ETLv2)
+      expect(etl).toBeInstanceOf(ETL)
     })
 
     it('should throw error when config loading fails', async () => {
@@ -665,7 +665,7 @@ describe('eTLv2', () => {
         unwrap: () => { throw new Error('Config not found') },
       })
 
-      await expect(ETLv2.fromConfig()).rejects.toThrow('Failed to load ETL configuration')
+      await expect(ETL.fromConfig()).rejects.toThrow('Failed to load ETL configuration')
     })
 
     it('should use default options when not provided', async () => {
@@ -674,7 +674,7 @@ describe('eTLv2', () => {
         unwrap: () => mockConfig,
       })
 
-      await ETLv2.fromConfig()
+      await ETL.fromConfig()
 
       expect(mockLoadConfig).toHaveBeenCalledWith({
         configPath: undefined,
@@ -685,7 +685,7 @@ describe('eTLv2', () => {
 
   describe('private methods', () => {
     beforeEach(() => {
-      etlv2 = new ETLv2(mockConfig, { credentials: mockCredentials })
+      etl = new ETL(mockConfig, { credentials: mockCredentials })
     })
 
     describe('collectWarnings', () => {
@@ -696,7 +696,7 @@ describe('eTLv2', () => {
         })
 
         // Access private method for testing
-        const warnings = (etlv2 as any).collectWarnings()
+        const warnings = (etl as any).collectWarnings()
 
         expect(warnings).toContain('consider optimizing')
         expect(warnings).not.toContain('performance is good') // Doesn't contain 'consider'
@@ -705,7 +705,7 @@ describe('eTLv2', () => {
       it('should add authentication warning when no auth is configured', () => {
         mockAuthManager.hasAuthentication.mockReturnValue(false)
 
-        const warnings = (etlv2 as any).collectWarnings()
+        const warnings = (etl as any).collectWarnings()
 
         expect(warnings).toContain('No authentication configured - this may limit API access')
       })
@@ -720,7 +720,7 @@ describe('eTLv2', () => {
           metadata: { count: 5 }, // Single object, not array
         }
 
-        const total = (etlv2 as any).calculateTotalRecords(data)
+        const total = (etl as any).calculateTotalRecords(data)
 
         expect(total).toBe(6)
       })
@@ -731,7 +731,7 @@ describe('eTLv2', () => {
           projects: [{ id: 1 }],
         }
 
-        const total = (etlv2 as any).calculateTotalRecords(data)
+        const total = (etl as any).calculateTotalRecords(data)
 
         expect(total).toBe(1)
       })
@@ -739,7 +739,7 @@ describe('eTLv2', () => {
       it('should handle empty data', () => {
         const data = { source: 'test' }
 
-        const total = (etlv2 as any).calculateTotalRecords(data)
+        const total = (etl as any).calculateTotalRecords(data)
 
         expect(total).toBe(0)
       })
@@ -753,19 +753,19 @@ describe('eTLv2', () => {
       })
 
       expect(() => {
-        new ETLv2(mockConfig, { strictMode: false })
+        new ETL(mockConfig, { strictMode: false })
       }).not.toThrow()
     })
 
     it('should handle missing config gracefully', () => {
       expect(() => {
-        new ETLv2(null as any, { strictMode: false })
+        new ETL(null as any, { strictMode: false })
       }).not.toThrow()
     })
 
     it('should handle malformed options', () => {
       expect(() => {
-        new ETLv2(mockConfig, null as any)
+        new ETL(mockConfig, null as any)
       }).not.toThrow()
     })
   })

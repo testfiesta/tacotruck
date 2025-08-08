@@ -1,6 +1,6 @@
 import type { Buffer } from 'node:buffer'
 import * as fs from 'node:fs'
-import { getLogger } from '../utils/logger'
+import { getLogger } from './utils/logger'
 
 export interface Config {
   integration: string

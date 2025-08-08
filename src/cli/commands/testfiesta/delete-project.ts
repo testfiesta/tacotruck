@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestFiestaETL } from '../../../controllers/testfiesta-etl'
+import { TestFiestaETL } from '../../../testfiesta-etl'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
 interface DeleteProjectArgs {

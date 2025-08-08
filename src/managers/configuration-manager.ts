@@ -1,5 +1,5 @@
-import type { ConfigType } from '../../utils/config-schema'
-import { bracketSubstitution, findSubstitutionKeys } from '../../utils/enhanced-config-loader'
+import type { ConfigType } from '../utils/config-schema'
+import { bracketSubstitution, findSubstitutionKeys } from '../utils/enhanced-config-loader'
 
 export interface ConfigurationManagerOptions {
   baseUrl?: string
@@ -45,6 +45,10 @@ export class ConfigurationManager {
   updateCredentials(credentials: Record<string, any>): void {
     this.credentials = { ...this.credentials, ...credentials }
     this.reprocessConfiguration()
+  }
+
+  getCredentials() {
+    return this.credentials
   }
 
   /**

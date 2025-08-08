@@ -1,18 +1,18 @@
-import type { ConfigType } from '../utils/config-schema'
-import type { ETLv2Options } from './etl-base-v2'
+import type { ETLOptions } from './etl-base'
+import type { ConfigType } from './utils/config-schema'
 import chalk from 'chalk'
-import { apiClient } from '../services/api-client'
-import { loadConfig } from '../utils/enhanced-config-loader'
-import { getLogger } from '../utils/logger'
-import { ETLv2 } from './etl-base-v2'
+import { ETL } from './etl-base'
+import { apiClient } from './services/api-client'
+import { loadConfig } from './utils/enhanced-config-loader'
+import { getLogger } from './utils/logger'
 
-export class TestFiestaETL extends ETLv2 {
+export class TestFiestaETL extends ETL {
   /**
    * Create a new TestFiestaETL instance
    * @param configSchema The full configuration schema
    * @param options Additional ETL options including credentials
    */
-  constructor(configSchema: ConfigType, options: ETLv2Options = {}) {
+  constructor(configSchema: ConfigType, options: ETLOptions = {}) {
     super(configSchema, options)
   }
 
@@ -99,14 +99,14 @@ export class TestFiestaETL extends ETLv2 {
    * @param projectData The project data to submit
    * @returns The response from TestFiesta
    */
-  async submitProjects(projectData: any): Promise<Record<string, any>> {
-    const etlResult = await this.execute({ projects: Array.isArray(projectData) ? projectData : [projectData] })
-    if (etlResult.success) {
-      return etlResult.loadingResult?.responses || { success: true }
+  async submitProjects(projectData: any, params: any): Promise<Record<string, any>> {
+    const response = await this.dataLoader.loadToTarget('projects', projectData, 'create', params)
+
+    if (response.uid) {
+      return response
     }
     else {
-      const errorMessage = etlResult.errors.map(e => e.message).join('; ')
-      throw new Error(`TestFiesta projects submission failed: ${errorMessage}`)
+      throw new Error(`TestFiesta projects submission failed: ${response}`)
     }
   }
 
@@ -207,7 +207,7 @@ export class TestFiestaETL extends ETLv2 {
   static async fromConfig(options: {
     configPath?: string
     credentials?: Record<string, any>
-    etlOptions?: ETLv2Options
+    etlOptions?: ETLOptions
   } = {}): Promise<TestFiestaETL> {
     const { configPath, credentials, etlOptions } = options
 
@@ -222,7 +222,7 @@ export class TestFiestaETL extends ETLv2 {
 
     const fullConfig = result.unwrap()
 
-    const finalEtlOptions: ETLv2Options = {
+    const finalEtlOptions = {
       credentials,
       enablePerformanceMonitoring: true,
       strictMode: false,

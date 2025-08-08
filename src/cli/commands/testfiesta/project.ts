@@ -1,11 +1,18 @@
+import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
+import { TestFiestaETL } from '../../../testfiesta-etl'
+import { initializeLogger, setVerbose } from '../../../utils/logger'
 
 interface CreateProjectArgs {
   name: string
   key: string
-  organization: string
+  token: string
+  priority: number
+  status: number
+  handle: string
   verbose?: boolean
+  description?: string
+  customFields?: string
 }
 
 export function createProjectCommand() {
@@ -25,7 +32,34 @@ export function createProjectCommand() {
   return submitRunCommand
 }
 
-export async function runCreateProject(_args: CreateProjectArgs & { verbose?: boolean }): Promise<void> {
-  const logger = getLogger()
-  logger.debug('Creating project in TestFiesta', { args: _args })
+export async function runCreateProject(args: CreateProjectArgs & { verbose?: boolean }): Promise<void> {
+  const spinner = p.spinner()
+  try {
+    spinner.start('Creating project in TestFiesta')
+    const testFiestaETL = await TestFiestaETL.fromConfig({
+      credentials: {
+        token: args.token,
+      },
+      etlOptions: {
+        baseUrl: 'https://staging.api.testfiesta.com',
+        enablePerformanceMonitoring: false,
+        strictMode: false,
+        retryAttempts: 3,
+        timeout: 30000,
+      },
+    })
+    const customFields = args.customFields ? JSON.parse(args.customFields) : {}
+    await testFiestaETL.submitProjects({
+      name: args.name,
+      key: args.key,
+      customFields,
+    }, {
+      handle: args.handle,
+    })
+    spinner.stop('Project created successfully')
+  }
+  catch (error) {
+    spinner.stop('Project creation failed')
+    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+  }
 }
