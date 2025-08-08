@@ -52,6 +52,44 @@ await tfClient.createProject()
 await trClient.createProject()
 ```
 
+### Example usage with various testing frameworks
+Elixir
+- [Elixir](https://github.com/testfiesta/demo-elixir-tf)
+Golang
+- testing - TODO
+- Testify - TODO
+Java
+- JUnit - TODO
+- TestNG - TODO
+JS / TS
+- [Bun](https://github.com/testfiesta/demo-bun-tf)
+- [Deno](https://github.com/testfiesta/demo-deno-tf)
+- [Mocha](https://github.com/testfiesta/demo-mocha-tf)
+- [Jest](https://github.com/testfiesta/demo-jest-tf)
+- [Vitest](https://github.com/testfiesta/demo-vitest-tf)
+- Selenium - TODO
+- Cypress - TODO
+- Playwright - TODO
+- Puppeteer - TODO
+.NET
+- C# - TODO
+Python
+- [PyTest](https://github.com/testfiesta/demo-pytest-tf)
+Ruby
+- Minitest - TODO
+- [Rspec](https://github.com/testfiesta/demo-rspec-tf)
+Rust
+- cargo - TODO
+- polish - TODO
+PHP
+- [PHPUnit](https://github.com/testfiesta/demo-phpunit-tf)
+- [PestPHP](https://github.com/testfiesta/demo-pestphp-tf)
+Mobile
+- Appium - TODO
+
+
+
+
 ## <a name="documentation">📖 Documentation</a>
 
 We highly recommend you take a look at the [Testfiesta docs](https://docs.testfieta.com) for more information.
