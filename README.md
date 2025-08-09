@@ -53,18 +53,23 @@ await trClient.createProject()
 ```
 
 ### Example usage with various testing frameworks
+
 **Elixir**
+
 - [Elixir](https://github.com/testfiesta/demo-elixir-tf)
 
 **Golang**
+
 - testing - TODO
 - Testify - TODO
 
 **Java**
+
 - JUnit - TODO
 - TestNG - TODO
 
 **JS / TS**
+
 - [Bun](https://github.com/testfiesta/demo-bun-tf)
 - [Deno](https://github.com/testfiesta/demo-deno-tf)
 - [Mocha](https://github.com/testfiesta/demo-mocha-tf)
@@ -76,28 +81,31 @@ await trClient.createProject()
 - Puppeteer - TODO
 
 **.NET**
+
 - C# - TODO
 
 **Python**
+
 - [PyTest](https://github.com/testfiesta/demo-pytest-tf)
 
 **Ruby**
+
 - Minitest - TODO
 - [Rspec](https://github.com/testfiesta/demo-rspec-tf)
 
 **Rust**
+
 - cargo - TODO
 - polish - TODO
 
 **PHP**
+
 - [PHPUnit](https://github.com/testfiesta/demo-phpunit-tf)
 - [PestPHP](https://github.com/testfiesta/demo-pestphp-tf)
 
 **Mobile**
+
 - Appium - TODO
-
-
-
 
 ## <a name="documentation">📖 Documentation</a>
 
