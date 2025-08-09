@@ -1,4 +1,5 @@
-import type { AuthOptions } from '../utils/network'
+import type { AuthOptions, GetResponseData } from '../utils/network'
+import type { Result } from '../utils/result'
 import { z } from 'zod'
 import * as networkUtils from '../utils/network'
 import { substituteUrlStrict } from '../utils/url-substitutor'
@@ -112,9 +113,9 @@ export class TestFiestaClient {
   async getProjects(
     params: Record<string, string> = {},
     queryParams: Record<string, any> = {},
-  ): Promise<void> {
+  ): Promise<Result<GetResponseData, Error>> {
     try {
-      await networkUtils.processGetRequest(this.authOptions, this.getRoute('projects', 'list', params, queryParams))
+      return await networkUtils.processGetRequest(this.authOptions, this.getRoute('projects', 'list', params, queryParams))
     }
     catch (error) {
       throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)

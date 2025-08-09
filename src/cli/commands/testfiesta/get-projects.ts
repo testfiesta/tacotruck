@@ -7,7 +7,8 @@ interface GetProjectsArgs {
   token: string
   handle: string
   verbose?: boolean
-  customFields?: string
+  limit?: string
+  offset?: string
 }
 
 export function getProjectsCommand() {
@@ -15,6 +16,8 @@ export function getProjectsCommand() {
     .description('Get projects in Testfiesta')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
     .requiredOption('-h, --handle <handle>', 'Organization handle')
+    .option('-l, --limit <limit>', 'Limit the number of projects to fetch', '10')
+    .option('-o, --offset <offset>', 'Offset the number of projects to fetch', '0')
     .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: GetProjectsArgs) => {
       initializeLogger({ verbose: !!args.verbose })
@@ -33,10 +36,11 @@ export async function runGetProjects(args: GetProjectsArgs): Promise<void> {
   const spinner = p.spinner()
   try {
     spinner.start('Getting projects in TestFiesta')
-    await tfClient.getProjects({ handle: args.handle }, {
-      limit: 10,
-      // offset: 0,
+    const projects = await tfClient.getProjects({ handle: args.handle }, {
+      limit: Number(args.limit),
+      offset: Number(args.offset),
     })
+    console.log(JSON.stringify(projects, null, 2))
     spinner.stop('Projects fetched successfully')
   }
   catch (error) {
