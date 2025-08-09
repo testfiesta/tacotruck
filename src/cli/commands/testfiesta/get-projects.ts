@@ -3,50 +3,44 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 
-interface CreateProjectArgs {
-  name: string
-  key: string
+interface GetProjectsArgs {
   token: string
   handle: string
   verbose?: boolean
   customFields?: string
 }
 
-export function createProjectCommand() {
-  const submitRunCommand = new Commander.Command('project:create')
-    .description('Create a new project in Testfiesta')
-    .requiredOption('-n, --name <name>', 'Project name')
-    .requiredOption('-k, --key <key>', 'Project key')
+export function getProjectsCommand() {
+  const submitRunCommand = new Commander.Command('project:get')
+    .description('Get projects in Testfiesta')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
     .requiredOption('-h, --handle <handle>', 'Organization handle')
     .option('-v, --verbose', 'Enable verbose logging')
-    .action(async (args: CreateProjectArgs) => {
+    .action(async (args: GetProjectsArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runCreateProject(args)
+      await runGetProjects(args)
     })
 
   return submitRunCommand
 }
 
-export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
+export async function runGetProjects(args: GetProjectsArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
     domain: 'https://staging.api.testfiesta.com',
   })
   const spinner = p.spinner()
   try {
-    spinner.start('Creating project in TestFiesta')
-    const customFields = args.customFields ? JSON.parse(args.customFields) : {}
-    await tfClient.createProject({ handle: args.handle }, {
-      name: args.name,
-      key: args.key,
-      customFields,
+    spinner.start('Getting projects in TestFiesta')
+    await tfClient.getProjects({ handle: args.handle }, {
+      limit: 10,
+      // offset: 0,
     })
-    spinner.stop('Project created successfully')
+    spinner.stop('Projects fetched successfully')
   }
   catch (error) {
-    spinner.stop('Project creation failed')
+    spinner.stop('Getting projects failed')
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
   }
 }
