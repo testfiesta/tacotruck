@@ -1,14 +1,12 @@
+import type { AuthOptions, GetResponseData } from '../utils/network'
+import type { Result } from '../utils/result'
 import { z } from 'zod'
-import {
-  AuthenticationManager,
-  ConfigurationManager,
-} from '../managers'
 import * as networkUtils from '../utils/network'
+import { substituteUrlStrict } from '../utils/url-substitutor'
 
 interface TestFiestaClientOptions {
-  baseUrl: string
-  organization: string
   apiKey: string
+  domain: string
 }
 
 export const createProjectSchema = z.object({
@@ -20,128 +18,107 @@ export const createProjectSchema = z.object({
 type CreateProjectInput = z.infer<typeof createProjectSchema>
 
 export class TestFiestaClient {
-  private baseUrl: string
-  private apiKey: string
-  private organization: string
-  private configurationManager: ConfigurationManager
-  protected authManager: AuthenticationManager | null
+  protected authOptions: AuthOptions
+  protected routes: Record<string, Record<string, string>> = {}
+  protected domain: string = ''
+
+  private static readonly BASE_URL = '/v1/{handle}'
+  private static readonly ROUTES = {
+    PROJECTS: {
+      LIST: '/projects?limit={limit}&offset={offset}',
+      CREATE: '/projects',
+      DELETE: '/delete_project/{project_id}',
+    },
+    RUNS: {
+      LIST: '/runs',
+      CREATE: '/runs',
+      GET: '/runs/{run_id}',
+      UPDATE: '/runs/{run_id}',
+      DELETE: '/runs/{run_id}',
+    },
+    RESULTS: {
+      LIST: '/results',
+      CREATE: '/results',
+      GET: '/results/{result_id}',
+      UPDATE: '/results/{result_id}',
+      DELETE: '/results/{result_id}',
+    },
+  } as const
 
   constructor(options: TestFiestaClientOptions) {
-    this.baseUrl = options.baseUrl ?? ''
-    this.apiKey = options.apiKey
-    this.organization = options.organization
-    this.configurationManager = this.prepareConfigurationManager()
-    this.authManager = this.prepareAuthManager()
+    this.authOptions = {
+      type: 'api_key',
+      location: 'header',
+      key: 'Authorization',
+      payload: `Bearer ${options.apiKey}`,
+    }
+    this.domain = options.domain
   }
 
-  private prepareConfigurationManager(): ConfigurationManager {
-    const configurationManager = new ConfigurationManager({
-      name: 'testfiesta',
-      type: 'api',
-      base_path: 'v1/{organization}',
-      auth: {
-        type: 'bearer',
-        location: 'header',
-        key: 'Authorization',
-        payload: 'Bearer {apiKey}',
-      },
-      source: {
-        projects: {
-          endpoints: {
-            index: {
-              path: '/projects',
-            },
-          },
-        },
-      },
-      target: {
-        projects: {
-          endpoints: {
-            create: {
-              path: '/projects',
-            },
-            delete: {
-              path: '/delete_project/{project_id}',
-            },
-          },
-        },
-      },
-    }, {
-      allowMutation: true,
-      baseUrl: this.baseUrl,
-      credentials: {
-        apiKey: this.apiKey,
-        organization: this.organization,
-      },
-    })
-
-    configurationManager.applySubstitutions()
-    return configurationManager
+  private buildRoute(route: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
+    const fullRoute = `${this.domain}${TestFiestaClient.BASE_URL}${route}`
+    return substituteUrlStrict(fullRoute, { ...params, ...queryParams })
   }
 
-  private prepareAuthManager() {
-    if (!this.configurationManager) {
-      return null
-    }
-    return new AuthenticationManager({
-      credentials: this.configurationManager.getCredentials(),
-    })
-  }
+  public getRoute(resource: string, action: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
+    const routeMap = {
+      projects: TestFiestaClient.ROUTES.PROJECTS,
+      runs: TestFiestaClient.ROUTES.RUNS,
+      results: TestFiestaClient.ROUTES.RESULTS,
+    } as const
 
-  private getProjectPath() {
-    const config = this.configurationManager.getConfig()
-
-    if (!config || !config.target) {
-      return ''
+    const resourceRoutes = routeMap[resource as keyof typeof routeMap]
+    if (!resourceRoutes) {
+      throw new Error(`Unknown resource: ${resource}`)
     }
 
-    const projectEndpoints = Object.keys(config?.target)
-
-    if (!projectEndpoints || projectEndpoints.length === 0) {
-      return ''
+    const route = resourceRoutes[action.toUpperCase() as keyof typeof resourceRoutes]
+    if (!route) {
+      throw new Error(`Unknown action: ${action} for resource: ${resource}`)
     }
 
-    const projectPath = config.target.projects.endpoints.create.path || ''
-    return projectPath
+    return this.buildRoute(route, params, queryParams)
   }
 
   async createProject(
+    params: Record<string, string> = {},
     createProjectInput: CreateProjectInput,
-  ) {
+  ): Promise<void> {
     const project = createProjectSchema.safeParse(createProjectInput)
-    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), this.getProjectPath(), {
-      json: project,
-    })
+    if (!project.success) {
+      throw new Error(`Invalid project input: ${project.error.message}`)
+    }
 
-    return result.match({
-      ok: (value: any) => value,
-      err: () => {
-        throw new Error(`Request to failed`)
-      },
-    })
+    try {
+      await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'create', params), {
+        json: project.data,
+      })
+    }
+    catch (error) {
+      throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
+    }
   }
 
   async deleteProject(
+    params: Record<string, string> = {},
   ): Promise<void> {
-    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), '/projects')
-
-    return result.match({
-      ok: (value: any) => value,
-      err: () => {
-        throw new Error(`Request to failed`)
-      },
-    })
+    try {
+      await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'delete', params))
+    }
+    catch (error) {
+      throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
+    }
   }
 
   async getProjects(
-  ): Promise<void> {
-    const result = await networkUtils.processPostRequest(this.authManager!.getAuthOptions(), '/projects')
-
-    return result.match({
-      ok: (value: any) => value,
-      err: () => {
-        throw new Error(`Request to failed`)
-      },
-    })
+    params: Record<string, string> = {},
+    queryParams: Record<string, any> = {},
+  ): Promise<Result<GetResponseData, Error>> {
+    try {
+      return await networkUtils.processGetRequest(this.authOptions, this.getRoute('projects', 'list', params, queryParams))
+    }
+    catch (error) {
+      throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
+    }
   }
 }

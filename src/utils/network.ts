@@ -24,7 +24,6 @@ export interface RequestOptions extends FetchOptions {
   retryDelay?: number
   json?: Record<string, any>
   headers?: Record<string, any>
-  silent?: boolean
   showProgress?: boolean
   progressLabel?: string
 }
@@ -49,7 +48,7 @@ export function createAuthenticatedOptions(
       (options.headers as Record<string, string>)[authOptions.key] = authOptions.payload
     }
     else {
-      console.warn('Auth header not added:', {
+      console.error('Auth header not added:', {
         hasKey: !!authOptions.key,
         hasPayload: !!authOptions.payload,
         key: authOptions.key,
@@ -76,7 +75,6 @@ export async function processPostRequest(
   try {
     const { timeout = 30000, retryDelay = 1000, json, retry } = options
     const authRequestOptions = createAuthenticatedOptions(authOptions)
-
     const response = await ofetch(url, {
       method: 'POST',
       retry,
@@ -87,10 +85,18 @@ export async function processPostRequest(
       ...authRequestOptions,
     })
 
-    return ok(response)
+    return response
   }
   catch (error: any) {
-    throw err(error instanceof Error ? error : new Error(String(error)))
+    if (error.data) {
+      throw new Error(`HTTP ${error.status}: ${JSON.stringify(error.data)}`)
+    }
+    else if (error.status) {
+      throw new Error(`HTTP ${error.status}: ${error.statusText || error.message}`)
+    }
+    else {
+      throw error instanceof Error ? error : new Error(String(error))
+    }
   }
 }
 
@@ -129,8 +135,16 @@ export async function processGetRequest(
     })
     return ok(response)
   }
-  catch (error) {
-    throw err(error instanceof Error ? error : new Error(`Error fetching from ${url}: ${String(error)}`))
+  catch (error: any) {
+    if (error.data) {
+      throw new Error(`HTTP ${error.status}: ${JSON.stringify(error.data)}`)
+    }
+    else if (error.status) {
+      throw new Error(`HTTP ${error.status}: ${error.statusText || error.message}`)
+    }
+    else {
+      throw error instanceof Error ? error : new Error(String(error))
+    }
   }
 }
 
@@ -163,7 +177,6 @@ export async function processBatchedRequests<R, E>(
     const {
       retry = 0,
       retryDelay = 1000,
-      silent = false,
       showProgress = false,
       progressLabel = 'requests',
     } = options
@@ -178,7 +191,6 @@ export async function processBatchedRequests<R, E>(
       total: requests.length,
       label: progressLabel,
       show: showProgress,
-      silent,
     })
 
     const throttledRequests = requests.map((req, index) => {
@@ -200,20 +212,16 @@ export async function processBatchedRequests<R, E>(
             attempts++
 
             if (attempts <= maxAttempts) {
-              if (!silent) {
-                console.warn(
-                  `Request ${index} failed (attempt ${attempts}/${maxAttempts}). Retrying in ${retryDelay}ms...`,
-                  error instanceof Error ? error.message : error,
-                )
-              }
+              console.warn(
+                `Request ${index} failed (attempt ${attempts}/${maxAttempts}). Retrying in ${retryDelay}ms...`,
+                error instanceof Error ? error.message : error,
+              )
             }
             else {
-              if (!silent) {
-                console.error(
-                  `Request ${index} failed after ${maxAttempts} attempts.`,
-                  error instanceof Error ? error.message : error,
-                )
-              }
+              console.error(
+                `Request ${index} failed after ${maxAttempts} attempts.`,
+                error instanceof Error ? error.message : error,
+              )
             }
 
             if (attempts > maxAttempts) {
@@ -259,9 +267,7 @@ export async function processBatchedRequests<R, E>(
     }
 
     if (errors.length > 0) {
-      if (!silent) {
-        console.error(`${errors.length} requests failed out of ${batchResults.length}`)
-      }
+      console.error(`${errors.length} requests failed out of ${batchResults.length}`)
       return err(errors[0])
     }
 
