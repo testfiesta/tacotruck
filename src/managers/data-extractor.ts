@@ -88,7 +88,6 @@ export class DataExtractor {
           retry: this.options.retryAttempts,
           retryDelay: this.options.retryDelay,
         },
-        'source',
       )
 
       return response || {}
@@ -240,7 +239,6 @@ export class DataExtractor {
             retry: this.options.retryAttempts,
             retryDelay: this.options.retryDelay,
           },
-          'source',
         )
 
         return response
