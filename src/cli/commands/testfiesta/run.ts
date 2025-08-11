@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestFiestaETL } from '../../../testfiesta-etl'
+import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
 
@@ -44,23 +44,9 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     return null
   }
 
-  const credentials = {
-    token: args.token,
-    handle: args.organization,
-    projectKey: args.project,
-  }
-
-  const testFiestaETL = await TestFiestaETL.fromConfig({
-    credentials,
-    etlOptions: {
-      baseUrl: 'http://localhost:5000',
-      enablePerformanceMonitoring: true,
-      strictMode: false,
-      retryAttempts: 1,
-      retryDelay: 500,
-      timeout: 2000,
-      verbose: args.verbose,
-    },
+  const tfClient = new TestFiestaClient({
+    apiKey: args.token,
+    domain: 'https://staging.api.testfiesta.com',
   })
 
   const runData = loadRunData(args.data).match({
@@ -72,11 +58,9 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     return
 
   try {
-    const loadResult = await testFiestaETL.load(runData)
-    if (loadResult.metadata.errors.length === 0) {
-      spinner.stop()
-      p.log.success('Test run submitted successfully to TestFiesta')
-    }
+    await tfClient.submitTestResults()
+    spinner.stop()
+    p.log.success('Test run submitted successfully to TestFiesta')
   }
   catch (error) {
     spinner.stop()

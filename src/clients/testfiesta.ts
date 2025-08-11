@@ -121,4 +121,10 @@ export class TestFiestaClient {
       throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
     }
   }
+
+  async submitTestResults(
+
+  ): Promise<void> {
+
+  }
 }

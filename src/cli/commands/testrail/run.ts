@@ -1,8 +1,7 @@
 import type { XmlData } from '../../../utils/xml-transform'
-import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestRailETL } from '../../../testrail-etl'
+import { TestRailClient } from '../../../clients/testrail'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
 import { transformXmlData } from '../../../utils/xml-transform'
@@ -18,7 +17,7 @@ interface SubmitRunArgs {
   description?: string
   suiteId?: string
   includeAll?: boolean
-  caseIds?: string
+  caseIds?: number
   verbose?: boolean
 }
 
@@ -57,19 +56,10 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   }
 
   try {
-    const testRailETL = await TestRailETL.fromConfig({
-      credentials: {
-        base64Credentials: Buffer.from(`${args.email}:${args.password}`).toString('base64'),
-        base_url: args.url,
-        // project_id: args.projectId,
-      },
-      etlOptions: {
-        baseUrl: args.url,
-        enablePerformanceMonitoring: false,
-        strictMode: false,
-        retryAttempts: 3,
-        timeout: 30000,
-      },
+    const testRailClient = new TestRailClient({
+      baseUrl: args.url,
+      username: args.email,
+      password: args.password,
     })
 
     const runData = loadRunData(args.data).match({
@@ -81,7 +71,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     if (runData === null)
       return
 
-    await testRailETL.submitTestRun(transformedData, { project_id: args.projectId }, args.runName)
+    await testRailClient.submitTestResults(transformedData, { project_id: args.projectId }, args.runName)
     p.log.success('Successfully submitted result to TestRail')
   }
   catch (error) {

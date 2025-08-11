@@ -1,11 +1,9 @@
 import type { FetchOptions } from 'ofetch'
-import type { Err, Result } from './result'
 import { ofetch } from 'ofetch'
 import PQueue from 'p-queue'
 import pThrottle from 'p-throttle'
 import { processBatchesWithLimit } from './batch-processor'
 import { createProgressBar, stopProgressBar, updateProgressBar } from './progress-bar'
-import { err, ok } from './result'
 
 /**
  * Authentication options interface
@@ -27,7 +25,11 @@ export interface RequestOptions extends FetchOptions {
   showProgress?: boolean
   progressLabel?: string
 }
-
+export interface BatchRequestOptions {
+  concurrencyLimit: number
+  throttleLimit: number
+  throttleInterval: number
+}
 /**
  * Create request options with authentication headers
  * @param authOptions The authentication options
@@ -36,14 +38,14 @@ export interface RequestOptions extends FetchOptions {
 export function createAuthenticatedOptions(
   authOptions: AuthOptions | null,
 ): Record<string, any> {
-  const options = { headers: {} }
+  const options = { headers: { 'Content-Type': 'application/json' } }
 
   if (!authOptions) {
     return options
   }
 
   if (authOptions.location === 'header') {
-    options.headers = {}
+    options.headers = { 'Content-Type': 'application/json' }
     if (authOptions.key && authOptions.payload) {
       (options.headers as Record<string, string>)[authOptions.key] = authOptions.payload
     }
@@ -67,11 +69,11 @@ export function createAuthenticatedOptions(
  * @param options Additional request options including retry and timeout settings from ETLv2Options
  * @returns Promise with Result containing response data or error
  */
-export async function processPostRequest(
+export async function processPostRequest<T>(
   authOptions: AuthOptions | null,
   url: string,
   options: Record<string, any> = {},
-): Promise<Result<any, Error>> {
+): Promise<T> {
   try {
     const { timeout = 30000, retryDelay = 1000, json, retry } = options
     const authRequestOptions = createAuthenticatedOptions(authOptions)
@@ -114,11 +116,11 @@ export interface GetResponseData {
  * @param sourceType The source type identifier
  * @returns Promise with Result containing response data or error
  */
-export async function processGetRequest(
+export async function processGetRequest<T = GetResponseData>(
   authOptions: AuthOptions | null,
   url: string,
   options: RequestOptions = {},
-): Promise<Result<GetResponseData, Error>> {
+): Promise<T> {
   const authRequestOptions = createAuthenticatedOptions(authOptions)
   const mergedOptions = { ...authRequestOptions, ...options }
 
@@ -133,7 +135,7 @@ export async function processGetRequest(
       timeout: Number(timeout) ? Number(timeout) : 0,
       ...restOptions,
     })
-    return ok(response)
+    return response
   }
   catch (error: any) {
     if (error.data) {
@@ -166,13 +168,15 @@ export function createQueue(defaultConcurrency: number): PQueue {
  * @param options Additional request options including ETLv2Options parameters
  * @returns Promise with Result containing array of responses or error
  */
-export async function processBatchedRequests<R, E>(
-  requests: Array<() => Promise<Result<R, E>>>,
-  concurrencyLimit = 10,
-  throttleLimit = 10,
-  throttleInterval = 1000,
+export async function processBatchedRequests<R>(
+  requests: Array<() => Promise<R>>,
+  batchOptions: BatchRequestOptions = {
+    concurrencyLimit: 10,
+    throttleLimit: 10,
+    throttleInterval: 1000,
+  },
   options: RequestOptions = {},
-): Promise<Result<R[], E>> {
+): Promise<R[]> {
   try {
     const {
       retry = 0,
@@ -182,10 +186,10 @@ export async function processBatchedRequests<R, E>(
     } = options
 
     const throttle = pThrottle({
-      limit: throttleLimit,
-      interval: throttleInterval,
+      limit: batchOptions.throttleLimit,
+      interval: batchOptions.throttleInterval,
     })
-    console.warn('Processing', progressLabel, 'with concurrency limit:', concurrencyLimit, 'throttle limit:', throttleLimit, 'throttle interval:', throttleInterval)
+    console.warn('Processing', progressLabel, 'with concurrency limit:', batchOptions.concurrencyLimit, 'throttle limit:', batchOptions.throttleLimit, 'throttle interval:', batchOptions.throttleInterval)
 
     const progressBar = createProgressBar({
       total: requests.length,
@@ -205,7 +209,7 @@ export async function processBatchedRequests<R, E>(
 
             updateProgressBar(progressBar)
 
-            return result as Result<R, E>
+            return result
           }
           catch (error) {
             lastError = error
@@ -236,45 +240,28 @@ export async function processBatchedRequests<R, E>(
           progressBar.increment()
         }
 
-        return err(lastError instanceof Error ? lastError : new Error(String(lastError))) as Result<R, E>
+        throw lastError instanceof Error ? lastError : new Error(String(lastError))
       })
-    }) as Array<() => Promise<Result<R, E>>>
+    }) as Array<() => Promise<R>>
 
     const batchSize = 10
 
     const batchResults = await processBatchesWithLimit(
       throttledRequests,
       batchSize,
-      async (batch: Array<() => Promise<Result<R, E>>>) => {
-        const results = await Promise.all(batch.map((req: () => Promise<Result<R, E>>) => req()))
+      async (batch: Array<() => Promise<R>>) => {
+        const results = await Promise.all(batch.map((req: () => Promise<R>) => req()))
         return results
       },
-      concurrencyLimit,
+      batchOptions.concurrencyLimit,
     )
 
     stopProgressBar(progressBar)
 
-    const results: R[] = []
-    const errors: E[] = []
-
-    for (const result of batchResults.flat()) {
-      if (result.isOk) {
-        results.push(result.unwrap() as R)
-      }
-      else {
-        errors.push((result as Err<R, E>).error)
-      }
-    }
-
-    if (errors.length > 0) {
-      console.error(`${errors.length} requests failed out of ${batchResults.length}`)
-      return err(errors[0])
-    }
-
-    return ok(results)
+    return batchResults.flat() as R[]
   }
   catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    throw err(error instanceof Error ? error as E : new Error(`Batch processing error: ${errorMessage}`) as E)
+    throw error instanceof Error ? error : new Error(`Batch processing error: ${errorMessage}`)
   }
 }

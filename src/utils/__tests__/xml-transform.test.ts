@@ -63,7 +63,7 @@ describe('xML Transform Utility', () => {
     expect(result.sections.length).toBeGreaterThanOrEqual(1)
     expect(result.sections[0]).toHaveProperty('id')
     expect(result.sections[0]).toHaveProperty('name', 'tests.LoginTests')
-    expect(result.sections[0]).toHaveProperty('parentId', null)
+    expect(result.sections[0]).toHaveProperty('parent_id', null)
 
     // Verify cases
     expect(result.cases.length).toBe(3)
