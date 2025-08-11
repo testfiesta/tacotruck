@@ -95,7 +95,7 @@ await trClient.createProject()
 
 **Rust**
 
-- cargo - TODO
+- [Cargo](https://github.com/testfiesta/demo-rust-cargo-tf)
 - polish - TODO
 
 **PHP**
