@@ -29,6 +29,7 @@ import {
 } from '../schemas/testrail'
 import * as networkUtils from '../utils/network'
 import { processBatchedRequests } from '../utils/network'
+import { getRoute as getRouteUtil } from '../utils/route'
 import { substituteUrlStrict } from '../utils/url-substitutor'
 
 export class TestRailClient {
@@ -108,17 +109,14 @@ export class TestRailClient {
       suites: TestRailClient.ROUTES.SUITES,
     } as const
 
-    const resourceRoutes = routeMap[resource as keyof typeof routeMap]
-    if (!resourceRoutes) {
-      throw new Error(`Unknown resource: ${resource}`)
-    }
-
-    const route = resourceRoutes[action.toUpperCase() as keyof typeof resourceRoutes]
-    if (!route) {
-      throw new Error(`Unknown action: ${action} for resource: ${resource}`)
-    }
-
-    return this.buildRoute(route, params, queryParams)
+    return getRouteUtil(
+      routeMap,
+      resource,
+      action,
+      (route, params, queryParams) => this.buildRoute(route, params, queryParams),
+      params,
+      queryParams,
+    )
   }
 
   async createProject(
