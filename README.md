@@ -20,17 +20,17 @@ Tacotruck exists to make it easy to move quality data to wherever you need it. W
 ### Usage as a CLI
 
 ```bash
-npm install -g @tacotruck/cli
+npx @testfiesta/tacotruck
 ```
 
 ```bash
-tacotruck testfiesta run:submit --data ./results.xml --organization <YOUR_ORG_HANDLE> --token <YOUR_TF_TOKEN> --project <YOUR_PROJECT_KEY>
+npx @testfiesta/tacotruck testfiesta run:submit --data ./results.xml --organization <YOUR_ORG_HANDLE> --token <YOUR_TF_TOKEN> --project <YOUR_PROJECT_KEY>
 ```
 
 ### Usage as a library
 
 ```bash
-npm install tacotruck
+npm install @testfiesta/tacotruck
 ```
 
 ```typescript
