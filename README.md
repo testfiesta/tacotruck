@@ -77,7 +77,7 @@ await trClient.createProject()
 - [Vitest](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-vitest-tf)
 - Selenium - TODO
 - Cypress - TODO
-- Playwright - TODO
+- [Playwright](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-playwright-tf)
 - Puppeteer - TODO
 
 **.NET**
