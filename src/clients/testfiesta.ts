@@ -5,6 +5,7 @@ import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
 import { createProjectResponseDataSchema, createProjectSchema } from '../schemas/testfiesta'
 import * as networkUtils from '../utils/network'
+import { getRoute as getRouteUtil } from '../utils/route'
 import { substituteUrlStrict } from '../utils/url-substitutor'
 
 export class TestFiestaClient {
@@ -65,17 +66,14 @@ export class TestFiestaClient {
       results: TestFiestaClient.ROUTES.RESULTS,
     } as const
 
-    const resourceRoutes = routeMap[resource as keyof typeof routeMap]
-    if (!resourceRoutes) {
-      throw new Error(`Unknown resource: ${resource}`)
-    }
-
-    const route = resourceRoutes[action.toUpperCase() as keyof typeof resourceRoutes]
-    if (!route) {
-      throw new Error(`Unknown action: ${action} for resource: ${resource}`)
-    }
-
-    return this.buildRoute(route, params, queryParams)
+    return getRouteUtil(
+      routeMap,
+      resource,
+      action,
+      (route, params, queryParams) => this.buildRoute(route, params, queryParams),
+      params,
+      queryParams,
+    )
   }
 
   async createProject(
