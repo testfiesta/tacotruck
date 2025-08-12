@@ -51,7 +51,7 @@ export interface TransformedData {
   sections: {
     id: string
     name: string
-    parentId: string | null
+    parent_id: string | null
     created_at?: string
   }[]
   cases: {
@@ -61,7 +61,7 @@ export interface TransformedData {
     custom_test_case_id?: string
   }[]
   results: {
-    case_id: string
+    case_id: string | number
     status_id: number
     comment?: string
     defects?: string
@@ -104,7 +104,7 @@ export function transformXmlData(data: XmlData): TransformedData {
       result.sections.push({
         id: sectionId,
         name: section.name,
-        parentId: null,
+        parent_id: null,
         created_at: section.timestamp || new Date().toISOString(),
       })
     }
@@ -140,7 +140,7 @@ export function transformXmlData(data: XmlData): TransformedData {
           result.sections.push({
             id: defaultSectionId,
             name: 'Default Section',
-            parentId: null,
+            parent_id: null,
             created_at: new Date().toISOString(),
           })
           sectionId = defaultSectionId

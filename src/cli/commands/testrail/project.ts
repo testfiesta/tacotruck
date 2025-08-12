@@ -1,8 +1,7 @@
-import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import { select } from '@inquirer/prompts'
 import * as Commander from 'commander'
-import { TestRailETL } from '../../../testrail-etl'
+import { TestRailClient } from '../../../clients/testrail'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
 interface CreateProjectArgs {
@@ -83,21 +82,13 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
 
     logger.info(`Using TestRail structure: ${structureOptions[suiteMode as keyof typeof structureOptions]}`)
 
-    const testRailETL = await TestRailETL.fromConfig({
-      credentials: {
-        base64Credentials: Buffer.from(`${args.email}:${args.password}`).toString('base64'),
-        base_url: args.url,
-      },
-      etlOptions: {
-        baseUrl: args.url,
-        enablePerformanceMonitoring: false,
-        strictMode: false,
-        retryAttempts: 3,
-        timeout: 30000,
-      },
+    const testRailClient = new TestRailClient({
+      baseUrl: args.url,
+      username: args.email,
+      password: args.password,
     })
 
-    await testRailETL.submitProjects({
+    await testRailClient.createProject({
       name: args.name,
       suite_mode: suiteMode,
     })

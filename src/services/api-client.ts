@@ -23,16 +23,8 @@ export class ApiClient {
     authOptions: AuthOptions | null,
     url: string,
     options: RequestOptions = {},
-    sourceType: string,
-    fallbackData?: ResponseData,
   ): Promise<ResponseData | null> {
-    const result = await networkUtils.processGetRequest(authOptions, url, options)
-    return result.match({
-      ok: (value: any) => value,
-      err: () => {
-        return fallbackData || null
-      },
-    })
+    return await networkUtils.processGetRequest(authOptions, url, options)
   }
 
   /**
@@ -48,14 +40,7 @@ export class ApiClient {
     url: string,
     options: RequestOptions = {},
   ): Promise<Response | null> {
-    const result = await networkUtils.processPostRequest(authOptions, url, options)
-
-    return result.match({
-      ok: (value: any) => value,
-      err: (error: Error) => {
-        throw error
-      },
-    })
+    return await networkUtils.processPostRequest(authOptions, url, options)
   }
 
   /**

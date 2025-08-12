@@ -7,7 +7,6 @@ import {
   processGetRequest,
   processPostRequest,
 } from '../network'
-import { err, ok } from '../result'
 
 vi.mock('../network', async () => {
   const actual = await vi.importActual('../network') as typeof import('../network')
@@ -40,7 +39,8 @@ describe('network utils', () => {
 
       expect(result).toEqual({
         headers: {
-          Authorization: 'Bearer token123',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer token123',
         },
       })
     })
@@ -54,7 +54,9 @@ describe('network utils', () => {
       const result = createAuthenticatedOptions(authOptions)
 
       expect(result).toEqual({
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
     })
 
@@ -64,7 +66,9 @@ describe('network utils', () => {
       const result = createAuthenticatedOptions(authOptions)
 
       expect(result).toEqual({
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
     })
   })
@@ -77,7 +81,7 @@ describe('network utils', () => {
         ok: true,
       } as any
 
-      vi.mocked(processPostRequest).mockResolvedValue(ok(mockResponse))
+      vi.mocked(processPostRequest).mockResolvedValue(mockResponse)
 
       const authOptions: AuthOptions = {
         type: 'bearer',
@@ -93,8 +97,7 @@ describe('network utils', () => {
 
       const result = await processPostRequest(authOptions, 'https://example.com/api', options)
 
-      expect(result.isOk).toBe(true)
-      expect(result.unwrap()).toBe(mockResponse)
+      expect(result).toBe(mockResponse)
       expect(processPostRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', options)
     })
 
@@ -105,7 +108,7 @@ describe('network utils', () => {
         ok: true,
       } as any
 
-      vi.mocked(processPostRequest).mockResolvedValue(ok(mockResponse))
+      vi.mocked(processPostRequest).mockResolvedValue(mockResponse)
 
       const authOptions: AuthOptions = {
         type: 'bearer',
@@ -123,15 +126,14 @@ describe('network utils', () => {
 
       const result = await processPostRequest(authOptions, 'https://example.com/api', options)
 
-      expect(result.isOk).toBe(true)
-      expect(result.unwrap()).toBe(mockResponse)
+      expect(result).toBe(mockResponse)
       expect(processPostRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', options)
     })
 
-    it('should return error result when request fails', async () => {
+    it('should throw error when request fails', async () => {
       const networkError = new Error('Network error')
 
-      vi.mocked(processPostRequest).mockResolvedValue(err(networkError))
+      vi.mocked(processPostRequest).mockRejectedValue(networkError)
 
       const authOptions: AuthOptions = {
         type: 'bearer',
@@ -140,10 +142,7 @@ describe('network utils', () => {
         payload: 'Bearer token123',
       }
 
-      const result = await processPostRequest(authOptions, 'https://example.com/api')
-
-      expect(result.isErr).toBe(true)
-      expect(() => result.unwrap()).toThrow('Network error')
+      await expect(processPostRequest(authOptions, 'https://example.com/api')).rejects.toThrow('Network error')
       expect(processPostRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api')
     })
   })
@@ -157,7 +156,7 @@ describe('network utils', () => {
         target_type: 'unknown',
       }
 
-      vi.mocked(processGetRequest).mockResolvedValue(ok(mockResult))
+      vi.mocked(processGetRequest).mockResolvedValue(mockResult)
 
       const authOptions: AuthOptions = {
         type: 'bearer',
@@ -168,18 +167,14 @@ describe('network utils', () => {
 
       const result = await processGetRequest(authOptions, 'https://example.com/api', {})
 
-      expect(result.isOk).toBe(true)
-      if (result.isOk) {
-        expect(result.unwrap()).toEqual(mockResult)
-      }
-
+      expect(result).toEqual(mockResult)
       expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', {})
     })
 
     it('should handle errors properly', async () => {
       const networkError = new Error('Network error')
 
-      vi.mocked(processGetRequest).mockResolvedValue(err(networkError))
+      vi.mocked(processGetRequest).mockRejectedValue(networkError)
 
       const authOptions: AuthOptions = {
         type: 'bearer',
@@ -188,13 +183,7 @@ describe('network utils', () => {
         payload: 'Bearer token123',
       }
 
-      const result = await processGetRequest(authOptions, 'https://example.com/api', {})
-
-      expect(result.isOk).toBe(false)
-      if (!result.isOk) {
-        expect(() => result.unwrap()).toThrow('Network error')
-      }
-
+      await expect(processGetRequest(authOptions, 'https://example.com/api', {})).rejects.toThrow('Network error')
       expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', {})
     })
 
@@ -206,7 +195,7 @@ describe('network utils', () => {
         target_type: 'unknown',
       }
 
-      vi.mocked(processGetRequest).mockResolvedValue(ok(mockResult))
+      vi.mocked(processGetRequest).mockResolvedValue(mockResult)
 
       const authOptions: AuthOptions = {
         type: 'bearer',
@@ -223,11 +212,7 @@ describe('network utils', () => {
 
       const result = await processGetRequest(authOptions, 'https://example.com/api', options)
 
-      expect(result.isOk).toBe(true)
-      if (result.isOk) {
-        expect(result.unwrap()).toEqual(mockResult)
-      }
-
+      expect(result).toEqual(mockResult)
       expect(processGetRequest).toHaveBeenCalledWith(authOptions, 'https://example.com/api', options)
     })
   })
@@ -238,8 +223,8 @@ describe('network utils', () => {
       const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       const mockRequests = [
-        () => Promise.resolve(ok('result1')),
-        () => Promise.resolve(ok('result2')),
+        () => Promise.resolve('result1'),
+        () => Promise.resolve('result2'),
       ]
 
       const options = {
@@ -247,7 +232,11 @@ describe('network utils', () => {
         retryAttempts: 2,
         retryDelay: 1000,
       }
-      await processBatchedRequests(mockRequests, 2, 5, 500, options)
+      await processBatchedRequests(mockRequests, {
+        concurrencyLimit: 2,
+        throttleLimit: 5,
+        throttleInterval: 500,
+      }, options)
       expect(consoleWarnMock).toHaveBeenCalledWith('Processing', 'requests', 'with concurrency limit:', 2, 'throttle limit:', 5, 'throttle interval:', 500)
 
       consoleWarnMock.mockRestore()
@@ -268,31 +257,36 @@ describe('network utils', () => {
       const consoleWarnMock = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
       const mockRequests = [
-        () => Promise.resolve(ok('result1')),
-        () => Promise.resolve(ok('result2')),
-        () => Promise.resolve(ok('result3')),
+        () => Promise.resolve('result1'),
+        () => Promise.resolve('result2'),
+        () => Promise.resolve('result3'),
       ]
 
-      await processBatchedRequests(mockRequests, 2, 5, 500, {})
+      await processBatchedRequests(mockRequests, {
+        concurrencyLimit: 2,
+        throttleLimit: 5,
+        throttleInterval: 500,
+      }, {})
 
       consoleWarnMock.mockRestore()
     })
 
-    it('should return error when any request fails', async () => {
+    it('should throw error when any request fails', async () => {
       const consoleWarnMock = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       const mockError = new Error('Request failed')
       const mockRequests = [
-        () => Promise.resolve(ok('result1')),
-        () => Promise.resolve(err(mockError)),
-        () => Promise.resolve(ok('result3')),
+        () => Promise.resolve('result1'),
+        () => Promise.reject(mockError),
+        () => Promise.resolve('result3'),
       ]
 
-      const result = await processBatchedRequests(mockRequests, 2, 5, 500, {})
-
-      expect(result.isErr).toBe(true)
-      expect(() => result.unwrap()).toThrow('Request failed')
+      await expect(processBatchedRequests(mockRequests, {
+        concurrencyLimit: 2,
+        throttleLimit: 5,
+        throttleInterval: 500,
+      }, {})).rejects.toThrow('Request failed')
 
       consoleWarnMock.mockRestore()
       consoleErrorMock.mockRestore()
@@ -307,10 +301,11 @@ describe('network utils', () => {
         () => { throw mockError },
       ]
 
-      const result = await processBatchedRequests(mockRequests, 2, 5, 500, {})
-
-      expect(result.isErr).toBe(true)
-      expect(() => result.unwrap()).toThrow('Batch processing error')
+      await expect(processBatchedRequests(mockRequests, {
+        concurrencyLimit: 2,
+        throttleLimit: 5,
+        throttleInterval: 500,
+      }, {})).rejects.toThrow('Batch processing error')
 
       consoleWarnMock.mockRestore()
       consoleErrorMock.mockRestore()

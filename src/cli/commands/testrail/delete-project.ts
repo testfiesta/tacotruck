@@ -1,7 +1,6 @@
-import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestRailETL } from '../../../testrail-etl'
+import { TestRailClient } from '../../../clients/testrail'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
 interface DeleteProjectArgs {
@@ -51,23 +50,15 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   spinner.start(`Deleting TestRail project with ID ${args.projectId}`)
 
   try {
-    const testRailETL = await TestRailETL.fromConfig({
-      credentials: {
-        base64Credentials: Buffer.from(`${args.email}:${args.password}`).toString('base64'),
-        base_url: args.url,
-        project_id: args.projectId,
-      },
-      etlOptions: {
-        baseUrl: args.url,
-        enablePerformanceMonitoring: false,
-        strictMode: false,
-        retryAttempts: 3,
-        timeout: 30000,
-        verbose: args.verbose,
-      },
+    const testRailClient = new TestRailClient({
+      baseUrl: args.url,
+      username: args.email,
+      password: args.password,
     })
 
-    await testRailETL.deleteProjects()
+    await testRailClient.deleteProject({
+      project_id: args.projectId,
+    })
 
     spinner.stop()
     p.log.success(`Successfully deleted TestRail project with ID ${args.projectId}`)
@@ -75,6 +66,5 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   catch (error) {
     spinner.stop()
     p.log.error(`Failed to delete project: ${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
   }
 }

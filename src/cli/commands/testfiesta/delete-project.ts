@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestFiestaETL } from '../../../testfiesta-etl'
+import { TestFiestaClient } from '../../../clients/testfiesta'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
 interface DeleteProjectArgs {
@@ -34,23 +34,14 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   spinner.start(`Deleting TestFiesta project with key ${args.projectId}`)
 
   try {
-    const testFiestaETL = await TestFiestaETL.fromConfig({
-      credentials: {
-        token: args.token,
-        handle: args.organization,
-        project_id: args.projectId,
-      },
-      etlOptions: {
-        baseUrl: 'http://localhost:5000',
-        enablePerformanceMonitoring: false,
-        strictMode: false,
-        retryAttempts: 3,
-        timeout: 30000,
-        verbose: args.verbose,
-      },
+    const tfClient = new TestFiestaClient({
+      apiKey: args.token,
+      domain: 'https://staging.api.testfiesta.com',
     })
 
-    await testFiestaETL.deleteProject()
+    await tfClient.deleteProject({
+      project_id: args.projectId,
+    })
 
     spinner.stop()
     p.log.success(`Successfully deleted TestFiesta project with key ${args.projectId}`)
