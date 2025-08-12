@@ -83,7 +83,7 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
     logger.info(`Using TestRail structure: ${structureOptions[suiteMode as keyof typeof structureOptions]}`)
 
     const testRailClient = new TestRailClient({
-      baseUrl: args.url,
+      domain: args.url,
       username: args.email,
       password: args.password,
     })

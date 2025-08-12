@@ -57,7 +57,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
 
   try {
     const testRailClient = new TestRailClient({
-      baseUrl: args.url,
+      domain: args.url,
       username: args.email,
       password: args.password,
     })

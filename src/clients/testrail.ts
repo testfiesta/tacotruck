@@ -1,4 +1,3 @@
-import type { z } from 'zod'
 import type {
   CreateCaseInput,
   CreateProjectInput,
@@ -12,7 +11,6 @@ import type {
   TestResults,
 } from '../schemas/testrail'
 import type { TestRailClientOptions } from '../types/type'
-import type { AuthOptions } from '../utils/network'
 import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import {
@@ -29,55 +27,52 @@ import {
 } from '../schemas/testrail'
 import * as networkUtils from '../utils/network'
 import { processBatchedRequests } from '../utils/network'
-import { getRoute as getRouteUtil } from '../utils/route'
-import { substituteUrlStrict } from '../utils/url-substitutor'
+import { BaseClient } from './base-client'
 
-export class TestRailClient {
-  protected authOptions: AuthOptions
-  protected baseUrl: string
-
+export class TestRailClient extends BaseClient {
+  private static readonly BASE_URL = '/index.php?/api/v2'
   private static readonly ROUTES = {
     PROJECTS: {
-      LIST: '/api/v2/get_projects',
-      GET: '/api/v2/get_project/{project_id}',
-      CREATE: '/api/v2/add_project',
-      DELETE: '/api/v2/delete_project/{project_id}',
+      LIST: '/get_projects',
+      GET: '/get_project/{project_id}',
+      CREATE: '/add_project',
+      DELETE: '/delete_project/{project_id}',
     },
     RUNS: {
-      LIST: '/api/v2/get_runs/{project_id}',
-      CREATE: '/api/v2/add_run/{project_id}',
-      GET: '/api/v2/get_run/{run_id}',
-      UPDATE: '/api/v2/update_run/{run_id}',
-      DELETE: '/api/v2/delete_run/{run_id}',
+      LIST: '/get_runs/{project_id}',
+      CREATE: '/add_run/{project_id}',
+      GET: '/get_run/{run_id}',
+      UPDATE: '/update_run/{run_id}',
+      DELETE: '/delete_run/{run_id}',
     },
     RESULTS: {
-      LIST: '/api/v2/get_results_for_run/{run_id}',
-      CREATE: 'api/v2/add_results_for_cases/{run_id}',
-      GET: '/api/v2/get_result/{result_id}',
-      UPDATE: '/api/v2/update_result/{result_id}',
-      DELETE: '/api/v2/delete_result/{result_id}',
+      LIST: '/get_results_for_run/{run_id}',
+      CREATE: '/add_results_for_cases/{run_id}',
+      GET: '/get_result/{result_id}',
+      UPDATE: '/update_result/{result_id}',
+      DELETE: '/delete_result/{result_id}',
     },
     SECTIONS: {
-      LIST: '/api/v2/get_sections/{project_id}',
-      CREATE: '/api/v2/add_section/{project_id}',
-      GET: '/api/v2/get_section/{section_id}',
-      UPDATE: '/api/v2/update_section/{section_id}',
-      DELETE: '/api/v2/delete_section/{section_id}',
+      LIST: '/get_sections/{project_id}',
+      CREATE: '/add_section/{project_id}',
+      GET: '/get_section/{section_id}',
+      UPDATE: '/update_section/{section_id}',
+      DELETE: '/delete_section/{section_id}',
     },
     CASES: {
-      LIST: '/api/v2/get_cases/{project_id}',
-      CREATE: '/api/v2/add_case/{section_id}',
-      GET: '/api/v2/get_case/{case_id}',
-      UPDATE: '/api/v2/update_case/{case_id}',
-      DELETE: '/api/v2/delete_case/{case_id}',
+      LIST: '/get_cases/{project_id}',
+      CREATE: '/add_case/{section_id}',
+      GET: '/get_case/{case_id}',
+      UPDATE: '/update_case/{case_id}',
+      DELETE: '/delete_case/{case_id}',
     },
     SUITES: {
-      CREATE: '/api/v2/add_suite/{project_id}',
+      CREATE: '/add_suite/{project_id}',
     },
   } as const
 
   constructor(options: TestRailClientOptions) {
-    this.baseUrl = options.baseUrl
+    super({ baseUrl: TestRailClient.BASE_URL, domain: options.domain })
     this.authOptions = {
       type: 'basic',
       location: 'header',
@@ -86,37 +81,15 @@ export class TestRailClient {
     }
   }
 
-  private buildRoute(route: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
-    const fullRoute = `${this.baseUrl}/index.php?${route}`
-    return substituteUrlStrict(fullRoute, { ...params, ...queryParams })
-  }
-
-  private validateData<T>(schema: z.ZodSchema<T>, data: unknown, context: string): T {
-    const result = schema.safeParse(data)
-    if (!result.success) {
-      throw new Error(`Invalid ${context} input: ${result.error.message}`)
-    }
-    return result.data
-  }
-
-  public getRoute(resource: string, action: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
-    const routeMap = {
+  protected getRouteMap(): Record<string, Record<string, string>> {
+    return {
       projects: TestRailClient.ROUTES.PROJECTS,
       runs: TestRailClient.ROUTES.RUNS,
       sections: TestRailClient.ROUTES.SECTIONS,
       cases: TestRailClient.ROUTES.CASES,
       results: TestRailClient.ROUTES.RESULTS,
       suites: TestRailClient.ROUTES.SUITES,
-    } as const
-
-    return getRouteUtil(
-      routeMap,
-      resource,
-      action,
-      (route, params, queryParams) => this.buildRoute(route, params, queryParams),
-      params,
-      queryParams,
-    )
+    }
   }
 
   async createProject(
@@ -272,7 +245,7 @@ export class TestRailClient {
       batchOptions: {
         concurrencyLimit: 5,
         throttleLimit: 10,
-        throttleInterval: 1000,
+        throttleInterval: 1200,
       },
       retryAttempts: 3,
       timeout: 30000,

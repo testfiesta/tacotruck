@@ -1,18 +1,11 @@
-import type { z } from 'zod'
 import type { CreateProjectInput, CreateProjectResponseData } from '../schemas/testfiesta'
 import type { TestFiestaClientOptions } from '../types/type'
-import type { AuthOptions, GetResponseData } from '../utils/network'
-import type { Result } from '../utils/result'
+import type { GetResponseData } from '../utils/network'
 import { createProjectResponseDataSchema, createProjectSchema } from '../schemas/testfiesta'
 import * as networkUtils from '../utils/network'
-import { getRoute as getRouteUtil } from '../utils/route'
-import { substituteUrlStrict } from '../utils/url-substitutor'
+import { BaseClient } from './base-client'
 
-export class TestFiestaClient {
-  protected authOptions: AuthOptions
-  protected routes: Record<string, Record<string, string>> = {}
-  protected domain: string = ''
-
+export class TestFiestaClient extends BaseClient {
   private static readonly BASE_URL = '/v1/{handle}'
   private static readonly ROUTES = {
     PROJECTS: {
@@ -37,43 +30,21 @@ export class TestFiestaClient {
   } as const
 
   constructor(options: TestFiestaClientOptions) {
+    super({ domain: options.domain, baseUrl: TestFiestaClient.BASE_URL })
     this.authOptions = {
       type: 'api_key',
       location: 'header',
       key: 'Authorization',
       payload: `Bearer ${options.apiKey}`,
     }
-    this.domain = options.domain
   }
 
-  private buildRoute(route: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
-    const fullRoute = `${this.domain}${TestFiestaClient.BASE_URL}${route}`
-    return substituteUrlStrict(fullRoute, { ...params, ...queryParams })
-  }
-
-  private validateData<T>(schema: z.ZodSchema<T>, data: unknown, context: string): T {
-    const result = schema.safeParse(data)
-    if (!result.success) {
-      throw new Error(`Invalid ${context} input: ${result.error.message}`)
-    }
-    return result.data
-  }
-
-  public getRoute(resource: string, action: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
-    const routeMap = {
+  protected getRouteMap(): Record<string, Record<string, string>> {
+    return {
       projects: TestFiestaClient.ROUTES.PROJECTS,
       runs: TestFiestaClient.ROUTES.RUNS,
       results: TestFiestaClient.ROUTES.RESULTS,
-    } as const
-
-    return getRouteUtil(
-      routeMap,
-      resource,
-      action,
-      (route, params, queryParams) => this.buildRoute(route, params, queryParams),
-      params,
-      queryParams,
-    )
+    }
   }
 
   async createProject(
@@ -107,7 +78,7 @@ export class TestFiestaClient {
   async getProjects(
     params: Record<string, string> = {},
     queryParams: Record<string, any> = {},
-  ): Promise<Result<GetResponseData, Error>> {
+  ): Promise<GetResponseData> {
     try {
       return await networkUtils.processGetRequest(this.authOptions, this.getRoute('projects', 'list', params, queryParams))
     }

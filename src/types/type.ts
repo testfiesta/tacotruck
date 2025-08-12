@@ -1,5 +1,5 @@
 export interface TestRailClientOptions {
-  baseUrl: string
+  domain: string
   username: string
   password: string
 }
