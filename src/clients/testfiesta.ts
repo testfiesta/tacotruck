@@ -1,21 +1,11 @@
+import type { z } from 'zod'
+import type { CreateProjectInput, CreateProjectResponseData } from '../schemas/testfiesta'
+import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
-import { z } from 'zod'
+import { createProjectResponseDataSchema, createProjectSchema } from '../schemas/testfiesta'
 import * as networkUtils from '../utils/network'
 import { substituteUrlStrict } from '../utils/url-substitutor'
-
-interface TestFiestaClientOptions {
-  apiKey: string
-  domain: string
-}
-
-export const createProjectSchema = z.object({
-  name: z.string().min(1),
-  key: z.string().min(1),
-  customFields: z.object().default({}),
-})
-
-type CreateProjectInput = z.infer<typeof createProjectSchema>
 
 export class TestFiestaClient {
   protected authOptions: AuthOptions
@@ -60,6 +50,14 @@ export class TestFiestaClient {
     return substituteUrlStrict(fullRoute, { ...params, ...queryParams })
   }
 
+  private validateData<T>(schema: z.ZodSchema<T>, data: unknown, context: string): T {
+    const result = schema.safeParse(data)
+    if (!result.success) {
+      throw new Error(`Invalid ${context} input: ${result.error.message}`)
+    }
+    return result.data
+  }
+
   public getRoute(resource: string, action: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
     const routeMap = {
       projects: TestFiestaClient.ROUTES.PROJECTS,
@@ -83,16 +81,14 @@ export class TestFiestaClient {
   async createProject(
     params: Record<string, string> = {},
     createProjectInput: CreateProjectInput,
-  ): Promise<void> {
-    const project = createProjectSchema.safeParse(createProjectInput)
-    if (!project.success) {
-      throw new Error(`Invalid project input: ${project.error.message}`)
-    }
-
+  ): Promise<CreateProjectResponseData> {
+    const project = this.validateData(createProjectSchema, createProjectInput, 'project')
     try {
-      await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'create', params), {
-        json: project.data,
+      const response = await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'create', params), {
+        json: project,
       })
+      const validatedResponse = this.validateData(createProjectResponseDataSchema, response, 'project')
+      return validatedResponse
     }
     catch (error) {
       throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)

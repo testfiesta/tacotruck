@@ -1,26 +1,32 @@
 import type { z } from 'zod'
-import type { CreateCaseInput, CreateProjectInput, CreateResultInput, CreateRunInput, CreateSectionInput, CreateSectionResponseData, CreateSuiteInput, CreateSuiteResponseData, GetProjectResponseData, TestRailClientOptions, TestResults } from '../types/testrail'
+import type {
+  CreateCaseInput,
+  CreateProjectInput,
+  CreateResultInput,
+  CreateRunInput,
+  CreateSectionInput,
+  CreateSectionResponseData,
+  CreateSuiteInput,
+  CreateSuiteResponseData,
+  GetProjectResponseData,
+  TestResults,
+} from '../schemas/testrail'
+import type { TestRailClientOptions } from '../types/type'
 import type { AuthOptions } from '../utils/network'
 import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import {
-
-  createCaseSchema,
-
-  createProjectSchema,
-
-  createResultSchema,
-
-  createRunSchema,
-
-  createSectionResponseDataSchema,
-  createSectionSchema,
-
-  createSuiteResponseDataSchema,
-  createSuiteSchema,
-
-  testResultsSchema,
-} from '../types/testrail'
+  CreateCaseSchema,
+  CreateProjectSchema,
+  CreateResultSchema,
+  CreateRunSchema,
+  CreateSectionResponseDataSchema,
+  CreateSectionSchema,
+  CreateSuiteResponseDataSchema,
+  CreateSuiteSchema,
+  GetProjectResponseDataSchema,
+  TestResultsSchema,
+} from '../schemas/testrail'
 import * as networkUtils from '../utils/network'
 import { processBatchedRequests } from '../utils/network'
 import { substituteUrlStrict } from '../utils/url-substitutor'
@@ -118,13 +124,15 @@ export class TestRailClient {
   async createProject(
     createProjectInput: CreateProjectInput,
     params?: Record<string, string>,
-  ): Promise<void> {
-    const validatedData = this.validateData(createProjectSchema, createProjectInput, 'project')
+  ): Promise<GetProjectResponseData> {
+    const validatedData = this.validateData(CreateProjectSchema, createProjectInput, 'project')
 
     try {
-      await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'create', params), {
+      const response = await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'create', params), {
         json: validatedData,
       })
+      const validatedResponse = this.validateData(GetProjectResponseDataSchema, response, 'project')
+      return validatedResponse
     }
     catch (error) {
       throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
@@ -160,7 +168,9 @@ export class TestRailClient {
     queryParams: Record<string, any> = {},
   ): Promise<GetProjectResponseData> {
     try {
-      return await networkUtils.processGetRequest<GetProjectResponseData>(this.authOptions, this.getRoute('projects', 'get', params, queryParams))
+      const response = await networkUtils.processGetRequest<GetProjectResponseData>(this.authOptions, this.getRoute('projects', 'get', params, queryParams))
+      const validatedResponse = this.validateData(GetProjectResponseDataSchema, response, 'project')
+      return validatedResponse
     }
     catch (error) {
       throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
@@ -171,13 +181,13 @@ export class TestRailClient {
     sectionData: CreateSectionInput,
     params: Record<string, string> = {},
   ): Promise<CreateSectionResponseData> {
-    const validatedData = this.validateData(createSectionSchema, sectionData, 'section')
+    const validatedData = this.validateData(CreateSectionSchema, sectionData, 'section')
 
     try {
       const response = await networkUtils.processPostRequest<CreateSectionResponseData>(this.authOptions, this.getRoute('sections', 'create', params), {
         json: validatedData,
       })
-      const validatedResponse = this.validateData(createSectionResponseDataSchema, response, 'section')
+      const validatedResponse = this.validateData(CreateSectionResponseDataSchema, response, 'section')
 
       return validatedResponse
     }
@@ -190,13 +200,13 @@ export class TestRailClient {
     suiteData: CreateSuiteInput,
     params: Record<string, string> = {},
   ): Promise<CreateSuiteResponseData> {
-    const validatedData = this.validateData(createSuiteSchema, suiteData, 'suite')
+    const validatedData = this.validateData(CreateSuiteSchema, suiteData, 'suite')
 
     try {
       const response = await networkUtils.processPostRequest<CreateSuiteResponseData>(this.authOptions, this.getRoute('suites', 'create', params), {
         json: validatedData,
       })
-      const validatedResponse = this.validateData(createSuiteResponseDataSchema, response, 'suite')
+      const validatedResponse = this.validateData(CreateSuiteResponseDataSchema, response, 'suite')
 
       return validatedResponse
     }
@@ -209,7 +219,7 @@ export class TestRailClient {
     caseData: CreateCaseInput,
     params: Record<string, string> = {},
   ): Promise<any> {
-    const validatedData = this.validateData(createCaseSchema, caseData, 'test case')
+    const validatedData = this.validateData(CreateCaseSchema, caseData, 'test case')
 
     try {
       const response = await networkUtils.processPostRequest(this.authOptions, this.getRoute('cases', 'create', params), {
@@ -227,7 +237,7 @@ export class TestRailClient {
     resultData: CreateResultInput,
     params: Record<string, string> = {},
   ): Promise<any> {
-    const validatedData = this.validateData(createResultSchema, resultData, 'result')
+    const validatedData = this.validateData(CreateResultSchema, resultData, 'result')
 
     try {
       return await networkUtils.processPostRequest(this.authOptions, this.getRoute('results', 'create', params), {
@@ -243,7 +253,7 @@ export class TestRailClient {
     runData: CreateRunInput,
     params: Record<string, string> = {},
   ): Promise<any> {
-    const validatedData = this.validateData(createRunSchema, runData, 'run')
+    const validatedData = this.validateData(CreateRunSchema, runData, 'run')
 
     try {
       const response = await networkUtils.processPostRequest(this.authOptions, this.getRoute('runs', 'create', params), {
@@ -271,7 +281,7 @@ export class TestRailClient {
     },
 
   ): Promise<void> {
-    const validatedData = this.validateData(testResultsSchema, testResultsData, 'test results')
+    const validatedData = this.validateData(TestResultsSchema, testResultsData, 'test results')
 
     const spinner = p.spinner()
     try {
