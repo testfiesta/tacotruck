@@ -56,7 +56,7 @@ await trClient.createProject()
 
 **Elixir**
 
-- [Elixir](https://github.com/testfiesta/demo-elixir-tf)
+- [Elixir](https://github.com/testfiesta/tacotruck-examples/tree/main/demo_elixir_tf)
 
 **Golang**
 
@@ -70,11 +70,11 @@ await trClient.createProject()
 
 **JS / TS**
 
-- [Bun](https://github.com/testfiesta/demo-bun-tf)
-- [Deno](https://github.com/testfiesta/demo-deno-tf)
-- [Mocha](https://github.com/testfiesta/demo-mocha-tf)
-- [Jest](https://github.com/testfiesta/demo-jest-tf)
-- [Vitest](https://github.com/testfiesta/demo-vitest-tf)
+- [Bun](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-bun-tf)
+- [Deno](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-deno-tf)
+- [Mocha](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-mocha-tf)
+- [Jest](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-jest-tf)
+- [Vitest](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-vitest-tf)
 - Selenium - TODO
 - Cypress - TODO
 - Playwright - TODO
@@ -82,26 +82,26 @@ await trClient.createProject()
 
 **.NET**
 
-- [C# NUnit](https://github.com/testfiesta/demo-dotnet-nunit-tf)
+- [C# NUnit](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-dotnet-nunit-tf)
 
 **Python**
 
-- [PyTest](https://github.com/testfiesta/demo-pytest-tf)
+- [PyTest](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-pytest-tf)
 
 **Ruby**
 
 - Minitest - TODO
-- [Rspec](https://github.com/testfiesta/demo-rspec-tf)
+- [Rspec](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-rspec-tf)
 
 **Rust**
 
-- [Cargo](https://github.com/testfiesta/demo-rust-cargo-tf)
+- [Cargo](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-rust-cargo-tf)
 - polish - TODO
 
 **PHP**
 
-- [PHPUnit](https://github.com/testfiesta/demo-phpunit-tf)
-- [PestPHP](https://github.com/testfiesta/demo-pestphp-tf)
+- [PHPUnit](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-phpunit-tf)
+- [PestPHP](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-pestphp-tf)
 
 **Mobile**
 
