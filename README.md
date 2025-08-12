@@ -54,58 +54,8 @@ await trClient.createProject()
 
 ### Example usage with various testing frameworks
 
-**Elixir**
+Check out [tacotruck-examples](https://github.com/testfiesta/tacotruck-examples) for examples of using `tacotruck` with your favorite language and framework.
 
-- [Elixir](https://github.com/testfiesta/tacotruck-examples/tree/main/demo_elixir_tf)
-
-**Golang**
-
-- [testing](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-golang-tf)
-- Testify - TODO
-
-**Java**
-
-- JUnit - TODO
-- TestNG - TODO
-
-**JS / TS**
-
-- [Bun](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-bun-tf)
-- [Deno](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-deno-tf)
-- [Mocha](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-mocha-tf)
-- [Jest](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-jest-tf)
-- [Vitest](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-vitest-tf)
-- Selenium - TODO
-- Cypress - TODO
-- [Playwright](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-playwright-tf)
-- Puppeteer - TODO
-
-**.NET**
-
-- [C# NUnit](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-dotnet-nunit-tf)
-
-**Python**
-
-- [PyTest](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-pytest-tf)
-
-**Ruby**
-
-- Minitest - TODO
-- [Rspec](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-rspec-tf)
-
-**Rust**
-
-- [Cargo](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-rust-cargo-tf)
-- polish - TODO
-
-**PHP**
-
-- [PHPUnit](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-phpunit-tf)
-- [PestPHP](https://github.com/testfiesta/tacotruck-examples/tree/main/demo-pestphp-tf)
-
-**Mobile**
-
-- Appium - TODO
 
 ## <a name="documentation">📖 Documentation</a>
 
