@@ -23,7 +23,6 @@ jobs:
           node-version: 20
 
       - run: npm ci
-      - run: npm init --scope=@testfiesta
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
