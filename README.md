@@ -56,7 +56,6 @@ await trClient.createProject()
 
 Check out [tacotruck-examples](https://github.com/testfiesta/tacotruck-examples) for examples of using `tacotruck` with your favorite language and framework.
 
-
 ## <a name="documentation">📖 Documentation</a>
 
 We highly recommend you take a look at the [Testfiesta docs](https://docs.testfieta.com) for more information.
