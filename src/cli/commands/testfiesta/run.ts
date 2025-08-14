@@ -1,14 +1,16 @@
+import type { XmlData } from '../../../utils/xml-transform'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
+import { transformXmlDataToTestFiesta } from '../../../utils/xml-transform'
 
 interface SubmitRunArgs {
   data: string
   token: string
-  organization: string
-  project: string
+  handle: string
+  key: string
   verbose?: boolean
 }
 
@@ -17,8 +19,8 @@ export function submitRunCommand() {
     .description('Submit test run to testfiesta')
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
-    .requiredOption('-h, --organization <organization>', 'Organization handle')
-    .requiredOption('-p, --project <project>', 'Project key')
+    .requiredOption('-h, --handle <handle>', 'Organization handle')
+    .requiredOption('-k, --key <key>', 'Project key')
     .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: SubmitRunArgs) => {
       initializeLogger({ verbose: !!args.verbose })
@@ -58,7 +60,8 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     return
 
   try {
-    await tfClient.submitTestResults()
+    const transformedData = transformXmlDataToTestFiesta(runData as XmlData)
+    await tfClient.submitTestResults(transformedData, { key: args.key, handle: args.handle })
     spinner.stop()
     p.log.success('Test run submitted successfully to TestFiesta')
   }

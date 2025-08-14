@@ -3,6 +3,7 @@ import type { CreateProjectInput, CreateProjectResponseData } from '../schemas/t
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
+import type { TransformedTestFiestaData } from '../utils/xml-transform'
 import { createProjectResponseDataSchema, createProjectSchema } from '../schemas/testfiesta'
 import * as networkUtils from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
@@ -19,6 +20,7 @@ export class TestFiestaClient {
       LIST: '/projects?limit={limit}&offset={offset}',
       CREATE: '/projects',
       DELETE: '/delete_project/{project_id}',
+      DATA: '/projects/{key}/data',
     },
     RUNS: {
       LIST: '/runs',
@@ -117,8 +119,19 @@ export class TestFiestaClient {
   }
 
   async submitTestResults(
-
+    transformedData: TransformedTestFiestaData,
+    params: Record<string, string> = {},
   ): Promise<void> {
+    try {
+      console.log('transformedData', JSON.stringify(transformedData, null, 2))
+      console.log(this.getRoute('projects', 'data', params))
 
+      await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'data', params), {
+        json: transformedData,
+      })
+    }
+    catch (error) {
+      throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
+    }
   }
 }

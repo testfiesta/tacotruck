@@ -42,7 +42,7 @@ export interface XmlData {
   testcase: TestCaseResult[]
 }
 
-export interface TransformedData {
+export interface TransformedTestRailData {
   root: {
     name: string
     description?: string
@@ -68,6 +68,48 @@ export interface TransformedData {
   }[]
 }
 
+interface FolderData {
+  name: string
+  externalId: string
+  source: string
+  [key: string]: any
+}
+interface RunData {
+  name: string
+  externalId: string
+  source: string
+  [key: string]: any
+}
+interface ExecutionData {
+  externalId?: string
+  caseRef: string
+  runRef: string
+  source: string
+  [key: string]: any
+}
+interface CaseData {
+  name: string
+  externalId: string
+  source: string
+  folderExternalId?: string
+  [key: string]: any
+}
+export interface TransformedTestFiestaData {
+  entities: {
+    cases?: {
+      entries: CaseData[]
+    }
+    folders?: {
+      entries: FolderData[]
+    }
+    runs?: {
+      entries: RunData[]
+    }
+    executions?: {
+      entries: ExecutionData[]
+    }
+  }
+}
 /**
  * Transform XML test data to a format compatible with TestRail
  * Status IDs:
@@ -80,9 +122,25 @@ export interface TransformedData {
  * @param data The parsed XML data
  * @returns Transformed data in the required format
  */
-export function transformXmlData(data: XmlData): TransformedData {
+export function transformXmlData(data: XmlData): TransformedTestRailData {
+  return transformXmlDataToTestRail(data)
+}
+
+/**
+ * Transform XML test data to a format compatible with TestRail
+ * Status IDs:
+ * 1: Passed
+ * 2: Blocked
+ * 3: Untested
+ * 4: Retest/skipped
+ * 5: Failed
+ *
+ * @param data The parsed XML data
+ * @returns Transformed data in the required format
+ */
+export function transformXmlDataToTestRail(data: XmlData): TransformedTestRailData {
   // Initialize the result structure
-  const result: TransformedData = {
+  const result: TransformedTestRailData = {
     root: {
       name: data.root.name || 'Test Suite',
       description: '',
@@ -187,6 +245,140 @@ export function transformXmlData(data: XmlData): TransformedData {
         comment,
         defects,
       })
+    }
+  }
+
+  return result
+}
+
+/**
+ * Transform XML test data to a format compatible with TestFiesta
+ *
+ * @param data The parsed XML data
+ * @returns Transformed data in the TestFiesta format
+ */
+export function transformXmlDataToTestFiesta(data: XmlData): TransformedTestFiestaData {
+  // Initialize the result structure
+  const result: TransformedTestFiestaData = {
+    entities: {
+      folders: { entries: [] },
+      cases: { entries: [] },
+      runs: { entries: [] },
+      executions: { entries: [] },
+    },
+  }
+
+  const folderMap = new Map<string, string>()
+
+  if (data.section && data.section.length > 0) {
+    for (const section of data.section) {
+      const folderExternalId = `folder-${crypto.randomUUID()}`
+      folderMap.set(section.name, folderExternalId)
+
+      const folderData: FolderData = {
+        name: section.name,
+        externalId: folderExternalId,
+        source: 'junit-xml',
+        description: `Test suite: ${section.name}`,
+        priority: section.failures > 0 ? 'high' : 'medium',
+        tests: section.tests,
+        failures: section.failures,
+        errors: section.errors,
+        skipped: section.skipped,
+        time: section.time,
+        timestamp: section.timestamp || new Date().toISOString(),
+      }
+
+      result.entities.folders!.entries.push(folderData)
+    }
+  }
+
+  const runExternalId = `run-${crypto.randomUUID()}`
+  const runData: RunData = {
+    name: `${data.root.name || 'Test Suite'} - ${new Date().toISOString().split('T')[0]}`,
+    externalId: runExternalId,
+    source: 'junit-xml',
+    description: `Test execution for ${data.root.name || 'Test Suite'}`,
+    environment: 'automated',
+    assignee: 'automation-bot@company.com',
+    startTime: new Date().toISOString(),
+    endTime: new Date(Date.now() + data.root.time * 1000).toISOString(),
+    totalTests: data.root.tests,
+    totalFailures: data.root.failures,
+    totalErrors: data.root.errors,
+    totalSkipped: data.root.skipped,
+    totalTime: data.root.time,
+  }
+
+  result.entities.runs!.entries.push(runData)
+
+  // Process test cases
+  if (data.testcase && data.testcase.length > 0) {
+    for (const testCase of data.testcase) {
+      let folderExternalId = folderMap.get(testCase.classname)
+
+      if (!folderExternalId) {
+        for (const [folderName, id] of folderMap.entries()) {
+          if (testCase.classname.includes(folderName) || folderName.includes(testCase.classname)) {
+            folderExternalId = id
+            break
+          }
+        }
+      }
+
+      if (!folderExternalId) {
+        if (result.entities.folders!.entries.length > 0) {
+          folderExternalId = result.entities.folders!.entries[0].externalId
+        }
+        else {
+          const defaultFolderExternalId = `folder-default-${crypto.randomUUID()}`
+          folderMap.set('Default Folder', defaultFolderExternalId)
+
+          const defaultFolderData: FolderData = {
+            name: 'Default Folder',
+            externalId: defaultFolderExternalId,
+            source: 'junit-xml',
+            description: 'Default folder for unassigned test cases',
+            priority: 'medium',
+          }
+
+          result.entities.folders!.entries.push(defaultFolderData)
+          folderExternalId = defaultFolderExternalId
+        }
+      }
+
+      const caseExternalId = `case-${crypto.randomUUID()}`
+      const caseData: CaseData = {
+        name: testCase.name,
+        externalId: caseExternalId,
+        source: 'junit-xml',
+        folderExternalId,
+        description: `Test case: ${testCase.name}`,
+        priority: testCase.status === 'failed' ? 'high' : 'medium',
+        classname: testCase.classname,
+        time: testCase.time,
+        status: testCase.status,
+        tags: [testCase.classname.split('.').pop() || 'test', testCase.status],
+      }
+
+      result.entities.cases!.entries.push(caseData)
+
+      const executionData: ExecutionData = {
+        externalId: `exec-${crypto.randomUUID()}`,
+        caseRef: caseExternalId,
+        runRef: runExternalId,
+        source: 'junit-xml',
+        status: testCase.status,
+        duration: testCase.time,
+        environment: 'automated',
+        browser: 'phantomjs',
+        comment: testCase.failure?.message || testCase.skipped?.message || '',
+        defects: testCase.failure?.message || '',
+        failureType: testCase.failure?.type || '',
+        failureDetails: testCase.failure?._text || '',
+      }
+
+      result.entities.executions!.entries.push(executionData)
     }
   }
 
