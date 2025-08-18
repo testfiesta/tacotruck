@@ -283,19 +283,19 @@ export function transformXmlDataToTestFiesta(data: XmlData): TransformedTestFies
 
   const runExternalId = `run-${crypto.randomUUID()}`
   const runData: RunData = {
-    name: `${data.root.name || 'Test Suite'} - ${new Date().toISOString().split('T')[0]}`,
+    name: `${data.root?.name || 'Test Suite'} - ${new Date().toISOString().split('T')[0]}`,
     externalId: runExternalId,
     source: 'junit-xml',
-    description: `Test execution for ${data.root.name || 'Test Suite'}`,
+    description: `Test execution for ${data.root?.name || 'Test Suite'}`,
     environment: 'automated',
     assignee: 'automation-bot@company.com',
     startTime: new Date().toISOString(),
-    endTime: new Date(Date.now() + data.root.time * 1000).toISOString(),
-    totalTests: data.root.tests,
-    totalFailures: data.root.failures,
-    totalErrors: data.root.errors,
-    totalSkipped: data.root.skipped,
-    totalTime: data.root.time,
+    endTime: new Date(Date.now() + (data.root?.time || 0) * 1000).toISOString(),
+    totalTests: data.root?.tests || 0,
+    totalFailures: data.root?.failures || 0,
+    totalErrors: data.root?.errors || 0,
+    totalSkipped: data.root?.skipped || 0,
+    totalTime: data.root?.time || 0,
   }
 
   result.entities.runs!.entries.push(runData)

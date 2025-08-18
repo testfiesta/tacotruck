@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { transformXmlData, transformXmlDataToTestFiesta } from '../xml-transform'
 
-describe('xML Transform Utility', () => {
+describe('xml Transform Utility', () => {
   it('should transform XML data to the required format', () => {
     const inputData = {
       root: {
