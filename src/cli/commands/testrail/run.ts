@@ -1,10 +1,8 @@
-import type { XmlData } from '../../../utils/xml-transform'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestRailClient } from '../../../clients/testrail'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
-import { transformXmlDataToTestRail } from '../../../utils/xml-transform'
 
 interface SubmitRunArgs {
   data: string
@@ -67,11 +65,10 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       err: error => handleError(error, 'Data error'),
     })
 
-    const transformedData = transformXmlDataToTestRail(runData as XmlData)
     if (runData === null)
       return
 
-    await testRailClient.submitTestResults(transformedData, { project_id: args.projectId }, args.runName)
+    await testRailClient.submitTestResults(runData, { project_id: args.projectId }, args.runName)
     p.log.success('Successfully submitted result to TestRail')
   }
   catch (error) {

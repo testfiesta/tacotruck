@@ -9,10 +9,11 @@ import type {
   CreateSuiteInput,
   CreateSuiteResponseData,
   GetProjectResponseData,
-  TestResults,
 } from '../schemas/testrail'
 import type { TestRailClientOptions } from '../types/type'
 import type { AuthOptions } from '../utils/network'
+import type { RunData } from '../utils/run-data-loader'
+import type { XmlData } from '../utils/xml-transform'
 import { Buffer } from 'node:buffer'
 import * as p from '@clack/prompts'
 import {
@@ -31,6 +32,7 @@ import * as networkUtils from '../utils/network'
 import { processBatchedRequests } from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
 import { substituteUrlStrict } from '../utils/url-substitutor'
+import { transformXmlDataToTestRail } from '../utils/xml-transform'
 
 export class TestRailClient {
   protected authOptions: AuthOptions
@@ -265,7 +267,7 @@ export class TestRailClient {
   }
 
   async submitTestResults(
-    testResultsData: TestResults,
+    runData: RunData,
     params: Record<string, string>,
     runName: string,
     requestOptions: any = {
@@ -279,6 +281,7 @@ export class TestRailClient {
     },
 
   ): Promise<void> {
+    const testResultsData = transformXmlDataToTestRail(runData as XmlData)
     const validatedData = this.validateData(TestResultsSchema, testResultsData, 'test results')
 
     const spinner = p.spinner()
