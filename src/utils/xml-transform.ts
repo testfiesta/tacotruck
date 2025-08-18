@@ -139,7 +139,6 @@ export function transformXmlData(data: XmlData): TransformedTestRailData {
  * @returns Transformed data in the required format
  */
 export function transformXmlDataToTestRail(data: XmlData): TransformedTestRailData {
-  // Initialize the result structure
   const result: TransformedTestRailData = {
     root: {
       name: data.root.name || 'Test Suite',
@@ -151,8 +150,7 @@ export function transformXmlDataToTestRail(data: XmlData): TransformedTestRailDa
     results: [],
   }
 
-  // Create sections from the section data
-  const sectionMap = new Map<string, string>() // Map to store section name to ID mapping
+  const sectionMap = new Map<string, string>()
 
   if (data.section && data.section.length > 0) {
     for (const section of data.section) {
@@ -168,14 +166,10 @@ export function transformXmlDataToTestRail(data: XmlData): TransformedTestRailDa
     }
   }
 
-  // Process test cases
   if (data.testcase && data.testcase.length > 0) {
     for (const testCase of data.testcase) {
-      // Try to find the section this test case belongs to
-      // First, try to match by classname to existing section names
       let sectionId = sectionMap.get(testCase.classname)
 
-      // If no direct match, try to find a section that contains the classname
       if (!sectionId) {
         for (const [sectionName, id] of sectionMap.entries()) {
           if (testCase.classname.includes(sectionName) || sectionName.includes(testCase.classname)) {
@@ -185,13 +179,11 @@ export function transformXmlDataToTestRail(data: XmlData): TransformedTestRailDa
         }
       }
 
-      // If still no match, use the first available section or create a default one
       if (!sectionId) {
         if (result.sections.length > 0) {
           sectionId = result.sections[0].id
         }
         else {
-          // Create a default section if none exist
           const defaultSectionId = crypto.randomUUID()
           sectionMap.set('Default Section', defaultSectionId)
 
@@ -205,7 +197,6 @@ export function transformXmlDataToTestRail(data: XmlData): TransformedTestRailDa
         }
       }
 
-      // Create a case
       const caseId = crypto.randomUUID()
       result.cases.push({
         id: caseId,
@@ -214,31 +205,29 @@ export function transformXmlDataToTestRail(data: XmlData): TransformedTestRailDa
         custom_test_case_id: testCase.name,
       })
 
-      // Determine status ID based on test case status
-      let statusId = 1 // Default to Passed
+      let statusId = 1
       let comment = ''
       let defects = ''
 
       if (testCase.status === 'failed' || testCase.failure) {
-        statusId = 5 // Failed
+        statusId = 5
         if (testCase.failure) {
           defects = testCase.failure.message || 'Test failed'
         }
       }
       else if (testCase.status === 'skipped' || testCase.skipped) {
-        statusId = 4 // Retest/skipped
+        statusId = 4
         if (testCase.skipped) {
           comment = testCase.skipped.message || 'Test skipped'
         }
       }
       else if (testCase.status === 'blocked') {
-        statusId = 2 // Blocked
+        statusId = 2
       }
       else if (testCase.status === 'untested') {
-        statusId = 3 // Untested
+        statusId = 3
       }
 
-      // Create result
       result.results.push({
         case_id: caseId,
         status_id: statusId,
@@ -258,7 +247,6 @@ export function transformXmlDataToTestRail(data: XmlData): TransformedTestRailDa
  * @returns Transformed data in the TestFiesta format
  */
 export function transformXmlDataToTestFiesta(data: XmlData): TransformedTestFiestaData {
-  // Initialize the result structure
   const result: TransformedTestFiestaData = {
     entities: {
       folders: { entries: [] },
@@ -312,7 +300,6 @@ export function transformXmlDataToTestFiesta(data: XmlData): TransformedTestFies
 
   result.entities.runs!.entries.push(runData)
 
-  // Process test cases
   if (data.testcase && data.testcase.length > 0) {
     for (const testCase of data.testcase) {
       let folderExternalId = folderMap.get(testCase.classname)

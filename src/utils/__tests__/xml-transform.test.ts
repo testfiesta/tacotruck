@@ -3,7 +3,6 @@ import { transformXmlData, transformXmlDataToTestFiesta } from '../xml-transform
 
 describe('xML Transform Utility', () => {
   it('should transform XML data to the required format', () => {
-    // Sample input data
     const inputData = {
       root: {
         name: 'root',
@@ -50,22 +49,18 @@ describe('xML Transform Utility', () => {
       ],
     }
 
-    // Transform the data
     const result = transformXmlData(inputData)
 
-    // Verify the structure
     expect(result).toHaveProperty('root')
     expect(result).toHaveProperty('sections')
     expect(result).toHaveProperty('cases')
     expect(result).toHaveProperty('results')
 
-    // Verify sections
     expect(result.sections.length).toBeGreaterThanOrEqual(1)
     expect(result.sections[0]).toHaveProperty('id')
     expect(result.sections[0]).toHaveProperty('name', 'tests.LoginTests')
     expect(result.sections[0]).toHaveProperty('parent_id', null)
 
-    // Verify cases
     expect(result.cases.length).toBe(3)
     result.cases.forEach((testCase) => {
       expect(testCase).toHaveProperty('id')
@@ -73,7 +68,6 @@ describe('xML Transform Utility', () => {
   })
 
   it('should transform XML data to TestFiesta format', () => {
-    // Sample input data
     const inputData = {
       root: {
         name: 'Test Suite',
@@ -120,24 +114,20 @@ describe('xML Transform Utility', () => {
       ],
     }
 
-    // Transform the data to TestFiesta format
     const result = transformXmlDataToTestFiesta(inputData)
 
-    // Verify the structure
     expect(result).toHaveProperty('entities')
     expect(result.entities).toHaveProperty('folders')
     expect(result.entities).toHaveProperty('cases')
     expect(result.entities).toHaveProperty('runs')
     expect(result.entities).toHaveProperty('executions')
 
-    // Verify folders
     expect(result.entities.folders!.entries.length).toBe(1)
     expect(result.entities.folders!.entries[0]).toHaveProperty('name', 'tests.LoginTests')
     expect(result.entities.folders!.entries[0]).toHaveProperty('externalId')
     expect(result.entities.folders!.entries[0]).toHaveProperty('source', 'junit-xml')
     expect(result.entities.folders!.entries[0]).toHaveProperty('priority', 'high') // because it has failures
 
-    // Verify cases
     expect(result.entities.cases!.entries.length).toBe(3)
     result.entities.cases!.entries.forEach((testCase) => {
       expect(testCase).toHaveProperty('externalId')
@@ -146,7 +136,6 @@ describe('xML Transform Utility', () => {
       expect(testCase).toHaveProperty('folderExternalId')
     })
 
-    // Verify runs
     expect(result.entities.runs!.entries.length).toBe(1)
     expect(result.entities.runs!.entries[0]).toHaveProperty('externalId')
     expect(result.entities.runs!.entries[0]).toHaveProperty('name')
@@ -163,7 +152,6 @@ describe('xML Transform Utility', () => {
       expect(execution).toHaveProperty('duration')
     })
 
-    // Verify relationships
     const runId = result.entities.runs!.entries[0].externalId
     const folderId = result.entities.folders!.entries[0].externalId
 

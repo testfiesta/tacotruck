@@ -123,9 +123,6 @@ export class TestFiestaClient {
     params: Record<string, string> = {},
   ): Promise<void> {
     try {
-      console.log('transformedData', JSON.stringify(transformedData, null, 2))
-      console.log(this.getRoute('projects', 'data', params))
-
       await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'data', params), {
         json: transformedData,
       })
