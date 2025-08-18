@@ -189,7 +189,7 @@ async function main() {
         console.warn(`Warning: Could not make binary executable: ${err}`)
       }
 
-      const submitCommand = `"${BIN_PATH}" testfiesta run:submit -d "${JUNIT_REPORT_PATH}" -t "${token}" -h "${orgHandle}" -p "${projectKey}"`
+      const submitCommand = `"${BIN_PATH}" testfiesta run:submit -d "${JUNIT_REPORT_PATH}" -t "${token}" -h "${orgHandle}" -k "${projectKey}"`
       console.log(`Executing: ${submitCommand}`)
 
       const execOptions: ExecSyncOptions = {
