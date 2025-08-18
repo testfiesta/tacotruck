@@ -1,10 +1,8 @@
-import type { XmlData } from '../../../utils/xml-transform'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
-import { transformXmlDataToTestFiesta } from '../../../utils/xml-transform'
 
 interface SubmitRunArgs {
   data: string
@@ -60,8 +58,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     return
 
   try {
-    const transformedData = transformXmlDataToTestFiesta(runData as XmlData)
-    await tfClient.submitTestResults(transformedData, { key: args.key, handle: args.handle })
+    await tfClient.submitTestResults(runData, { key: args.key, handle: args.handle })
     spinner.stop()
     p.log.success('Test run submitted successfully to TestFiesta')
   }

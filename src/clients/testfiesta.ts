@@ -3,11 +3,13 @@ import type { CreateProjectInput, CreateProjectResponseData } from '../schemas/t
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
-import type { TransformedTestFiestaData } from '../utils/xml-transform'
+import type { RunData } from '../utils/run-data-loader'
+import type { XmlData } from '../utils/xml-transform'
 import { createProjectResponseDataSchema, createProjectSchema } from '../schemas/testfiesta'
 import * as networkUtils from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
 import { substituteUrlStrict } from '../utils/url-substitutor'
+import { transformXmlDataToTestFiesta } from '../utils/xml-transform'
 
 export class TestFiestaClient {
   protected authOptions: AuthOptions
@@ -119,10 +121,11 @@ export class TestFiestaClient {
   }
 
   async submitTestResults(
-    transformedData: TransformedTestFiestaData,
+    runData: RunData,
     params: Record<string, string> = {},
   ): Promise<void> {
     try {
+      const transformedData = transformXmlDataToTestFiesta(runData as XmlData)
       await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'data', params), {
         json: transformedData,
       })
