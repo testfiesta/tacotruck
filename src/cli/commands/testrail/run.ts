@@ -4,7 +4,7 @@ import * as Commander from 'commander'
 import { TestRailClient } from '../../../clients/testrail'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
-import { transformXmlData } from '../../../utils/xml-transform'
+import { transformXmlDataToTestRail } from '../../../utils/xml-transform'
 
 interface SubmitRunArgs {
   data: string
@@ -67,7 +67,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       err: error => handleError(error, 'Data error'),
     })
 
-    const transformedData = transformXmlData(runData as XmlData)
+    const transformedData = transformXmlDataToTestRail(runData as XmlData)
     if (runData === null)
       return
 
