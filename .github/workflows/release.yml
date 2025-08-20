@@ -23,7 +23,9 @@ jobs:
           node-version: 20
 
       - run: npm ci
-      - run: npm publish --access public
+      - name: publish
+        if: false
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
