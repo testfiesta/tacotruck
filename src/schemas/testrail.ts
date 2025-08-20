@@ -33,6 +33,12 @@ export const CreateSuiteResponseDataSchema = z.object({
   id: z.number(),
   name: z.string(),
 })
+export const GetSuitesResponseDataSchema = z.object({
+  suites: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+  })),
+})
 
 export const CreateSectionResponseDataSchema = z.object({
   id: z.number(),
@@ -85,3 +91,4 @@ export type CreateSectionInput = z.infer<typeof CreateSectionSchema>
 export type CreateCaseInput = z.infer<typeof CreateCaseSchema>
 export type CreateResultInput = z.infer<typeof CreateResultSchema>
 export type CreateRunInput = z.infer<typeof CreateRunSchema>
+export type GetSuitesResponseData = z.infer<typeof GetSuitesResponseDataSchema>

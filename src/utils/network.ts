@@ -24,6 +24,7 @@ export interface RequestOptions extends FetchOptions {
   headers?: Record<string, any>
   showProgress?: boolean
   progressLabel?: string
+  onProgress?: (current: number, total: number) => void
 }
 export interface BatchRequestOptions {
   concurrencyLimit: number
@@ -183,6 +184,7 @@ export async function processBatchedRequests<R>(
       retryDelay = 1000,
       showProgress = false,
       progressLabel = 'requests',
+      onProgress,
     } = options
 
     const throttle = pThrottle({
@@ -208,6 +210,9 @@ export async function processBatchedRequests<R>(
             const result = await req()
 
             updateProgressBar(progressBar)
+            if (onProgress) {
+              onProgress(index + 1, requests.length)
+            }
 
             return result
           }
@@ -238,6 +243,10 @@ export async function processBatchedRequests<R>(
 
         if (progressBar) {
           progressBar.increment()
+        }
+
+        if (onProgress) {
+          onProgress(index + 1, requests.length)
         }
 
         throw lastError instanceof Error ? lastError : new Error(String(lastError))

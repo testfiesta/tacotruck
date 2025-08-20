@@ -9,13 +9,14 @@ import type {
   CreateSuiteInput,
   CreateSuiteResponseData,
   GetProjectResponseData,
+  GetSuitesResponseData,
+
 } from '../schemas/testrail'
 import type { TestRailClientOptions } from '../types/type'
 import type { AuthOptions } from '../utils/network'
 import type { RunData } from '../utils/run-data-loader'
 import type { XmlData } from '../utils/xml-transform'
 import { Buffer } from 'node:buffer'
-import * as p from '@clack/prompts'
 import {
   CreateCaseSchema,
   CreateProjectSchema,
@@ -26,6 +27,7 @@ import {
   CreateSuiteResponseDataSchema,
   CreateSuiteSchema,
   GetProjectResponseDataSchema,
+  GetSuitesResponseDataSchema,
   TestResultsSchema,
 } from '../schemas/testrail'
 import * as networkUtils from '../utils/network'
@@ -34,9 +36,21 @@ import { getRoute as getRouteUtil } from '../utils/route'
 import { substituteUrlStrict } from '../utils/url-substitutor'
 import { transformXmlDataToTestRail } from '../utils/xml-transform'
 
+export interface TRProgressCallbacks {
+  onStart?: (message: string) => void
+  onSuccess?: (message: string) => void
+  onError?: (message: string, error?: Error) => void
+  onProgress?: (current: number, total: number, label: string) => void
+}
+
 export class TestRailClient {
   protected authOptions: AuthOptions
   protected baseUrl: string
+  private static readonly SUITE_MODE = {
+    SINGLE_REPO: 1,
+    SINGLE_REPO_WITH_BASELINE: 2,
+    MULTIPLE_SUITES: 3,
+  }
 
   private static readonly ROUTES = {
     PROJECTS: {
@@ -75,6 +89,10 @@ export class TestRailClient {
     },
     SUITES: {
       CREATE: '/api/v2/add_suite/{project_id}',
+      GET: '/api/v2/get_suite/{suite_id}',
+      GET_SUITES: '/api/v2/get_suites/{project_id}',
+      UPDATE: '/api/v2/update_suite/{suite_id}',
+      DELETE: '/api/v2/delete_suite/{suite_id}',
     },
   } as const
 
@@ -266,6 +284,38 @@ export class TestRailClient {
     }
   }
 
+  async getSuiteID(
+    suiteName: string,
+    params: Record<string, string>,
+    callbacks?: TRProgressCallbacks,
+  ): Promise<any> {
+    try {
+      const { onStart, onSuccess } = callbacks || {}
+      onStart?.('Checking project mode two')
+      const project = await this.getProject({ project_id: params.project_id })
+      onSuccess?.('Project mode checked successfully')
+
+      let suiteId = 0
+      if (project.suite_mode === TestRailClient.SUITE_MODE.MULTIPLE_SUITES) {
+        onStart?.('Creating test suite')
+        const suite = await this.createSuite({ name: suiteName }, { project_id: params.project_id })
+        suiteId = suite.id
+        onSuccess?.('Test suite created successfully')
+      }
+      else {
+        onStart?.('Getting test suites')
+        const response = await networkUtils.processGetRequest<GetSuitesResponseData>(this.authOptions, this.getRoute('suites', 'get_suites', params))
+        const validatedResponse = this.validateData(GetSuitesResponseDataSchema, response, 'suites')
+        suiteId = validatedResponse.suites[0].id
+        onSuccess?.('Test suites retrieved successfully')
+      }
+      return suiteId
+    }
+    catch (error) {
+      throw error instanceof Error ? error : new Error(`TestRail test get suite id failed: ${String(error)}`)
+    }
+  }
+
   async submitTestResults(
     runData: RunData,
     params: Record<string, string>,
@@ -279,25 +329,13 @@ export class TestRailClient {
       retryAttempts: 3,
       timeout: 30000,
     },
-
+    callbacks?: TRProgressCallbacks,
   ): Promise<void> {
+    const { onStart, onSuccess, onError, onProgress } = callbacks || {}
     const testResultsData = transformXmlDataToTestRail(runData as XmlData)
     const validatedData = this.validateData(TestResultsSchema, testResultsData, 'test results')
-
-    const spinner = p.spinner()
+    const suiteId = await this.getSuiteID(runData.root.name, params, callbacks)
     try {
-      spinner.start('Checking project mode')
-      const project = await this.getProject({ project_id: params.project_id })
-      spinner.stop('Project mode checked successfully')
-
-      let suiteId = 0
-      if (project.suite_mode === 3) {
-        spinner.start('Creating test suite')
-        const suite = await this.createSuite({ name: validatedData.root.name }, { project_id: params.project_id }) as CreateSuiteResponseData
-        suiteId = suite.id
-        spinner.stop('Test suite created successfully')
-      }
-
       const sections = validatedData.sections || []
       const sectionIdMap = new Map()
       const sectionRequests = sections.map((section: { name: string, id: string, [key: string]: any }) => {
@@ -323,14 +361,15 @@ export class TestRailClient {
           timeout: requestOptions.timeout,
           showProgress: true,
           progressLabel: 'sections',
+          onProgress: onProgress ? (current, total) => onProgress(current, total, 'sections') : undefined,
         },
       )
 
       if (batchResult1) {
-        spinner.stop(`${sectionIdMap.size} sections created successfully`)
+        onSuccess?.(`${sectionIdMap.size} sections created successfully`)
       }
       else {
-        spinner.stop('Error creating sections')
+        onError?.('Error creating sections')
         throw new Error('Failed to create sections')
       }
 
@@ -379,6 +418,7 @@ export class TestRailClient {
           timeout: requestOptions.timeout,
           showProgress: true,
           progressLabel: 'test cases',
+          onProgress: onProgress ? (current, total) => onProgress(current, total, 'test cases') : undefined,
         },
       )
 
@@ -388,10 +428,10 @@ export class TestRailClient {
             caseIds.push(result.id)
           }
         }
-        spinner.stop('Test cases created successfully')
+        onSuccess?.('Test cases created successfully')
       }
       else {
-        spinner.stop('Error creating test cases')
+        onError?.('Error creating test cases')
         throw new Error('Failed to create test cases')
       }
 
@@ -402,9 +442,9 @@ export class TestRailClient {
         suite_id: suiteId || null,
       }
 
-      spinner.start('Creating test run')
+      onStart?.('Creating test run')
       const testRun = await this.createRun(run, params)
-      spinner.stop('Test run created successfully')
+      onSuccess?.('Test run created successfully')
 
       const testResults = validatedData.results || []
       testResults.forEach((testResult: any) => {
@@ -416,14 +456,14 @@ export class TestRailClient {
         }
       })
 
-      spinner.start('Creating test results')
+      onStart?.('Creating test results')
       await this.createResult({ results: testResults }, {
         run_id: testRun.id,
       })
-      spinner.stop('Test results created successfully')
+      onSuccess?.('Test results created successfully')
     }
     catch (error) {
-      spinner.stop()
+      onError?.('Operation failed', error instanceof Error ? error : new Error(String(error)))
       throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
     }
   }

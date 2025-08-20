@@ -1,3 +1,4 @@
+import type { TFProgressCallbacks } from '../../../clients/testfiesta'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
@@ -35,11 +36,7 @@ export function submitRunCommand() {
 }
 
 export async function run(args: SubmitRunArgs): Promise<void> {
-  const spinner = p.spinner()
-  spinner.start('Submitting test run to TestFiesta')
-
   const handleError = (error: Error, context: string): null => {
-    spinner.stop()
     p.log.error(`${context}: ${error.message}`)
     return null
   }
@@ -57,13 +54,28 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   if (runData === null)
     return
 
+  const spinner = p.spinner()
+
+  const callbacks: TFProgressCallbacks = {
+    onStart: (message) => {
+      spinner.start(message)
+    },
+    onSuccess: (message) => {
+      spinner.stop(message)
+    },
+    onError: (message, error) => {
+      spinner.stop(`${message}: ${error?.message || 'Unknown error'}`)
+    },
+    onProgress: (current, total, label) => {
+      spinner.message(`Processing ${label}: ${current}/${total}`)
+    },
+  }
+
   try {
-    await tfClient.submitTestResults(runData, { key: args.key, handle: args.handle })
-    spinner.stop()
+    await tfClient.submitTestResults(runData, { key: args.key, handle: args.handle }, callbacks)
     p.log.success('Test run submitted successfully to TestFiesta')
   }
   catch (error) {
-    spinner.stop()
     p.log.error(`Failed to submit test run: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
