@@ -130,9 +130,9 @@ export class TestFiestaClient {
   async submitTestResults(
     runData: RunData,
     params: Record<string, string> = {},
-    callbacks: TFProgressCallbacks = {},
+    callbacks?: TFProgressCallbacks,
   ): Promise<void> {
-    const { onStart, onSuccess, onError } = callbacks
+    const { onStart, onSuccess, onError } = callbacks || {}
 
     try {
       onStart?.('Transforming test data')
