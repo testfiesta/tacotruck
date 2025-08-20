@@ -285,12 +285,12 @@ export class TestRailClient {
   }
 
   async getSuiteID(
-    data: RunData,
+    suiteName: string,
     params: Record<string, string>,
-    callbacks: TRProgressCallbacks = {},
+    callbacks?: TRProgressCallbacks,
   ): Promise<any> {
     try {
-      const { onStart, onSuccess } = callbacks
+      const { onStart, onSuccess } = callbacks || {}
       onStart?.('Checking project mode two')
       const project = await this.getProject({ project_id: params.project_id })
       onSuccess?.('Project mode checked successfully')
@@ -298,7 +298,7 @@ export class TestRailClient {
       let suiteId = 0
       if (project.suite_mode === TestRailClient.SUITE_MODE.MULTIPLE_SUITES) {
         onStart?.('Creating test suite')
-        const suite = await this.createSuite({ name: data.root.name }, { project_id: params.project_id })
+        const suite = await this.createSuite({ name: suiteName }, { project_id: params.project_id })
         suiteId = suite.id
         onSuccess?.('Test suite created successfully')
       }
@@ -329,12 +329,12 @@ export class TestRailClient {
       retryAttempts: 3,
       timeout: 30000,
     },
-    callbacks: TRProgressCallbacks = {},
+    callbacks?: TRProgressCallbacks,
   ): Promise<void> {
-    const { onStart, onSuccess, onError, onProgress } = callbacks
+    const { onStart, onSuccess, onError, onProgress } = callbacks || {}
     const testResultsData = transformXmlDataToTestRail(runData as XmlData)
     const validatedData = this.validateData(TestResultsSchema, testResultsData, 'test results')
-    const suiteId = await this.getSuiteID(runData, params, callbacks)
+    const suiteId = await this.getSuiteID(runData.root.name, params, callbacks)
     try {
       const sections = validatedData.sections || []
       const sectionIdMap = new Map()
