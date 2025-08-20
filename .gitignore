@@ -3,5 +3,5 @@ node_modules
 creds.json
 *.sample
 *.swp
-
+*.xml
 dist

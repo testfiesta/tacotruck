@@ -11,6 +11,13 @@ import { getRoute as getRouteUtil } from '../utils/route'
 import { substituteUrlStrict } from '../utils/url-substitutor'
 import { transformXmlDataToTestFiesta } from '../utils/xml-transform'
 
+export interface TFProgressCallbacks {
+  onStart?: (message: string) => void
+  onSuccess?: (message: string) => void
+  onError?: (message: string, error?: Error) => void
+  onProgress?: (current: number, total: number, label: string) => void
+}
+
 export class TestFiestaClient {
   protected authOptions: AuthOptions
   protected routes: Record<string, Record<string, string>> = {}
@@ -123,14 +130,23 @@ export class TestFiestaClient {
   async submitTestResults(
     runData: RunData,
     params: Record<string, string> = {},
+    callbacks: TFProgressCallbacks = {},
   ): Promise<void> {
+    const { onStart, onSuccess, onError } = callbacks
+
     try {
+      onStart?.('Transforming test data')
       const transformedData = transformXmlDataToTestFiesta(runData as XmlData)
+      onSuccess?.('Test data transformed successfully')
+
+      onStart?.('Submitting test results to TestFiesta')
       await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'data', params), {
         json: transformedData,
       })
+      onSuccess?.('Test results submitted successfully')
     }
     catch (error) {
+      onError?.('Failed to submit test results', error instanceof Error ? error : new Error(String(error)))
       throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
     }
   }

@@ -1,3 +1,4 @@
+import type { TRProgressCallbacks } from '../../../clients/testrail'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestRailClient } from '../../../clients/testrail'
@@ -68,7 +69,24 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     if (runData === null)
       return
 
-    await testRailClient.submitTestResults(runData, { project_id: args.projectId }, args.runName)
+    const spinner = p.spinner()
+
+    const callbacks: TRProgressCallbacks = {
+      onStart: (message) => {
+        spinner.start(message)
+      },
+      onSuccess: (message) => {
+        spinner.stop(message)
+      },
+      onError: (message, error) => {
+        spinner.stop(`${message}: ${error?.message || 'Unknown error'}`)
+      },
+      onProgress: (current, total, label) => {
+        spinner.message(`Processing  ${label}: ${current}/${total}`)
+      },
+    }
+
+    await testRailClient.submitTestResults(runData, { project_id: args.projectId }, args.runName, undefined, callbacks)
     p.log.success('Successfully submitted result to TestRail')
   }
   catch (error) {
