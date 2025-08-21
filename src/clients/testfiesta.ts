@@ -137,6 +137,8 @@ export class TestFiestaClient {
     try {
       onStart?.('Transforming test data')
       const transformedData = transformXmlDataToTestFiesta(runData as XmlData)
+      transformedData.entities.runs!.entries[0].name = params.name
+
       onSuccess?.('Test data transformed successfully')
 
       onStart?.('Submitting test results to TestFiesta')

@@ -286,7 +286,10 @@ export function transformXmlDataToTestFiesta(data: XmlData): TransformedTestFies
     name: `${data.root?.name || 'Test Suite'} - ${new Date().toISOString().split('T')[0]}`,
     externalId: runExternalId,
     source: 'junit-xml',
-    description: `Test execution for ${data.root?.name || 'Test Suite'}`,
+    customFields: {
+      externalId: runExternalId,
+    },
+    description: `Test execution for ${data.root.name || 'Test Suite'}`,
     environment: 'automated',
     assignee: 'automation-bot@company.com',
     startTime: new Date().toISOString(),
@@ -351,7 +354,7 @@ export function transformXmlDataToTestFiesta(data: XmlData): TransformedTestFies
       result.entities.cases!.entries.push(caseData)
 
       const executionData: ExecutionData = {
-        externalId: `exec-${crypto.randomUUID()}`,
+        externalId: caseExternalId,
         caseRef: caseExternalId,
         runRef: runExternalId,
         source: 'junit-xml',
