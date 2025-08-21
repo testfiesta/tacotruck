@@ -9,6 +9,7 @@ interface SubmitRunArgs {
   data: string
   token: string
   handle: string
+  name: string
   key: string
   verbose?: boolean
 }
@@ -20,6 +21,7 @@ export function submitRunCommand() {
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
     .requiredOption('-h, --handle <handle>', 'Organization handle')
     .requiredOption('-k, --key <key>', 'Project key')
+    .requiredOption('-n, --name <name>', 'Name for the test run')
     .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: SubmitRunArgs) => {
       initializeLogger({ verbose: !!args.verbose })
@@ -72,7 +74,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   }
 
   try {
-    await tfClient.submitTestResults(runData, { key: args.key, handle: args.handle }, callbacks)
+    await tfClient.submitTestResults(runData, { key: args.key, handle: args.handle, name: args.name }, callbacks)
     p.log.success('Test run submitted successfully to TestFiesta')
   }
   catch (error) {
