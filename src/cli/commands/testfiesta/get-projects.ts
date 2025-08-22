@@ -37,7 +37,7 @@ export async function runGetProjects(args: GetProjectsArgs): Promise<void> {
   const spinner = p.spinner()
   try {
     spinner.start('Getting projects in TestFiesta')
-    const projects = await tfClient.getProjects({ handle: args.organization }, {
+    const projects = await tfClient.getProjects({
       limit: Number(args.limit),
       offset: Number(args.offset),
     })

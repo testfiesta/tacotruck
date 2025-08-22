@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
-export const createProjectSchema = z.object({
+export const createProjectInputSchema = z.object({
   name: z.string().min(1),
   key: z.string().min(1),
   customFields: z.object().default({}),
 })
 
-export const createProjectResponseDataSchema = z.object({
+export const createProjectOutputSchema = z.object({
   uid: z.number(),
   name: z.string(),
   key: z.string(),
@@ -39,7 +39,7 @@ export const createMilestoneInputSchema = z.object({
   tagUids: z.array(z.number()).optional(),
 })
 
-export type CreateProjectInput = z.infer<typeof createProjectSchema>
-export type CreateProjectResponseData = z.infer<typeof createProjectResponseDataSchema>
+export type CreateProjectInput = z.infer<typeof createProjectInputSchema>
+export type CreateProjectOutput = z.infer<typeof createProjectOutputSchema>
 export type CreateTestRunInput = z.infer<typeof createTestRunInputSchema>
 export type CreateMilestoneInput = z.infer<typeof createMilestoneInputSchema>

@@ -39,7 +39,7 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
   try {
     spinner.start('Creating project in TestFiesta')
     const customFields = args.customFields ? JSON.parse(args.customFields) : {}
-    await tfClient.createProject({ handle: args.organization }, {
+    await tfClient.createProject({
       name: args.name,
       key: args.key,
       customFields,

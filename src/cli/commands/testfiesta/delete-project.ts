@@ -41,9 +41,7 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
       organizationHandle: args.organization,
     })
 
-    await tfClient.deleteProject({
-      project_id: args.projectKey,
-    })
+    await tfClient.deleteProject(args.projectKey)
 
     spinner.stop()
     p.log.success(`Successfully deleted TestFiesta project with key ${args.projectKey}`)
