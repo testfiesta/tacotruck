@@ -76,7 +76,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   }
 
   try {
-    await tfClient.submitTestResults(runData, { runName: args.name, projectKey: args.key }, hooks)
+    await tfClient.submitTestResults(args.key, runData, { runName: args.name }, hooks)
     p.log.success('Test run submitted successfully to TestFiesta')
   }
   catch (error) {

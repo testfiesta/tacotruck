@@ -20,8 +20,6 @@ export interface TFHooks {
 
 interface SubmitResultOptions {
   runName: string
-  projectKey: string
-  handle?: string
 }
 
 interface PaginationOptions {
