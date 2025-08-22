@@ -44,7 +44,7 @@ export class TestFiestaClient {
   private static readonly BASE_PATH = '/v1/{handle}'
   private static readonly ROUTES = {
     INGRESS: {
-      import: '/projects/{projectKey}/data',
+      IMPORT: '/projects/{projectKey}/data',
     },
     PROJECTS: {
       LIST: '/projects?limit={limit}&offset={offset}',
@@ -155,7 +155,7 @@ export class TestFiestaClient {
   async getProjects(
     options: GetProjectsOptions = {},
   ): Promise<Result<GetResponseData, Error>> {
-    const { limit = 10, offset = 0, ...queryParams } = options
+    const { limit = 10, offset = 0 } = options
 
     return this.executeWithErrorHandling(async () => {
       return await networkUtils.processGetRequest(
@@ -163,9 +163,6 @@ export class TestFiestaClient {
         this.getRoute('projects', 'list', {}, {
           limit: limit.toString(),
           offset: offset.toString(),
-          ...Object.fromEntries(
-            Object.entries(queryParams).map(([k, v]) => [k, String(v)]),
-          ),
         }),
       )
     }, 'Get projects')
@@ -294,28 +291,29 @@ export class TestFiestaClient {
   }
 
   async submitTestResults(
+    projectKey: string,
     runData: RunData,
     options: SubmitResultOptions,
     hooks?: TFHooks,
   ): Promise<void> {
     const { onStart, onSuccess, onError } = hooks || {}
 
-    try {
+    return this.executeWithErrorHandling(async () => {
       onStart?.('Transforming test data')
       const transformedData = transformXmlDataToTestFiesta(runData as XmlData)
       transformedData.entities.runs!.entries[0].name = options.runName
-
       onSuccess?.('Test data transformed successfully')
 
       onStart?.('Submitting test results to TestFiesta')
-      await networkUtils.processPostRequest(this.authOptions, this.getRoute('ingress', 'import', options as any), {
-        json: transformedData,
-      })
+      await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('ingress', 'import', { projectKey }),
+        { json: transformedData },
+      )
       onSuccess?.('Test results submitted successfully')
-    }
-    catch (error) {
-      onError?.('Failed to submit test results', error instanceof Error ? error : new Error(String(error)))
-      throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
-    }
+    }, 'Submit test results').catch((error) => {
+      onError?.('Failed to submit test results', error)
+      throw error
+    })
   }
 }
