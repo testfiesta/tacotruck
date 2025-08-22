@@ -80,6 +80,7 @@ export class TestFiestaClient {
       payload: `Bearer ${options.apiKey}`,
     }
     this.domain = options.domain
+    this.organizationHandle = options.organizationHandle
   }
 
   private buildRoute(route: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
@@ -112,6 +113,8 @@ export class TestFiestaClient {
     const routeMap = {
       projects: TestFiestaClient.ROUTES.PROJECTS,
       runs: TestFiestaClient.ROUTES.RUNS,
+      milestones: TestFiestaClient.ROUTES.MILESTONES,
+      ingress: TestFiestaClient.ROUTES.INGRESS,
     } as const
 
     return getRouteUtil(

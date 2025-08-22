@@ -2,9 +2,12 @@
 /* eslint-disable ts/no-namespace */
 /* eslint-disable no-restricted-globals */
 import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest'
+import { server } from './mocks/server'
 
 beforeAll(() => {
   process.env.NODE_ENV = 'test'
+
+  server.listen({ onUnhandledRequest: 'error' })
 
   if (!process.env.DEBUG_TESTS) {
     globalThis.console = {
@@ -27,14 +30,14 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  // Restore all mocks after each test
   vi.restoreAllMocks()
+  server.resetHandlers()
 })
 
 afterAll(() => {
-  // Clean up any global state
   vi.clearAllTimers()
   vi.useRealTimers()
+  server.close()
 })
 
 // Global test utilities
@@ -321,14 +324,7 @@ vi.mock('path', async () => ({
   join: vi.fn().mockImplementation((...args) => args.join('/')),
 }))
 
-global.fetch = vi.fn(() =>
-  Promise.resolve({
-    ok: true,
-    status: 200,
-    json: () => Promise.resolve({ success: true }),
-    text: () => Promise.resolve('OK'),
-  }),
-)
+// Remove the global fetch mock since MSW will handle HTTP requests
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason)
