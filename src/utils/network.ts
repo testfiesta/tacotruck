@@ -16,12 +16,16 @@ export interface AuthOptions {
 }
 
 /**
+ * JSON payload for requests - allows any serializable data structure
+ */
+export type JsonPayload = Record<string, unknown> | unknown[] | object
+
+/**
  * Extended request options that include ETLv2Options parameters
  */
 export interface RequestOptions extends FetchOptions {
   retryDelay?: number
-  json?: Record<string, any>
-  headers?: Record<string, any>
+  json?: JsonPayload
   showProgress?: boolean
   progressLabel?: string
   onProgress?: (current: number, total: number) => void
@@ -31,6 +35,13 @@ export interface BatchRequestOptions {
   throttleLimit: number
   throttleInterval: number
 }
+
+export interface GetResponseData {
+  data: any
+  source_type: string
+  target_type: string
+}
+
 /**
  * Create request options with authentication headers
  * @param authOptions The authentication options
@@ -73,53 +84,60 @@ export function createAuthenticatedOptions(
 export async function processPostRequest<T>(
   authOptions: AuthOptions | null,
   url: string,
-  options: Record<string, any> = {},
+  options: RequestOptions = {},
 ): Promise<T> {
-  try {
-    const { timeout = 30000, retryDelay = 1000, json, retry } = options
-    const authRequestOptions = createAuthenticatedOptions(authOptions)
-    const response = await ofetch(url, {
-      method: 'POST',
-      retry,
-      retryDelay,
-      retryStatusCodes: [408, 413, 429, 500, 502, 503, 504],
-      timeout: timeout ? Number(timeout) : undefined,
-      body: json,
-      ...authRequestOptions,
-    })
-
-    return response
-  }
-  catch (error: any) {
-    if (error.data) {
-      throw new Error(`HTTP ${error.status}: ${JSON.stringify(error.data)}`)
-    }
-    else if (error.status) {
-      throw new Error(`HTTP ${error.status}: ${error.statusText || error.message}`)
-    }
-    else {
-      throw error instanceof Error ? error : new Error(String(error))
-    }
-  }
-}
-
-export interface GetResponseData {
-  data: any
-  source_type: string
-  target_type: string
+  return await processRequest<T>(authOptions, url, 'POST', options)
 }
 
 /**
- * Process a GET request with authentication headers and ETLv2 options
+ * Process a PUT request with authentication headers
  * @param authOptions Authentication options
  * @param url The URL to request
  * @param options Additional request options including retry and timeout settings from ETLv2Options
- * @param sourceType The source type identifier
+ * @returns Promise with Result containing response data or error
+ */
+export async function processPutRequest<T>(
+  authOptions: AuthOptions | null,
+  url: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  return await processRequest<T>(authOptions, url, 'PUT', options)
+}
+
+/**
+ * Process a DELETE request with authentication headers
+ * @param authOptions Authentication options
+ * @param url The URL to request
+ * @param options Additional request options including retry and timeout settings from ETLv2Options
+ * @returns Promise with Result containing response data or error
+ */
+export async function processDeleteRequest<T>(
+  authOptions: AuthOptions | null,
+  url: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  return await processRequest<T>(authOptions, url, 'DELETE', options)
+}
+
+/**
+ * Process a request with authentication headers
+ * @param authOptions Authentication options
+ * @param url The URL to request
+ * @param options Additional request options including retry and timeout settings from ETLv2Options
  * @returns Promise with Result containing response data or error
  */
 export async function processGetRequest<T = GetResponseData>(
   authOptions: AuthOptions | null,
   url: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  return await processRequest<T>(authOptions, url, 'GET', options)
+}
+
+export async function processRequest<T>(
+  authOptions: AuthOptions | null,
+  url: string,
+  method: string,
   options: RequestOptions = {},
 ): Promise<T> {
   const authRequestOptions = createAuthenticatedOptions(authOptions)
@@ -129,7 +147,7 @@ export async function processGetRequest<T = GetResponseData>(
 
   try {
     const response = await ofetch(url, {
-      method: 'GET',
+      method,
       retry,
       retryDelay,
       retryStatusCodes: [408, 413, 429, 500, 502, 503, 504],
@@ -163,10 +181,6 @@ export function createQueue(defaultConcurrency: number): PQueue {
 /**
  * Process multiple requests in batches with concurrency and throttling control
  * @param requests Array of request functions to execute
- * @param concurrencyLimit Maximum number of concurrent requests (default: 10)
- * @param throttleLimit Maximum number of requests per interval (default: 10)
- * @param throttleInterval Time interval for throttling in milliseconds (default: 1000)
- * @param options Additional request options including ETLv2Options parameters
  * @returns Promise with Result containing array of responses or error
  */
 export async function processBatchedRequests<R>(

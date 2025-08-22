@@ -1,4 +1,4 @@
-import type { TFProgressCallbacks } from '../../../clients/testfiesta'
+import type { TFHooks } from '../../../clients/testfiesta'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
@@ -8,7 +8,7 @@ import { loadRunData } from '../../../utils/run-data-loader'
 interface SubmitRunArgs {
   data: string
   token: string
-  handle: string
+  organization: string
   name: string
   key: string
   verbose?: boolean
@@ -19,7 +19,7 @@ export function submitRunCommand() {
     .description('Submit test run to testfiesta')
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
-    .requiredOption('-h, --handle <handle>', 'Organization handle')
+    .requiredOption('-h, --organization <organization>', 'Organization handle')
     .requiredOption('-k, --key <key>', 'Project key')
     .requiredOption('-n, --name <name>', 'Name for the test run')
     .option('-v, --verbose', 'Enable verbose logging')
@@ -46,6 +46,8 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
     domain: 'https://staging.api.testfiesta.com',
+    projectKey: args.key,
+    organizationHandle: args.organization,
   })
 
   const runData = loadRunData(args.data).match({
@@ -58,7 +60,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
 
   const spinner = p.spinner()
 
-  const callbacks: TFProgressCallbacks = {
+  const hooks: TFHooks = {
     onStart: (message) => {
       spinner.start(message)
     },
@@ -74,7 +76,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   }
 
   try {
-    await tfClient.submitTestResults(runData, { key: args.key, handle: args.handle, name: args.name }, callbacks)
+    await tfClient.submitTestResults(runData, { runName: args.name, projectKey: args.key }, hooks)
     p.log.success('Test run submitted successfully to TestFiesta')
   }
   catch (error) {

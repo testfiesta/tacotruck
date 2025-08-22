@@ -15,8 +15,6 @@ export class ApiClient {
    * @param authOptions Authentication options
    * @param url The URL to request
    * @param options Additional request options
-   * @param sourceType The source type for response data
-   * @param fallbackData Optional fallback data to use if the request fails
    * @returns Promise with response data or fallback data or null
    */
   async processGetRequest(
@@ -32,7 +30,6 @@ export class ApiClient {
    * @param authOptions Authentication options
    * @param url The URL to request
    * @param options Additional request options
-   * @param fallbackResponse Optional fallback response to use if the request fails
    * @returns Promise with response data or fallback response
    */
   async processPostRequest(
