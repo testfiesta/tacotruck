@@ -38,8 +38,8 @@ import { TestFiestaClient, TestRailClient } from 'tacotruck'
 
 const tfClient = new TestFiestaClient({
   apiKey: '<YOUR_TF_API_KEY>',
-  organization: '<YOUR_TF_ORGANIZATION_HANDLE>',
-  baseUrl: 'http://testfiesta.com',
+  organizationHandle: '<YOUR_TF_ORGANIZATION_HANDLE>',
+  domain: 'http://api.testfiesta.com',
 })
 
 const trClient = new TestRailClient({

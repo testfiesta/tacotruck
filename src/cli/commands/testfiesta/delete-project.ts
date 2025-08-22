@@ -4,7 +4,7 @@ import { TestFiestaClient } from '../../../clients/testfiesta'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
 interface DeleteProjectArgs {
-  projectId: string
+  projectKey: string
   token: string
   organization: string
   verbose?: boolean
@@ -13,7 +13,7 @@ interface DeleteProjectArgs {
 export function deleteProjectCommand() {
   const deleteProjectCommand = new Commander.Command('project:delete')
     .description('Delete a project in TestFiesta')
-    .requiredOption('-i, --project-id <id>', 'TestFiesta project id to delete')
+    .requiredOption('-k, --project-key <key>', 'TestFiesta project key to delete')
     .requiredOption('-t, --token <token>', 'TestFiesta API token')
     .requiredOption('-h, --organization <organization>', 'Organization handle')
     .option('-v, --verbose', 'Enable verbose logging')
@@ -28,23 +28,23 @@ export function deleteProjectCommand() {
 
 export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   const logger = getLogger()
-  logger.debug('Deleting project in TestFiesta', { projectKey: args.projectId })
+  logger.debug('Deleting project in TestFiesta', { projectKey: args.projectKey })
 
   const spinner = p.spinner()
-  spinner.start(`Deleting TestFiesta project with key ${args.projectId}`)
+  spinner.start(`Deleting TestFiesta project with key ${args.projectKey}`)
 
   try {
     const tfClient = new TestFiestaClient({
       apiKey: args.token,
       domain: 'https://staging.api.testfiesta.com',
+      projectKey: args.projectKey,
+      organizationHandle: args.organization,
     })
 
-    await tfClient.deleteProject({
-      project_id: args.projectId,
-    })
+    await tfClient.deleteProject(args.projectKey)
 
     spinner.stop()
-    p.log.success(`Successfully deleted TestFiesta project with key ${args.projectId}`)
+    p.log.success(`Successfully deleted TestFiesta project with key ${args.projectKey}`)
   }
   catch (error) {
     spinner.stop()

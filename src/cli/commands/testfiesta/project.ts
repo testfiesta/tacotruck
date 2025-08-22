@@ -7,7 +7,7 @@ interface CreateProjectArgs {
   name: string
   key: string
   token: string
-  handle: string
+  organization: string
   verbose?: boolean
   customFields?: string
 }
@@ -18,7 +18,7 @@ export function createProjectCommand() {
     .requiredOption('-n, --name <name>', 'Project name')
     .requiredOption('-k, --key <key>', 'Project key')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
-    .requiredOption('-h, --handle <handle>', 'Organization handle')
+    .requiredOption('-h, --organization <organization>', 'Organization handle')
     .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: CreateProjectArgs) => {
       initializeLogger({ verbose: !!args.verbose })
@@ -33,12 +33,13 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
     domain: 'https://staging.api.testfiesta.com',
+    organizationHandle: args.organization,
   })
   const spinner = p.spinner()
   try {
     spinner.start('Creating project in TestFiesta')
     const customFields = args.customFields ? JSON.parse(args.customFields) : {}
-    await tfClient.createProject({ handle: args.handle }, {
+    await tfClient.createProject({
       name: args.name,
       key: args.key,
       customFields,

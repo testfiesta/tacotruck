@@ -1,50 +1,75 @@
 import type { z } from 'zod'
-import type { CreateProjectInput, CreateProjectResponseData } from '../schemas/testfiesta'
+import type { CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTestRunInput } from '../schemas/testfiesta'
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
 import type { RunData } from '../utils/run-data-loader'
 import type { XmlData } from '../utils/xml-transform'
-import { createProjectResponseDataSchema, createProjectSchema } from '../schemas/testfiesta'
+import { createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTestRunInputSchema } from '../schemas/testfiesta'
 import * as networkUtils from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
 import { substituteUrlStrict } from '../utils/url-substitutor'
 import { transformXmlDataToTestFiesta } from '../utils/xml-transform'
 
-export interface TFProgressCallbacks {
+export interface TFHooks {
   onStart?: (message: string) => void
   onSuccess?: (message: string) => void
   onError?: (message: string, error?: Error) => void
   onProgress?: (current: number, total: number, label: string) => void
 }
 
+interface SubmitResultOptions {
+  runName: string
+}
+
+interface PaginationOptions {
+  limit?: number
+  offset?: number
+}
+
+interface GetProjectsOptions extends PaginationOptions {
+}
+
+interface GetRunsOptions extends PaginationOptions {
+}
+
 export class TestFiestaClient {
   protected authOptions: AuthOptions
   protected routes: Record<string, Record<string, string>> = {}
   protected domain: string = ''
+  protected organizationHandle: string = ''
 
-  private static readonly BASE_URL = '/v1/{handle}'
+  private static readonly BASE_PATH = '/v1/{handle}'
   private static readonly ROUTES = {
+    INGRESS: {
+      IMPORT: '/projects/{projectKey}/data',
+    },
     PROJECTS: {
       LIST: '/projects?limit={limit}&offset={offset}',
       CREATE: '/projects',
       DELETE: '/delete_project/{project_id}',
-      DATA: '/projects/{key}/data',
     },
     RUNS: {
-      LIST: '/runs',
-      CREATE: '/runs',
-      GET: '/runs/{run_id}',
-      UPDATE: '/runs/{run_id}',
-      DELETE: '/runs/{run_id}',
+      LIST: '/projects/{projectKey}/runs',
+      CREATE: '/projects/{projectKey}/runs',
+      GET: '/projects/{projectKey}/runs/{runId}',
+      UPDATE: '/projects/{projectKey}/runs/{runId}',
+      DELETE: '/projects/{projectKey}/runs/{runId}',
     },
-    RESULTS: {
-      LIST: '/results',
-      CREATE: '/results',
-      GET: '/results/{result_id}',
-      UPDATE: '/results/{result_id}',
-      DELETE: '/results/{result_id}',
+    MILESTONES: {
+      LIST: '/projects/{projectKey}/milestones',
+      CREATE: '/projects/{projectKey}/milestones',
+      GET: '/projects/{projectKey}/milestones/{milestoneId}',
+      UPDATE: '/projects/{projectKey}/milestones/{milestoneId}',
+      DELETE: '/projects/{projectKey}/milestones/{milestoneId}',
     },
+  } as const
+
+  private static readonly ROUTE_MAP = {
+    projects: TestFiestaClient.ROUTES.PROJECTS,
+    runs: TestFiestaClient.ROUTES.RUNS,
+    milestones: TestFiestaClient.ROUTES.MILESTONES,
+    ingress: TestFiestaClient.ROUTES.INGRESS,
   } as const
 
   constructor(options: TestFiestaClientOptions) {
@@ -55,11 +80,25 @@ export class TestFiestaClient {
       payload: `Bearer ${options.apiKey}`,
     }
     this.domain = options.domain
+    this.organizationHandle = options.organizationHandle
   }
 
   private buildRoute(route: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
-    const fullRoute = `${this.domain}${TestFiestaClient.BASE_URL}${route}`
-    return substituteUrlStrict(fullRoute, { ...params, ...queryParams })
+    const fullRoute = `${this.domain}${TestFiestaClient.BASE_PATH}${route}`
+    return substituteUrlStrict(fullRoute, { ...params, ...queryParams, handle: this.organizationHandle })
+  }
+
+  private async executeWithErrorHandling<T>(
+    operation: () => Promise<T>,
+    context: string,
+  ): Promise<T> {
+    try {
+      return await operation()
+    }
+    catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      throw new Error(`${context} failed: ${errorMessage}`)
+    }
   }
 
   private validateData<T>(schema: z.ZodSchema<T>, data: unknown, context: string): T {
@@ -70,11 +109,12 @@ export class TestFiestaClient {
     return result.data
   }
 
-  public getRoute(resource: string, action: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
+  public getRoute(resource: keyof typeof TestFiestaClient.ROUTE_MAP, action: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
     const routeMap = {
       projects: TestFiestaClient.ROUTES.PROJECTS,
       runs: TestFiestaClient.ROUTES.RUNS,
-      results: TestFiestaClient.ROUTES.RESULTS,
+      milestones: TestFiestaClient.ROUTES.MILESTONES,
+      ingress: TestFiestaClient.ROUTES.INGRESS,
     } as const
 
     return getRouteUtil(
@@ -88,68 +128,193 @@ export class TestFiestaClient {
   }
 
   async createProject(
-    params: Record<string, string> = {},
     createProjectInput: CreateProjectInput,
-  ): Promise<CreateProjectResponseData> {
-    const project = this.validateData(createProjectSchema, createProjectInput, 'project')
-    try {
-      const response = await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'create', params), {
-        json: project,
-      })
-      const validatedResponse = this.validateData(createProjectResponseDataSchema, response, 'project')
-      return validatedResponse
-    }
-    catch (error) {
-      throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
-    }
+  ): Promise<CreateProjectOutput> {
+    const project = this.validateData(createProjectInputSchema, createProjectInput, 'project')
+
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('projects', 'create'),
+        { json: project },
+      )
+      return this.validateData(createProjectOutputSchema, response, 'project response')
+    }, 'Create project')
   }
 
   async deleteProject(
-    params: Record<string, string> = {},
+    projectKey: string,
   ): Promise<void> {
-    try {
-      await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'delete', params))
-    }
-    catch (error) {
-      throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
-    }
+    return this.executeWithErrorHandling(async () => {
+      await networkUtils.processDeleteRequest(
+        this.authOptions,
+        this.getRoute('projects', 'delete', { projectKey }),
+      )
+    }, 'Delete project')
   }
 
   async getProjects(
-    params: Record<string, string> = {},
-    queryParams: Record<string, any> = {},
+    options: GetProjectsOptions = {},
   ): Promise<Result<GetResponseData, Error>> {
-    try {
-      return await networkUtils.processGetRequest(this.authOptions, this.getRoute('projects', 'list', params, queryParams))
-    }
-    catch (error) {
-      throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
-    }
+    const { limit = 10, offset = 0 } = options
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('projects', 'list', {}, {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        }),
+      )
+    }, 'Get projects')
+  }
+
+  async createRun(
+    projectKey: string,
+    createTestRunInput: CreateTestRunInput,
+  ): Promise<any> {
+    const testRun = this.validateData(createTestRunInputSchema, createTestRunInput, 'test run')
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('runs', 'create', { projectKey }),
+        { json: testRun },
+      )
+    }, 'Create run')
+  }
+
+  async getRuns(
+    projectKey: string,
+     options: GetRunsOptions = {},
+  ): Promise<any> {
+    const { limit = 10, offset = 0 } = options
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('runs', 'list', { projectKey }, {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        }),
+      )
+    }, 'Get runs')
+  }
+
+  async getRun(
+    projectKey: string,
+    runId: string,
+  ): Promise<any> {
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('runs', 'get', { projectKey, runId }),
+      )
+    }, 'Get run')
+  }
+
+  async updateRun(
+    projectKey: string,
+    runId: string,
+    updateData: any,
+  ): Promise<void> {
+    return this.executeWithErrorHandling(async () => {
+      await networkUtils.processPutRequest(
+        this.authOptions,
+        this.getRoute('runs', 'update', { projectKey, runId }),
+        { json: updateData },
+      )
+    }, 'Update run')
+  }
+
+  async createMilestone(
+    projectKey: string,
+    createMilestoneInput: CreateMilestoneInput,
+  ): Promise<any> {
+    const milestone = this.validateData(createMilestoneInputSchema, createMilestoneInput, 'milestone')
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('milestones', 'create', { projectKey }),
+        { json: milestone },
+      )
+    }, 'Create milestone')
+  }
+
+  async getMilestones(
+    projectKey: string,
+  ): Promise<any> {
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('milestones', 'list', { projectKey }),
+      )
+    }, 'Get milestones')
+  }
+
+  async getMilestone(
+    projectKey: string,
+    milestoneId: string,
+  ): Promise<any> {
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('milestones', 'get', { projectKey, milestoneId }),
+      )
+    }, 'Get milestone')
+  }
+
+  async updateMilestone(
+    projectKey: string,
+    milestoneId: string,
+    updateData: any,
+  ): Promise<void> {
+    return this.executeWithErrorHandling(async () => {
+      await networkUtils.processPutRequest(
+        this.authOptions,
+        this.getRoute('milestones', 'update', { projectKey, milestoneId }),
+        { json: updateData },
+      )
+    }, 'Update milestone')
+  }
+
+  async deleteMilestone(
+    projectKey: string,
+    milestoneId: string,
+  ): Promise<void> {
+    return this.executeWithErrorHandling(async () => {
+      await networkUtils.processDeleteRequest(
+        this.authOptions,
+        this.getRoute('milestones', 'delete', { projectKey, milestoneId }),
+      )
+    }, 'Delete milestone')
   }
 
   async submitTestResults(
+    projectKey: string,
     runData: RunData,
-    params: Record<string, string> = {},
-    callbacks?: TFProgressCallbacks,
+    options: SubmitResultOptions,
+    hooks?: TFHooks,
   ): Promise<void> {
-    const { onStart, onSuccess, onError } = callbacks || {}
+    const { onStart, onSuccess, onError } = hooks || {}
 
-    try {
+    return this.executeWithErrorHandling(async () => {
       onStart?.('Transforming test data')
       const transformedData = transformXmlDataToTestFiesta(runData as XmlData)
-      transformedData.entities.runs!.entries[0].name = params.name
-
+      transformedData.entities.runs!.entries[0].name = options.runName
       onSuccess?.('Test data transformed successfully')
 
       onStart?.('Submitting test results to TestFiesta')
-      await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'data', params), {
-        json: transformedData,
-      })
+      await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('ingress', 'import', { projectKey }),
+        { json: transformedData },
+      )
       onSuccess?.('Test results submitted successfully')
-    }
-    catch (error) {
-      onError?.('Failed to submit test results', error instanceof Error ? error : new Error(String(error)))
-      throw error instanceof Error ? error : new Error(`Request failed: ${String(error)}`)
-    }
+    }, 'Submit test results').catch((error) => {
+      onError?.('Failed to submit test results', error)
+      throw error
+    })
   }
 }
