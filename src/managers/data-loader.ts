@@ -232,7 +232,7 @@ export class DataLoader {
         this.options.authOptions || null,
         url,
         {
-          json: data,
+          body: data,
           timeout: this.options.timeout,
           retry: this.options.retryAttempts,
           retryDelay: this.options.retryDelay,
@@ -357,7 +357,7 @@ export class DataLoader {
 
       requestPromises.push({
         url,
-        options: { json: formattedData },
+        options: { body: formattedData },
         endpoint,
         operation: 'bulk_create',
         data: endpointData,
@@ -372,7 +372,7 @@ export class DataLoader {
 
         requestPromises.push({
           url,
-          options: { json: formattedData },
+          options: { body: formattedData },
           endpoint,
           operation: 'single_create',
           data: item,
@@ -405,7 +405,7 @@ export class DataLoader {
 
       requestPromises.push({
         url,
-        options: { json: formattedData },
+        options: { body: formattedData },
         endpoint,
         operation: 'bulk_create',
         data: bulkData,
@@ -445,7 +445,7 @@ export class DataLoader {
 
     requestPromises.push({
       url,
-      options: { json: formattedData },
+      options: { body: formattedData },
       endpoint: 'multi_target',
       operation: 'multi_bulk_create',
       data: multiBulkData,

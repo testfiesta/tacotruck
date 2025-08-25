@@ -136,7 +136,7 @@ export class TestFiestaClient {
       const response = await networkUtils.processPostRequest(
         this.authOptions,
         this.getRoute('projects', 'create'),
-        { json: project },
+        { body: project },
       )
       return this.validateData(createProjectOutputSchema, response, 'project response')
     }, 'Create project')
@@ -179,7 +179,7 @@ export class TestFiestaClient {
       return await networkUtils.processPostRequest(
         this.authOptions,
         this.getRoute('runs', 'create', { projectKey }),
-        { json: testRun },
+        { body: testRun },
       )
     }, 'Create run')
   }
@@ -222,7 +222,7 @@ export class TestFiestaClient {
       await networkUtils.processPutRequest(
         this.authOptions,
         this.getRoute('runs', 'update', { projectKey, runId }),
-        { json: updateData },
+        { body: updateData },
       )
     }, 'Update run')
   }
@@ -237,7 +237,7 @@ export class TestFiestaClient {
       return await networkUtils.processPostRequest(
         this.authOptions,
         this.getRoute('milestones', 'create', { projectKey }),
-        { json: milestone },
+        { body: milestone },
       )
     }, 'Create milestone')
   }
@@ -274,7 +274,7 @@ export class TestFiestaClient {
       await networkUtils.processPutRequest(
         this.authOptions,
         this.getRoute('milestones', 'update', { projectKey, milestoneId }),
-        { json: updateData },
+        { body: updateData },
       )
     }, 'Update milestone')
   }
@@ -309,7 +309,7 @@ export class TestFiestaClient {
       await networkUtils.processPostRequest(
         this.authOptions,
         this.getRoute('ingress', 'import', { projectKey }),
-        { json: transformedData },
+        { body: transformedData },
       )
       onSuccess?.('Test results submitted successfully')
     }, 'Submit test results').catch((error) => {
