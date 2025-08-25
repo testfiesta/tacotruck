@@ -145,17 +145,17 @@ async function main() {
     console.log(`JUnit report was generated at: ${JUNIT_REPORT_PATH}`)
     console.log(`Report file size: ${fs.statSync(JUNIT_REPORT_PATH).size} bytes`)
 
-    const token = process.env.TESTFIESTA_TOKEN || 'random_token' || await p.text({
+    const token = process.env.TESTFIESTA_TOKEN || 'token_here' || await p.text({
       message: 'Enter your TestFiesta API token:',
       validate: value => value.length === 0 ? 'Token is required' : undefined,
     })
 
-    const orgHandle = process.env.TESTFIESTA_ORG || 'random_org_handle' || await p.text({
+    const orgHandle = process.env.TESTFIESTA_ORG || 'org_handle_here' || await p.text({
       message: 'Enter your organization handle:',
       validate: value => value.length === 0 ? 'Organization handle is required' : undefined,
     })
 
-    const projectKey = process.env.TESTFIESTA_PROJECT || 'random_project_key' || await p.text({
+    const projectKey = process.env.TESTFIESTA_PROJECT || 'project_key_here' || await p.text({
       message: 'Enter your project key:',
       validate: value => value.length === 0 ? 'Organization project is required' : undefined,
     })
@@ -170,7 +170,7 @@ async function main() {
         p.log.warn(`CLI binary not found at path: ${BIN_PATH}`)
         p.log.info('Falling back to NPX for CLI execution')
 
-        const npxCommand = `npx tacotruck testfiesta run:submit -d "${JUNIT_REPORT_PATH}" -t "${token}" -h "${orgHandle}" -p "${projectKey}"`
+        const npxCommand = `npx tacotruck testfiesta run:submit -d ${JUNIT_REPORT_PATH} -t ${token} -h ${orgHandle} -p ${projectKey} --name DefaultRun`
         console.log(`Executing: ${npxCommand}`)
 
         execSync(npxCommand, {
@@ -189,7 +189,7 @@ async function main() {
         console.warn(`Warning: Could not make binary executable: ${err}`)
       }
 
-      const submitCommand = `"${BIN_PATH}" testfiesta run:submit -d "${JUNIT_REPORT_PATH}" -t "${token}" -h "${orgHandle}" -k "${projectKey}"`
+      const submitCommand = `${BIN_PATH} testfiesta run:submit -d ${JUNIT_REPORT_PATH} -t ${token} -h ${orgHandle} -p ${projectKey} -n DefaultRun`
       console.log(`Executing: ${submitCommand}`)
 
       const execOptions: ExecSyncOptions = {

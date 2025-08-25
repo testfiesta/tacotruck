@@ -83,7 +83,7 @@ export class DataExtractor {
         this.options.authOptions || null,
         url,
         {
-          json: data,
+          body: data,
           timeout: this.options.timeout,
           retry: this.options.retryAttempts,
           retryDelay: this.options.retryDelay,
@@ -93,8 +93,6 @@ export class DataExtractor {
       return response || {}
     }
     catch (error) {
-      console.log(error)
-
       throw new NetworkError(
         `Failed to load data to ${sourceType}.${fetchType}`,
         {

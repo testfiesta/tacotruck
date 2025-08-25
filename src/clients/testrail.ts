@@ -147,7 +147,7 @@ export class TestRailClient {
 
     try {
       const response = await networkUtils.processPostRequest(this.authOptions, this.getRoute('projects', 'create', params), {
-        json: validatedData,
+        body: validatedData,
       })
       const validatedResponse = this.validateData(GetProjectResponseDataSchema, response, 'project')
       return validatedResponse
@@ -203,7 +203,7 @@ export class TestRailClient {
 
     try {
       const response = await networkUtils.processPostRequest<CreateSectionResponseData>(this.authOptions, this.getRoute('sections', 'create', params), {
-        json: validatedData,
+        body: validatedData,
       })
       const validatedResponse = this.validateData(CreateSectionResponseDataSchema, response, 'section')
 
@@ -222,7 +222,7 @@ export class TestRailClient {
 
     try {
       const response = await networkUtils.processPostRequest<CreateSuiteResponseData>(this.authOptions, this.getRoute('suites', 'create', params), {
-        json: validatedData,
+        body: validatedData,
       })
       const validatedResponse = this.validateData(CreateSuiteResponseDataSchema, response, 'suite')
 
@@ -241,7 +241,7 @@ export class TestRailClient {
 
     try {
       const response = await networkUtils.processPostRequest(this.authOptions, this.getRoute('cases', 'create', params), {
-        json: validatedData,
+        body: validatedData,
       })
 
       return response
@@ -259,7 +259,7 @@ export class TestRailClient {
 
     try {
       return await networkUtils.processPostRequest(this.authOptions, this.getRoute('results', 'create', params), {
-        json: validatedData,
+        body: validatedData,
       })
     }
     catch (error) {
@@ -275,7 +275,7 @@ export class TestRailClient {
 
     try {
       const response = await networkUtils.processPostRequest(this.authOptions, this.getRoute('runs', 'create', params), {
-        json: validatedData,
+        body: validatedData,
       })
       return response
     }

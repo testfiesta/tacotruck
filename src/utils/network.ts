@@ -25,7 +25,6 @@ export type JsonPayload = Record<string, unknown> | unknown[] | object
  */
 export interface RequestOptions extends FetchOptions {
   retryDelay?: number
-  json?: JsonPayload
   showProgress?: boolean
   progressLabel?: string
   onProgress?: (current: number, total: number) => void

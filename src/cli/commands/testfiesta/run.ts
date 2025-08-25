@@ -10,7 +10,7 @@ interface SubmitRunArgs {
   token: string
   organization: string
   name: string
-  key: string
+  projectKey: string
   verbose?: boolean
 }
 
@@ -20,7 +20,7 @@ export function submitRunCommand() {
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
     .requiredOption('-h, --organization <organization>', 'Organization handle')
-    .requiredOption('-k, --key <key>', 'Project key')
+    .requiredOption('-p, --project-key <projectKey>', 'Project key')
     .requiredOption('-n, --name <name>', 'Name for the test run')
     .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: SubmitRunArgs) => {
@@ -46,7 +46,6 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
     domain: 'https://staging.api.testfiesta.com',
-    projectKey: args.key,
     organizationHandle: args.organization,
   })
 
@@ -76,7 +75,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   }
 
   try {
-    await tfClient.submitTestResults(args.key, runData, { runName: args.name }, hooks)
+    await tfClient.submitTestResults(args.projectKey, runData, { runName: args.name }, hooks)
     p.log.success('Test run submitted successfully to TestFiesta')
   }
   catch (error) {
