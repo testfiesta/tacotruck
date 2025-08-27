@@ -3,13 +3,12 @@ import type { CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, Cre
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
-import type { RunData } from '../utils/run-data-loader'
-import type { XmlData } from '../utils/xml-transform'
+// import { randomUUID } from 'node:crypto'
 import { createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTestRunInputSchema } from '../schemas/testfiesta'
+import { JunitXmlParser } from '../utils/junit-xml-parser'
 import * as networkUtils from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
 import { substituteUrlStrict } from '../utils/url-substitutor'
-import { transformXmlDataToTestFiesta } from '../utils/xml-transform'
 
 export interface TFHooks {
   onStart?: (message: string) => void
@@ -293,7 +292,7 @@ export class TestFiestaClient {
 
   async submitTestResults(
     projectKey: string,
-    runData: RunData,
+    filePath: string,
     options: SubmitResultOptions,
     hooks?: TFHooks,
   ): Promise<void> {
@@ -301,15 +300,37 @@ export class TestFiestaClient {
 
     return this.executeWithErrorHandling(async () => {
       onStart?.('Transforming test data')
-      const transformedData = transformXmlDataToTestFiesta(runData as XmlData)
-      transformedData.entities.runs!.entries[0].name = options.runName
+      const junitXmlParser = new JunitXmlParser({
+        xmlToJsMap: {
+          suites: 'root',
+          suite: 'folders',
+          testcase: 'cases',
+        },
+      })
+      const results = junitXmlParser.fromFile(filePath).build()
       onSuccess?.('Test data transformed successfully')
+
+      const payload = {
+        entities: {
+          folders: { entries: results.folders },
+          cases: { entries: results.cases },
+          executions: { entries: results.executions },
+          runs: { entries: [{
+            name: options.runName,
+            source: 'junit-xml',
+            externalId: results.runId,
+            customFields: {
+              externalId: results.runId,
+            },
+          }] },
+        },
+      }
 
       onStart?.('Submitting test results to TestFiesta')
       await networkUtils.processPostRequest(
         this.authOptions,
         this.getRoute('ingress', 'import', { projectKey }),
-        { body: transformedData },
+        { body: payload },
       )
       onSuccess?.('Test results submitted successfully')
     }, 'Submit test results').catch((error) => {

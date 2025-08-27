@@ -3,7 +3,6 @@ import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
-import { loadRunData } from '../../../utils/run-data-loader'
 
 interface SubmitRunArgs {
   data: string
@@ -38,24 +37,11 @@ export function submitRunCommand() {
 }
 
 export async function run(args: SubmitRunArgs): Promise<void> {
-  const handleError = (error: Error, context: string): null => {
-    p.log.error(`${context}: ${error.message}`)
-    return null
-  }
-
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
     domain: 'https://staging.api.testfiesta.com',
     organizationHandle: args.organization,
   })
-
-  const runData = loadRunData(args.data).match({
-    ok: data => data,
-    err: error => handleError(error, 'Data error'),
-  })
-
-  if (runData === null)
-    return
 
   const spinner = p.spinner()
 
@@ -75,7 +61,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   }
 
   try {
-    await tfClient.submitTestResults(args.projectKey, runData, { runName: args.name }, hooks)
+    await tfClient.submitTestResults(args.projectKey, args.data, { runName: args.name }, hooks)
     p.log.success('Test run submitted successfully to TestFiesta')
   }
   catch (error) {

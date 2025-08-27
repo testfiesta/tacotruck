@@ -23,7 +23,7 @@ export function loadRunData(dataPath: string): Result<RunData, Error> {
       return ok(JSON.parse(fileContent))
     }
     else if (ext === '.xml') {
-      const parsedResult = new JunitXmlParser(fileContent).build()
+      const parsedResult = new JunitXmlParser().fromXml(fileContent).build()
       return ok(parsedResult)
     }
     else {

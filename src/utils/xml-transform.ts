@@ -80,7 +80,7 @@ interface RunData {
   source: string
   [key: string]: any
 }
-interface ExecutionData {
+export interface ExecutionData {
   externalId?: string
   caseRef: string
   runRef: string

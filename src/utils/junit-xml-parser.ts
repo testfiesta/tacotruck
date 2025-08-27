@@ -1,4 +1,7 @@
-import { readFileSync } from 'node:fs'
+import type { ExecutionData } from './xml-transform'
+import * as crypto from 'node:crypto'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 import { XMLParser } from 'fast-xml-parser'
 
 interface XmlToJsMap {
@@ -52,11 +55,16 @@ export interface TestCase {
   skipped?: {
     message?: string
   }
+  source?: string
+  externalId?: string
+  folderExternalId?: string
 }
 
 export interface TestSuite extends RootSuite {
   file?: string
   testcases?: TestCase[]
+  externalId?: string
+  source?: string
 }
 
 interface XmlRoot {
@@ -84,20 +92,25 @@ export class JunitXmlParser {
 
   private testSuites: TestSuite[]
   private testCases: TestCase[]
+  private testExecutions: ExecutionData[]
   private rootSuite: RootSuite | null
+  private runId: string
 
-  constructor(xml?: string, options?: JunitXmlParserOptions) {
-    this.xml = xml || ''
+  constructor(options?: JunitXmlParserOptions) {
+    this.xml = ''
     this.testSuites = []
     this.testCases = []
+    this.testExecutions = []
     this.parsedXml = null
     this.rootSuite = null
     this.xmlToJsMap = options?.xmlToJsMap || this.xmlToJsMap
     this.statusMap = options?.statusMap || this.statusMap
+    this.runId = crypto.randomUUID()
   }
 
   fromXml(xml: string): JunitXmlParser {
-    return new JunitXmlParser(xml)
+    this.xml = xml
+    return this
   }
 
   fromFile(filePath: string): JunitXmlParser {
@@ -105,12 +118,15 @@ export class JunitXmlParser {
       throw new Error('File path cannot be empty')
     }
 
+    const resolvedPath = path.resolve(process.cwd(), filePath)
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`Results file not found: ${resolvedPath}`)
+    }
+
     try {
-      const xml = readFileSync(filePath, 'utf8')
-      return new JunitXmlParser(xml, {
-        xmlToJsMap: this.xmlToJsMap,
-        statusMap: this.statusMap,
-      })
+      const xml = fs.readFileSync(filePath, 'utf8')
+      this.xml = xml
+      return this
     }
     catch (error) {
       throw new Error(`Failed to read file: ${error instanceof Error ? error.message : 'unknown error'}`)
@@ -169,7 +185,10 @@ export class JunitXmlParser {
       ? (Array.isArray(suiteData.testsuite) ? suiteData.testsuite : [suiteData.testsuite])
       : []
 
+    let suiteCount = 0
+
     for (const suite of testsuites) {
+      suiteCount++
       const testSuite: TestSuite = {
         name: suite.name || '',
         tests: suite.tests || 0,
@@ -178,7 +197,9 @@ export class JunitXmlParser {
         skipped: suite.skipped || 0,
         time: suite.time || 0,
         timestamp: suite.timestamp,
-        file: suite.file,
+        file: suite?.file,
+        externalId: `${suiteCount}`,
+        source: 'junit-xml',
         testcases: [],
       }
 
@@ -205,12 +226,24 @@ export class JunitXmlParser {
       parent.testcases = []
     }
 
+    let caseCount = 0
+
     for (const tc of testcases) {
+      caseCount++
       const testCase: TestCase = {
         name: tc.name || '',
         classname: tc.classname || '',
         time: tc.time || 0,
         status: this.statusMap.passed,
+        source: 'junit-xml',
+        externalId: `${caseCount}`,
+        folderExternalId: parent?.externalId || '',
+      }
+      const execution: ExecutionData = {
+        source: 'junit-xml',
+        externalId: `${caseCount}`,
+        caseRef: `${caseCount}`,
+        runRef: this.runId,
       }
 
       if (tc.failure) {
@@ -240,7 +273,7 @@ export class JunitXmlParser {
       }
 
       this.testCases.push(testCase)
-      parent.testcases.push(testCase)
+      this.testExecutions.push(execution)
     }
   }
 
@@ -257,14 +290,12 @@ export class JunitXmlParser {
     }
 
     const result: JunitParserResult = {
-      root: this.rootSuite,
-      section: this.testSuites,
-      testcase: this.testCases,
+      [this.xmlToJsMap.suites]: this.rootSuite,
+      [this.xmlToJsMap.suite]: this.testSuites,
+      [this.xmlToJsMap.testcase]: this.testCases,
+      executions: this.testExecutions,
+      runId: this.runId,
     }
-
-    result[this.xmlToJsMap.suites] = this.rootSuite
-    result[this.xmlToJsMap.suite] = this.testSuites
-    result[this.xmlToJsMap.testcase] = this.testCases
 
     return result
   }

@@ -16,7 +16,7 @@ describe('junitXmlParser', () => {
       </testsuites>
     `
 
-    const parser = new JunitXmlParser(xml)
+    const parser = new JunitXmlParser().fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as JunitParserResult
@@ -47,7 +47,7 @@ describe('junitXmlParser', () => {
       </testsuite>
     `
 
-    const parser = new JunitXmlParser(xml)
+    const parser = new JunitXmlParser().fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as JunitParserResult
@@ -123,7 +123,7 @@ describe('junitXmlParser', () => {
       skipped: 2,
     }
 
-    const parser = new JunitXmlParser(xml, { statusMap: testRailStatusMap })
+    const parser = new JunitXmlParser({ statusMap: testRailStatusMap }).fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as JunitParserResult
@@ -150,7 +150,7 @@ describe('junitXmlParser', () => {
       testcase: 'tests',
     }
 
-    const parser = new JunitXmlParser(xml, { xmlToJsMap: customMapping })
+    const parser = new JunitXmlParser({ xmlToJsMap: customMapping }).fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as Record<string, any>
@@ -174,7 +174,7 @@ describe('junitXmlParser', () => {
       </testsuites>
     `
 
-    const parser = new JunitXmlParser(xml)
+    const parser = new JunitXmlParser().fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as JunitParserResult
