@@ -119,8 +119,8 @@ describe('junitXmlParser', () => {
     const testRailStatusMap = {
       passed: 1,
       failed: 5,
-      error: 4,
       skipped: 2,
+      blocked: 3,
     }
 
     const parser = new JunitXmlParser({ statusMap: testRailStatusMap }).fromXml(xml)
@@ -130,7 +130,7 @@ describe('junitXmlParser', () => {
     expect(typedResult.testcase).toBeDefined()
     expect(typedResult.testcase[0].status).toBe(1) // passed
     expect(typedResult.testcase[1].status).toBe(5) // failed
-    expect(typedResult.testcase[2].status).toBe(4) // error
+    expect(typedResult.testcase[2].status).toBe(5) // error (making error and failure the same status)
     expect(typedResult.testcase[3].status).toBe(2) // skipped
   })
 

@@ -13,7 +13,7 @@ interface XmlToJsMap {
 interface StatusMap {
   passed: any
   failed: any
-  error: any
+  blocked: any
   skipped: any
 }
 
@@ -86,7 +86,7 @@ export class JunitXmlParser {
   private statusMap: StatusMap = {
     passed: 'passed',
     failed: 'failed',
-    error: 'error',
+    blocked: 'blocked',
     skipped: 'skipped',
   }
 
@@ -255,7 +255,15 @@ export class JunitXmlParser {
         }
       }
       else if (tc.error) {
-        testCase.status = this.statusMap.error
+        testCase.status = this.statusMap.failed
+        testCase.failure = {
+          message: tc.error.message,
+          type: tc.error.type,
+          _text: tc.error._text,
+        }
+      }
+      else if (tc.blocked) {
+        testCase.status = this.statusMap.blocked
         testCase.error = {
           message: tc.error.message,
           type: tc.error.type,
