@@ -16,7 +16,7 @@ describe('junitXmlParser', () => {
       </testsuites>
     `
 
-    const parser = new JunitXmlParser(xml)
+    const parser = new JunitXmlParser().fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as JunitParserResult
@@ -47,7 +47,7 @@ describe('junitXmlParser', () => {
       </testsuite>
     `
 
-    const parser = new JunitXmlParser(xml)
+    const parser = new JunitXmlParser().fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as JunitParserResult
@@ -119,18 +119,18 @@ describe('junitXmlParser', () => {
     const testRailStatusMap = {
       passed: 1,
       failed: 5,
-      error: 4,
       skipped: 2,
+      blocked: 3,
     }
 
-    const parser = new JunitXmlParser(xml, { statusMap: testRailStatusMap })
+    const parser = new JunitXmlParser({ statusMap: testRailStatusMap }).fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as JunitParserResult
     expect(typedResult.testcase).toBeDefined()
     expect(typedResult.testcase[0].status).toBe(1) // passed
     expect(typedResult.testcase[1].status).toBe(5) // failed
-    expect(typedResult.testcase[2].status).toBe(4) // error
+    expect(typedResult.testcase[2].status).toBe(5) // error (making error and failure the same status)
     expect(typedResult.testcase[3].status).toBe(2) // skipped
   })
 
@@ -150,7 +150,7 @@ describe('junitXmlParser', () => {
       testcase: 'tests',
     }
 
-    const parser = new JunitXmlParser(xml, { xmlToJsMap: customMapping })
+    const parser = new JunitXmlParser({ xmlToJsMap: customMapping }).fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as Record<string, any>
@@ -174,7 +174,7 @@ describe('junitXmlParser', () => {
       </testsuites>
     `
 
-    const parser = new JunitXmlParser(xml)
+    const parser = new JunitXmlParser().fromXml(xml)
     const result = parser.build()
 
     const typedResult = result as JunitParserResult
