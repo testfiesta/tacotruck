@@ -1,8 +1,10 @@
+import type { TestCaseIdentifier, TestSuiteIdentifier } from './external-id-generator'
 import type { ExecutionData } from './xml-transform'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { XMLParser } from 'fast-xml-parser'
+import { externalIdGenerator } from './external-id-generator'
 
 interface XmlToJsMap {
   suites: string
@@ -185,10 +187,12 @@ export class JunitXmlParser {
       ? (Array.isArray(suiteData.testsuite) ? suiteData.testsuite : [suiteData.testsuite])
       : []
 
-    let suiteCount = 0
-
     for (const suite of testsuites) {
-      suiteCount++
+      const suiteIdentifier: TestSuiteIdentifier = {
+        name: suite.name || '',
+        file: suite?.file || '',
+      }
+
       const testSuite: TestSuite = {
         name: suite.name || '',
         tests: suite.tests || 0,
@@ -198,7 +202,7 @@ export class JunitXmlParser {
         time: suite.time || 0,
         timestamp: suite.timestamp,
         file: suite?.file,
-        externalId: `${suiteCount}`,
+        externalId: externalIdGenerator.generateTestSuiteId(suiteIdentifier),
         source: 'junit-xml',
         testcases: [],
       }
@@ -226,23 +230,29 @@ export class JunitXmlParser {
       parent.testcases = []
     }
 
-    let caseCount = 0
-
     for (const tc of testcases) {
-      caseCount++
+      const testCaseIdentifier: TestCaseIdentifier = {
+        name: tc.name || '',
+        classname: tc.classname || '',
+        suiteName: parent?.name || '',
+        file: parent.file,
+      }
+
+      const externalId = externalIdGenerator.generateTestCaseId(testCaseIdentifier)
+
       const testCase: TestCase = {
         name: tc.name || '',
         classname: tc.classname || '',
         time: tc.time || 0,
         status: this.statusMap.passed,
         source: 'junit-xml',
-        externalId: `${caseCount}`,
+        externalId,
         folderExternalId: parent?.externalId || '',
       }
       const execution: ExecutionData = {
         source: 'junit-xml',
-        externalId: `${caseCount}`,
-        caseRef: `${caseCount}`,
+        externalId,
+        caseRef: externalId,
         runRef: this.runId,
       }
 
