@@ -17,6 +17,7 @@ interface StatusMap {
   failed: any
   blocked: any
   skipped: any
+  error: any
 }
 
 export interface JunitParserResult {
@@ -43,7 +44,6 @@ export interface TestCase {
   name: string
   classname: string
   time: number
-  status: any
   failure?: {
     message?: string
     type?: string
@@ -90,6 +90,7 @@ export class JunitXmlParser {
     failed: 'failed',
     blocked: 'blocked',
     skipped: 'skipped',
+    error: 'error',
   }
 
   private testSuites: TestSuite[]
@@ -244,7 +245,6 @@ export class JunitXmlParser {
         name: tc.name || '',
         classname: tc.classname || '',
         time: tc.time || 0,
-        status: this.statusMap.passed,
         source: 'junit-xml',
         externalId,
         folderExternalId: parent?.externalId || '',
@@ -254,10 +254,13 @@ export class JunitXmlParser {
         externalId,
         caseRef: externalId,
         runRef: this.runId,
+        time: tc.time || 0,
       }
 
+      let status = this.statusMap.passed
+
       if (tc.failure) {
-        testCase.status = this.statusMap.failed
+        status = this.statusMap.failed
         testCase.failure = {
           message: tc.failure.message,
           type: tc.failure.type,
@@ -265,30 +268,29 @@ export class JunitXmlParser {
         }
       }
       else if (tc.error) {
-        testCase.status = this.statusMap.failed
-        testCase.failure = {
-          message: tc.error.message,
-          type: tc.error.type,
-          _text: tc.error._text,
-        }
-      }
-      else if (tc.blocked) {
-        testCase.status = this.statusMap.blocked
+        status = this.statusMap.error
         testCase.error = {
           message: tc.error.message,
           type: tc.error.type,
           _text: tc.error._text,
         }
       }
+      else if (tc.blocked) {
+        status = this.statusMap.blocked
+        testCase.error = {
+          message: tc.error?.message,
+          type: tc.error?.type,
+          _text: tc.error?._text,
+        }
+      }
       else if (tc.skipped) {
-        testCase.status = this.statusMap.skipped
+        status = this.statusMap.passed
         testCase.skipped = {
           message: tc.skipped.message,
         }
       }
-      else {
-        testCase.status = this.statusMap.passed
-      }
+
+      execution.status = status
 
       this.testCases.push(testCase)
       this.testExecutions.push(execution)
@@ -301,16 +303,25 @@ export class JunitXmlParser {
     return this
   }
 
+  private removeStatusFromTestCases(testCases: TestCase[]): TestCase[] {
+    return testCases.map((testCase) => {
+      const { status, ...testCaseWithoutStatus } = testCase as any
+      return testCaseWithoutStatus
+    })
+  }
+
   build(): JunitParserResult {
     if (!this.parsedXml) {
       this.parse(this.xml)
       this.applyRootSuite()
     }
 
+    const cleanedTestCases = this.removeStatusFromTestCases(this.testCases)
+
     const result: JunitParserResult = {
       [this.xmlToJsMap.suites]: this.rootSuite,
       [this.xmlToJsMap.suite]: this.testSuites,
-      [this.xmlToJsMap.testcase]: this.testCases,
+      [this.xmlToJsMap.testcase]: cleanedTestCases,
       executions: this.testExecutions,
       runId: this.runId,
     }

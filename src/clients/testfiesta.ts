@@ -306,12 +306,6 @@ export class TestFiestaClient {
           suite: 'folders',
           testcase: 'cases',
         },
-        statusMap: {
-          passed: 1,
-          blocked: 2,
-          skipped: 4,
-          failed: 5,
-        },
       })
       const results = junitXmlParser.fromFile(filePath).build()
       onSuccess?.('Test data transformed successfully')
@@ -331,7 +325,6 @@ export class TestFiestaClient {
           }] },
         },
       }
-
       onStart?.('Submitting test results to TestFiesta')
       await networkUtils.processPostRequest(
         this.authOptions,

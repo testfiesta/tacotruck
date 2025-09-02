@@ -68,13 +68,13 @@ export interface TransformedTestRailData {
   }[]
 }
 
-interface FolderData {
+export interface FolderData {
   name: string
   externalId: string
   source: string
   [key: string]: any
 }
-interface RunData {
+export interface RunData {
   name: string
   externalId: string
   source: string
@@ -87,7 +87,7 @@ export interface ExecutionData {
   source: string
   [key: string]: any
 }
-interface CaseData {
+export interface CaseData {
   name: string
   externalId: string
   source: string
@@ -320,21 +320,6 @@ export function transformXmlDataToTestFiesta(data: XmlData): TransformedTestFies
         if (result.entities.folders!.entries.length > 0) {
           folderExternalId = result.entities.folders!.entries[0].externalId
         }
-        else {
-          const defaultFolderExternalId = `folder-default-${crypto.randomUUID()}`
-          folderMap.set('Default Folder', defaultFolderExternalId)
-
-          const defaultFolderData: FolderData = {
-            name: 'Default Folder',
-            externalId: defaultFolderExternalId,
-            source: 'junit-xml',
-            description: 'Default folder for unassigned test cases',
-            priority: 'medium',
-          }
-
-          result.entities.folders!.entries.push(defaultFolderData)
-          folderExternalId = defaultFolderExternalId
-        }
       }
 
       const caseExternalId = `case-${crypto.randomUUID()}`
@@ -344,7 +329,6 @@ export function transformXmlDataToTestFiesta(data: XmlData): TransformedTestFies
         source: 'junit-xml',
         folderExternalId,
         description: `Test case: ${testCase.name}`,
-        priority: testCase.status === 'failed' ? 'high' : 'medium',
         classname: testCase.classname,
         time: testCase.time,
         status: testCase.status,
