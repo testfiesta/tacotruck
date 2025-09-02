@@ -284,7 +284,7 @@ export class JunitXmlParser {
         }
       }
       else if (tc.skipped) {
-        status = this.statusMap.passed
+        status = this.statusMap.skipped
         testCase.skipped = {
           message: tc.skipped.message,
         }
