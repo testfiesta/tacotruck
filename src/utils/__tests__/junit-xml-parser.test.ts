@@ -31,9 +31,9 @@ describe('junitXmlParser', () => {
 
     expect(typedResult.testcase).toBeDefined()
     expect(typedResult.testcase).toHaveLength(2)
-    expect(typedResult.testcase[0].status).toBe('failed')
+    expect(typedResult.executions[0].status).toBe('failed')
     expect(typedResult.testcase[0].failure).toBeDefined()
-    expect(typedResult.testcase[1].status).toBe('passed')
+    expect(typedResult.executions[1].status).toBe('passed')
   })
 
   it('should parse XML with single testsuite at root', () => {
@@ -61,8 +61,8 @@ describe('junitXmlParser', () => {
 
     expect(typedResult.testcase).toBeDefined()
     expect(typedResult.testcase).toHaveLength(2)
-    expect(typedResult.testcase[0].status).toBe('passed')
-    expect(typedResult.testcase[1].status).toBe('skipped')
+    expect(typedResult.executions[0].status).toBe('passed')
+    expect(typedResult.executions[1].status).toBe('skipped')
     expect(typedResult.testcase[1].skipped).toBeDefined()
   })
 
@@ -121,6 +121,7 @@ describe('junitXmlParser', () => {
       failed: 5,
       skipped: 2,
       blocked: 3,
+      error: 5,
     }
 
     const parser = new JunitXmlParser({ statusMap: testRailStatusMap }).fromXml(xml)
@@ -128,10 +129,10 @@ describe('junitXmlParser', () => {
 
     const typedResult = result as JunitParserResult
     expect(typedResult.testcase).toBeDefined()
-    expect(typedResult.testcase[0].status).toBe(1) // passed
-    expect(typedResult.testcase[1].status).toBe(5) // failed
-    expect(typedResult.testcase[2].status).toBe(5) // error (making error and failure the same status)
-    expect(typedResult.testcase[3].status).toBe(2) // skipped
+    expect(typedResult.executions[0].status).toBe(1) // passed
+    expect(typedResult.executions[1].status).toBe(5) // failed
+    expect(typedResult.executions[2].status).toBe(5) // error (making error and failure the same status)
+    expect(typedResult.executions[3].status).toBe(2) // skipped maps to skipped (2)
   })
 
   it('should support custom XML to JS mapping', () => {

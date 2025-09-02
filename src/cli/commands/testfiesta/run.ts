@@ -10,6 +10,7 @@ interface SubmitRunArgs {
   organization: string
   name: string
   projectKey: string
+  url: string
   verbose?: boolean
 }
 
@@ -21,6 +22,7 @@ export function submitRunCommand() {
     .requiredOption('-h, --organization <organization>', 'Organization handle')
     .requiredOption('-p, --project-key <projectKey>', 'Project key')
     .requiredOption('-n, --name <name>', 'Name for the test run')
+    .requiredOption('-u, --url <url>', 'TestFiesta instance URL (e.g., https://api.testfiesta.com)')
     .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: SubmitRunArgs) => {
       initializeLogger({ verbose: !!args.verbose })
@@ -39,7 +41,7 @@ export function submitRunCommand() {
 export async function run(args: SubmitRunArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    domain: 'https://staging.api.testfiesta.com',
+    domain: args.url,
     organizationHandle: args.organization,
   })
 
