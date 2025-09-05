@@ -1,15 +1,15 @@
 import type { TRProgressCallbacks } from '../../../clients/testrail'
+import type { BaseArgs } from '../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestRailClient } from '../../../clients/testrail'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
 
-interface SubmitRunArgs {
+interface SubmitRunArgs extends BaseArgs {
   data: string
   email: string
   password: string
-  url: string
   projectId: string
   runName: string
   name?: string

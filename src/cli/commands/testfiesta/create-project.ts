@@ -1,9 +1,10 @@
+import type { BaseArgs } from '../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 
-interface CreateProjectArgs {
+interface CreateProjectArgs extends BaseArgs {
   name: string
   key: string
   token: string
@@ -13,11 +14,11 @@ interface CreateProjectArgs {
 }
 
 export function createProjectCommand() {
-  const submitRunCommand = new Commander.Command('project:create')
+  const submitRunCommand = new Commander.Command('projects:create')
     .description('Create a new project in Testfiesta')
     .requiredOption('-n, --name <name>', 'Project name')
-    .requiredOption('-k, --key <key>', 'Project key')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
+    .requiredOption('-u, --url <url>', 'TestFiesta instance URL (e.g., https://api.testfiesta.com)')
     .requiredOption('-h, --organization <organization>', 'Organization handle')
     .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: CreateProjectArgs) => {
@@ -32,7 +33,7 @@ export function createProjectCommand() {
 export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    domain: 'https://staging.api.testfiesta.com',
+    domain: args.url,
     organizationHandle: args.organization,
   })
   const spinner = p.spinner()

@@ -9,3 +9,7 @@ export interface TestFiestaClientOptions {
   organizationHandle: string
   projectKey?: string
 }
+
+export interface BaseArgs {
+  url: string
+}

@@ -1,9 +1,10 @@
+import type { BaseArgs } from '../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
-interface DeleteProjectArgs {
+interface DeleteProjectArgs extends BaseArgs {
   projectKey: string
   token: string
   organization: string
@@ -11,9 +12,10 @@ interface DeleteProjectArgs {
 }
 
 export function deleteProjectCommand() {
-  const deleteProjectCommand = new Commander.Command('project:delete')
+  const deleteProjectCommand = new Commander.Command('projects:delete')
     .description('Delete a project in TestFiesta')
     .requiredOption('-k, --project-key <key>', 'TestFiesta project key to delete')
+    .requiredOption('-u, --url <url>', 'TestFiesta instance URL (e.g., https://api.testfiesta.com)')
     .requiredOption('-t, --token <token>', 'TestFiesta API token')
     .requiredOption('-h, --organization <organization>', 'Organization handle')
     .option('-v, --verbose', 'Enable verbose logging')
@@ -36,7 +38,7 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   try {
     const tfClient = new TestFiestaClient({
       apiKey: args.token,
-      domain: 'https://staging.api.testfiesta.com',
+      domain: args.url,
       projectKey: args.projectKey,
       organizationHandle: args.organization,
     })
