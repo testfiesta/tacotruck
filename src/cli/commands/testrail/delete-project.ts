@@ -1,13 +1,13 @@
+import type { BaseArgs } from '../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestRailClient } from '../../../clients/testrail'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
-interface DeleteProjectArgs {
+interface DeleteProjectArgs extends BaseArgs {
   projectId: string
   email: string
   password: string
-  url: string
   verbose?: boolean
   force?: boolean
 }

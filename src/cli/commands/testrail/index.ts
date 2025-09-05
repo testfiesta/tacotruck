@@ -5,6 +5,7 @@ import { submitRunCommand } from './run'
 
 export function createTestrailCommand() {
   const trCommand = new Commander.Command('testrail')
+    .alias('tr')
     .description('TestRail platform specific commands')
     .addCommand(submitRunCommand())
     .addCommand(createProjectCommand())

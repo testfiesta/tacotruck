@@ -1,15 +1,15 @@
+import type { BaseArgs } from '../../../types/type'
 import * as p from '@clack/prompts'
 import { select } from '@inquirer/prompts'
 import * as Commander from 'commander'
 import { TestRailClient } from '../../../clients/testrail'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
-interface CreateProjectArgs {
+interface CreateProjectArgs extends BaseArgs {
   name: string
   key: string
   email: string
   password: string
-  url: string
   verbose?: boolean
   suiteMode?: 1 | 2 | 3
 }
