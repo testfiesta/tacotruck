@@ -296,7 +296,7 @@ export class TestFiestaClient {
     options: SubmitResultOptions,
     hooks?: TFHooks,
   ): Promise<void> {
-    const { onStart, onSuccess, onError } = hooks || {}
+    const { onStart, onSuccess } = hooks || {}
 
     return this.executeWithErrorHandling(async () => {
       onStart?.('Transforming test data')
@@ -333,7 +333,6 @@ export class TestFiestaClient {
       )
       onSuccess?.('Test results submitted successfully')
     }, 'Submit test results').catch((error) => {
-      onError?.('Failed to submit test results', error)
       throw error
     })
   }
