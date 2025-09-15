@@ -54,19 +54,11 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     onSuccess: (message) => {
       spinner.stop(message)
     },
-    onError: (message, error) => {
-      spinner.stop(`${message}: ${error?.message || 'Unknown error'}`)
-    },
     onProgress: (current, total, label) => {
       spinner.message(`Processing ${label}: ${current}/${total}`)
     },
   }
 
-  try {
-    await tfClient.submitTestResults(args.projectKey, args.data, { runName: args.name }, hooks)
-    p.log.success('Test run submitted successfully to TestFiesta')
-  }
-  catch (error) {
-    p.log.error(`Failed to submit test run: ${error instanceof Error ? error.message : String(error)}`)
-  }
+  await tfClient.submitTestResults(args.projectKey, args.data, { runName: args.name }, hooks)
+  p.log.success('Test run submitted successfully to TestFiesta')
 }
