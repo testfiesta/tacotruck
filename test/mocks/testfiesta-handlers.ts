@@ -1,4 +1,7 @@
 import type { CreateProjectOutput } from '../../src/schemas/testfiesta'
+
+import { randomUUID } from 'node:crypto'
+
 import { http, HttpResponse } from 'msw'
 
 const mockProject: CreateProjectOutput = {
@@ -280,6 +283,41 @@ export const testfiestaHandlers = [
       externalId: `tc_${caseUid.toString().padStart(4, '0')}`,
       updatedAt: new Date().toISOString(),
     })
+  }),
+
+  http.post(`${BASE_URL}/projects/:projectKey/cases`, async ({ request, params }) => {
+    const { projectKey: _projectKey } = params
+    const cases = await request.json() as any[]
+
+    const createdCases = cases.map((caseData, index) => ({
+      externalId: caseData.externalId || `${index + 1}`,
+      source: caseData.source || 'github',
+      name: caseData.name,
+      customFields: (caseData.customFields && Object.keys(caseData.customFields).length > 0) ? caseData.customFields : null,
+      projectUid: Number.parseInt(caseData.projectId) || 1,
+      parentUid: caseData.parentId,
+      repoUid: caseData.repoUID ? Number.parseInt(caseData.repoUID) : null,
+      priority: 1,
+      active: true,
+      version: 1,
+      createdBy: randomUUID(),
+      uid: 1362 + index, // Sequential UIDs starting from 1362
+      testCaseRef: 1362 + index,
+      steps: caseData.steps || [],
+      event: null,
+      link: null,
+      testCaseTemplateUid: null,
+      externalCreatedAt: null,
+      externalUpdatedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      status: null,
+      syncedAt: null,
+      testResultTemplateUid: null,
+    }))
+
+    return HttpResponse.json(createdCases)
   }),
 
   http.get(`${BASE_URL}/projects/:projectKey/runs`, ({ request, params }) => {

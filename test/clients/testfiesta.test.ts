@@ -460,4 +460,289 @@ describe('testFiestaClient', () => {
       expect(nextMilestone.customFields.status).toBe(22)
     })
   })
+
+  describe('createCases', () => {
+    it('should create multiple test cases successfully', async () => {
+      const casesToCreate = [
+        {
+          name: 'test demo demo demo demo 2',
+          projectId: '1',
+          source: 'github',
+          externalId: '1',
+          parentId: 134,
+        },
+        {
+          name: 'test demo demo demo demo 3',
+          projectId: '1',
+          source: 'github',
+          externalId: '2',
+          parentId: 134,
+        },
+      ]
+
+      const result = await client.createCases('TEST_PROJECT', casesToCreate)
+
+      expect(result).toHaveLength(2)
+      expect(result[0]).toMatchObject({
+        externalId: '1',
+        source: 'github',
+        name: 'test demo demo demo demo 2',
+        customFields: null,
+        projectUid: 1,
+        parentUid: 134,
+        repoUid: null,
+        priority: 1,
+        active: true,
+        version: 1,
+        createdBy: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
+        uid: 1362,
+        testCaseRef: 1362,
+        steps: [],
+        event: null,
+        link: null,
+        testCaseTemplateUid: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        status: null,
+        syncedAt: null,
+        testResultTemplateUid: null,
+      })
+
+      expect(result[1]).toMatchObject({
+        externalId: '2',
+        source: 'github',
+        name: 'test demo demo demo demo 3',
+        customFields: null,
+        projectUid: 1,
+        parentUid: 134,
+        repoUid: null,
+        priority: 1,
+        active: true,
+        version: 1,
+        createdBy: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
+        uid: 1363,
+        testCaseRef: 1363,
+        steps: [],
+        event: null,
+        link: null,
+        testCaseTemplateUid: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        status: null,
+        syncedAt: null,
+        testResultTemplateUid: null,
+      })
+    })
+
+    it('should apply default values for optional fields', async () => {
+      const casesToCreate = [
+        {
+          name: 'Test Case with Minimal Data',
+          projectId: '1',
+          source: 'github',
+          parentId: 134,
+        },
+      ]
+
+      const result = await client.createCases('TEST_PROJECT', casesToCreate)
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toMatchObject({
+        name: 'Test Case with Minimal Data',
+        projectUid: 1,
+        source: 'github',
+        steps: [],
+        repoUid: null,
+        customFields: null,
+        externalId: '1',
+        parentUid: 134,
+        uid: 1362,
+        testCaseRef: 1362,
+        priority: 1,
+        active: true,
+        version: 1,
+        createdBy: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
+      })
+    })
+
+    it('should handle custom fields and steps when provided', async () => {
+      const casesToCreate = [
+        {
+          name: 'Test Case with Custom Data',
+          projectId: '1',
+          source: 'github',
+          externalId: 'custom-123',
+          parentId: 999,
+          steps: [
+            { id: 1, title: 'Step 1', description: 'First step' },
+            { id: 2, title: 'Step 2', description: 'Second step' },
+          ],
+          customFields: {
+            priority: 'high',
+            category: 'regression',
+            tags: ['api', 'authentication'],
+          },
+          repoUID: '456',
+        },
+      ]
+
+      const result = await client.createCases('TEST_PROJECT', casesToCreate)
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toMatchObject({
+        name: 'Test Case with Custom Data',
+        projectUid: 1,
+        source: 'github',
+        externalId: 'custom-123',
+        parentUid: 999,
+        steps: [
+          { id: 1, title: 'Step 1', description: 'First step' },
+          { id: 2, title: 'Step 2', description: 'Second step' },
+        ],
+        customFields: {
+          priority: 'high',
+          category: 'regression',
+          tags: ['api', 'authentication'],
+        },
+        repoUid: 456, // Converted from string to number
+        uid: 1362,
+        testCaseRef: 1362,
+      })
+    })
+
+    it('should create single case using createCase method', async () => {
+      const caseToCreate = {
+        name: 'Single Test Case',
+        projectId: '1',
+        source: 'github',
+        externalId: 'single-case-1',
+        parentId: 100,
+      }
+
+      const result = await client.createCase('TEST_PROJECT', caseToCreate)
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toMatchObject({
+        name: 'Single Test Case',
+        projectUid: 1,
+        source: 'github',
+        externalId: 'single-case-1',
+        parentUid: 100,
+        steps: [],
+        customFields: null,
+        repoUid: null,
+        uid: 1362,
+        testCaseRef: 1362,
+        priority: 1,
+        active: true,
+        version: 1,
+        createdBy: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
+      })
+    })
+
+    it('should validate required fields and throw error for invalid input', async () => {
+      const invalidCases = [
+        {
+          // Missing required 'name' field
+          projectId: '1',
+          source: 'github',
+          parentId: 134,
+        },
+      ]
+
+      await expect(client.createCases('TEST_PROJECT', invalidCases as any))
+        .rejects
+        .toThrow('Invalid case input')
+    })
+
+    it('should validate projectId as string and throw error for invalid type', async () => {
+      const invalidCases = [
+        {
+          name: 'Valid Name',
+          projectId: 123, // Should be string, not number
+          source: 'github',
+          parentId: 134,
+        },
+      ]
+
+      await expect(client.createCases('TEST_PROJECT', invalidCases as any))
+        .rejects
+        .toThrow('Invalid case input')
+    })
+
+    it('should validate source field and throw error when missing', async () => {
+      const invalidCases = [
+        {
+          name: 'Valid Name',
+          projectId: '1',
+          parentId: 134,
+          // Missing required 'source' field
+        },
+      ]
+
+      await expect(client.createCases('TEST_PROJECT', invalidCases as any))
+        .rejects
+        .toThrow('Invalid case input')
+    })
+
+    it('should validate parentId field and throw error when missing', async () => {
+      const invalidCases = [
+        {
+          name: 'Valid Name',
+          projectId: '1',
+          source: 'github',
+          // Missing required 'parentId' field
+        },
+      ]
+
+      await expect(client.createCases('TEST_PROJECT', invalidCases as any))
+        .rejects
+        .toThrow('Invalid case input')
+    })
+
+    it('should handle empty array input', async () => {
+      const result = await client.createCases('TEST_PROJECT', [])
+
+      expect(result).toEqual([])
+    })
+
+    it('should generate sequential UIDs for multiple cases', async () => {
+      const casesToCreate = [
+        {
+          name: 'First Case',
+          projectId: '1',
+          source: 'github',
+          parentId: 100,
+        },
+        {
+          name: 'Second Case',
+          projectId: '1',
+          source: 'github',
+          parentId: 101,
+        },
+        {
+          name: 'Third Case',
+          projectId: '1',
+          source: 'github',
+          parentId: 102,
+        },
+      ]
+
+      const result = await client.createCases('TEST_PROJECT', casesToCreate)
+
+      expect(result).toHaveLength(3)
+      expect(result[0].uid).toBe(1362)
+      expect(result[0].testCaseRef).toBe(1362)
+      expect(result[1].uid).toBe(1363)
+      expect(result[1].testCaseRef).toBe(1363)
+      expect(result[2].uid).toBe(1364)
+      expect(result[2].testCaseRef).toBe(1364)
+    })
+  })
 })

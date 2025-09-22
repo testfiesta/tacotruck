@@ -1,9 +1,9 @@
 import type { z } from 'zod'
-import type { CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTestRunInput } from '../schemas/testfiesta'
+import type { CreateCaseInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTestRunInput } from '../schemas/testfiesta'
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
-import { createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTestRunInputSchema } from '../schemas/testfiesta'
+import { createCaseInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTestRunInputSchema } from '../schemas/testfiesta'
 import { JunitXmlParser } from '../utils/junit-xml-parser'
 import * as networkUtils from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
@@ -70,6 +70,7 @@ export class TestFiestaClient {
     CASES: {
       LIST: '/projects/{projectKey}/cases?limit={limit}&offset={offset}',
       GET: '/projects/{projectKey}/cases/{uid}',
+      CREATE: '/projects/{projectKey}/cases',
     },
   } as const
 
@@ -334,6 +335,24 @@ export class TestFiestaClient {
         this.getRoute('cases', 'get', { projectKey, uid: uid.toString() }),
       )
     }, 'Get case')
+  }
+
+  async createCases(projectKey: string, cases: CreateCaseInput[]): Promise<any> {
+    return this.executeWithErrorHandling(async () => {
+      const processedCases = cases.map(caseData =>
+        this.validateData(createCaseInputSchema, caseData, 'case'),
+      )
+
+      return await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('cases', 'create', { projectKey }),
+        { body: processedCases },
+      )
+    }, 'Create cases')
+  }
+
+  async createCase(projectKey: string, caseData: CreateCaseInput): Promise<any> {
+    return this.createCases(projectKey, [caseData])
   }
 
   async submitTestResults(
