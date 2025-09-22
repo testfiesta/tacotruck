@@ -220,6 +220,38 @@ const mockCase = {
   ],
 }
 
+const mockFolder = {
+  uid: 100,
+  name: 'Test Cases Folder',
+  description: null,
+  entityTypes: ['cases'],
+  parentUid: 5,
+  projectUid: 1,
+  createdAt: '2025-09-22T06:50:45.516Z',
+  updatedAt: '2025-09-22T06:50:45.392Z',
+  archivedAt: null,
+  deletedAt: null,
+  systemType: 'folder',
+  slug: null,
+  customFields: {
+    time: 0.004178,
+    tests: 25,
+    errors: 0,
+    skipped: 0,
+    failures: 0,
+    testcases: [],
+  },
+  externalCreatedAt: '2025-09-22T06:50:45.000Z',
+  externalUpdatedAt: '2025-09-22T06:50:45.000Z',
+  externalId: 'ts_42f7ae138512de96',
+  source: 'junit-xml',
+  integrationUid: null,
+  position: null,
+  path: null,
+  aggregates: {},
+  createdBy: null,
+}
+
 const BASE_URL = 'https://api.testfiesta.com/v1/:handle'
 
 export const testfiestaHandlers = [
@@ -419,6 +451,128 @@ export const testfiestaHandlers = [
         },
       },
       updatedAt: new Date().toISOString(),
+    })
+  }),
+
+  http.get(`${BASE_URL}/projects/:projectKey/folders`, ({ request, params }) => {
+    const url = new URL(request.url)
+    const limit = Number.parseInt(url.searchParams.get('limit') || '10')
+    const offset = Number.parseInt(url.searchParams.get('offset') || '0')
+    const { projectKey: _projectKey } = params
+
+    const totalFolders = 217
+    const actualItemCount = Math.min(limit, Math.max(0, totalFolders - offset))
+    const items = Array.from({ length: actualItemCount }).map((_, i) => ({
+      ...mockFolder,
+      uid: offset + i + 100,
+      name: i === 0 ? mockFolder.name : `Test Folder ${offset + i + 1}`,
+      externalId: `folder-${randomUUID().substring(0, 8)}`,
+      customFields: {
+        time: 0.004178 + (i * 0.001),
+        tests: 25 + (i * 5),
+        errors: 0,
+        skipped: 0,
+        failures: 0,
+        testcases: [],
+      },
+      externalCreatedAt: new Date().toISOString(),
+      externalUpdatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }))
+
+    return HttpResponse.json({
+      count: totalFolders,
+      items,
+      nextOffset: offset + limit < totalFolders ? offset + limit : null,
+    })
+  }),
+
+  http.get(`${BASE_URL}/projects/:projectKey/folders/:folderId`, ({ params }) => {
+    const { projectKey: _projectKey, folderId } = params
+    const folderUid = Number.parseInt(folderId as string)
+
+    return HttpResponse.json({
+      ...mockFolder,
+      uid: folderUid,
+      name: folderUid === 100 ? mockFolder.name : `Test Folder ${folderUid}`,
+      externalId: `folder-${randomUUID().substring(0, 8)}`,
+      customFields: {
+        time: 0.004178 + ((folderUid - 100) * 0.001),
+        tests: 25 + ((folderUid - 100) * 5),
+        errors: 0,
+        skipped: 0,
+        failures: 0,
+        testcases: [],
+      },
+      externalCreatedAt: new Date().toISOString(),
+      externalUpdatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  }),
+
+  http.post(`${BASE_URL}/projects/:projectKey/folders`, async ({ request, params }) => {
+    const { projectKey: _projectKey } = params
+    const folderData = await request.json() as any
+
+    return HttpResponse.json({
+      uid: 150,
+      name: folderData.name,
+      slug: folderData.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''),
+      source: folderData.source || null,
+      externalId: folderData.externalId || null,
+      parentUid: folderData.parentUid !== undefined ? folderData.parentUid : null,
+      customFields: folderData.customFields || null,
+      projectUid: folderData.projectUid,
+      entityTypes: ['cases'],
+      systemType: 'folder',
+      position: folderData.position || null,
+      path: `${folderData.parentUid !== undefined ? folderData.parentUid : 5}.150`,
+      integrationUid: folderData.integrationUid || null,
+      description: folderData.description || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      archivedAt: null,
+      deletedAt: null,
+      externalCreatedAt: null,
+      externalUpdatedAt: null,
+      aggregates: {},
+      createdBy: null,
+    })
+  }),
+
+  http.put(`${BASE_URL}/projects/:projectKey/folders/:folderId`, async ({ request, params }) => {
+    const { projectKey: _projectKey, folderId } = params
+    const folderUid = Number.parseInt(folderId as string)
+    const updateData = await request.json() as any
+
+    // Create a merged object that properly handles partial updates
+    const updatedFolder = {
+      ...mockFolder,
+      uid: folderUid,
+      name: updateData.name !== undefined ? updateData.name : mockFolder.name,
+      description: updateData.description !== undefined ? updateData.description : mockFolder.description,
+      parentUid: updateData.parentUid !== undefined ? updateData.parentUid : mockFolder.parentUid,
+      projectUid: updateData.projectUid !== undefined ? updateData.projectUid : mockFolder.projectUid,
+      customFields: updateData.customFields !== undefined ? updateData.customFields : mockFolder.customFields,
+      externalId: updateData.externalId !== undefined ? updateData.externalId : mockFolder.externalId,
+      source: updateData.source !== undefined ? updateData.source : mockFolder.source,
+      integrationUid: updateData.integrationUid !== undefined ? updateData.integrationUid : mockFolder.integrationUid,
+      position: updateData.position !== undefined ? updateData.position : mockFolder.position,
+      externalCreatedAt: new Date().toISOString(),
+      externalUpdatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    return HttpResponse.json(updatedFolder)
+  }),
+
+  http.delete(`${BASE_URL}/projects/:projectKey/folders/:folderId`, ({ params }) => {
+    const { projectKey: _projectKey, folderId } = params
+    const folderUid = Number.parseInt(folderId as string)
+
+    return HttpResponse.json({
+      success: true,
+      message: `Folder ${folderUid} deleted successfully`,
     })
   }),
 ]

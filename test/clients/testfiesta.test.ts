@@ -745,4 +745,289 @@ describe('testFiestaClient', () => {
       expect(result[2].testCaseRef).toBe(1364)
     })
   })
+
+  describe('getFolders', () => {
+    it('should fetch folders with pagination', async () => {
+      const result = await client.getFolders('TEST_PROJECT', { limit: 5, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 217,
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            uid: expect.any(Number),
+            name: expect.stringContaining('Test'),
+            systemType: 'folder',
+            projectUid: expect.any(Number),
+            entityTypes: ['cases'],
+            parentUid: expect.any(Number),
+            customFields: expect.objectContaining({
+              time: expect.any(Number),
+              tests: expect.any(Number),
+              errors: expect.any(Number),
+              skipped: expect.any(Number),
+              failures: expect.any(Number),
+              testcases: expect.any(Array),
+            }),
+            externalCreatedAt: expect.any(String),
+            externalUpdatedAt: expect.any(String),
+            externalId: expect.stringMatching(/^folder-[a-f0-9]{8}$/),
+            source: 'junit-xml',
+            integrationUid: null,
+            position: null,
+            path: null,
+            aggregates: {},
+            createdBy: null,
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+          }),
+        ]),
+        nextOffset: expect.any(Number),
+      })
+    })
+
+    it('should use default pagination when no options provided', async () => {
+      const result = await client.getFolders('TEST_PROJECT')
+
+      expect(result).toMatchObject({
+        count: 217,
+        items: expect.any(Array),
+        nextOffset: expect.any(Number),
+      })
+    })
+
+    it('should return null nextOffset when reaching end of folders', async () => {
+      const result = await client.getFolders('TEST_PROJECT', { limit: 10, offset: 210 })
+
+      expect(result).toMatchObject({
+        count: 217,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return different folder names for different items', async () => {
+      const result = await client.getFolders('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items).toHaveLength(3)
+      expect(result.items[0].name).toBe('Test Cases Folder')
+      expect(result.items[1].name).toContain('Test Folder 2')
+      expect(result.items[2].name).toContain('Test Folder 3')
+    })
+
+    it('should return progressive test counts', async () => {
+      const result = await client.getFolders('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items[0].customFields.tests).toBe(25)
+      expect(result.items[1].customFields.tests).toBe(30)
+      expect(result.items[2].customFields.tests).toBe(35)
+    })
+  })
+
+  describe('getFolder', () => {
+    it('should fetch a single folder by ID', async () => {
+      const result = await client.getFolder('TEST_PROJECT', 100)
+
+      expect(result).toMatchObject({
+        uid: 100,
+        name: 'Test Cases Folder',
+        systemType: 'folder',
+        projectUid: expect.any(Number),
+        description: null,
+        entityTypes: ['cases'],
+        parentUid: 5,
+        archivedAt: null,
+        deletedAt: null,
+        slug: null,
+        customFields: expect.objectContaining({
+          time: 0.004178,
+          tests: 25,
+          errors: 0,
+          skipped: 0,
+          failures: 0,
+          testcases: [],
+        }),
+        externalCreatedAt: expect.any(String),
+        externalUpdatedAt: expect.any(String),
+        externalId: expect.stringMatching(/^folder-[a-f0-9]{8}$/),
+        source: 'junit-xml',
+        integrationUid: null,
+        position: null,
+        path: null,
+        aggregates: {},
+        createdBy: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should fetch different folders with different IDs', async () => {
+      const result = await client.getFolder('TEST_PROJECT', 105)
+
+      expect(result).toMatchObject({
+        uid: 105,
+        name: expect.stringContaining('Test Folder 105'),
+        customFields: expect.objectContaining({
+          tests: expect.any(Number),
+          time: expect.any(Number),
+          testcases: expect.any(Array),
+        }),
+        aggregates: {},
+      })
+    })
+
+    it('should return original folder name for base ID', async () => {
+      const result = await client.getFolder('TEST_PROJECT', 100)
+
+      expect(result.name).toBe('Test Cases Folder')
+      expect(result.name).not.toContain('Folder 100')
+    })
+
+    it('should return different test counts for different folder IDs', async () => {
+      const baseFolder = await client.getFolder('TEST_PROJECT', 100)
+      const nextFolder = await client.getFolder('TEST_PROJECT', 101)
+
+      expect(baseFolder.customFields.tests).toBe(25)
+      expect(nextFolder.customFields.tests).toBe(30)
+      expect(baseFolder.customFields.time).toBe(0.004178)
+      expect(nextFolder.customFields.time).toBe(0.005178)
+    })
+  })
+
+  describe('createFolder', () => {
+    it('should create a folder successfully', async () => {
+      const folderToCreate = {
+        name: 'New Test Folder',
+        externalId: 'new_folder_001',
+        source: 'junit-xml',
+        customFields: {
+          time: 0.005,
+          tests: 10,
+          errors: 0,
+          skipped: 0,
+          failures: 0,
+          priority: 'medium',
+          timestamp: '2025-09-22T06:50:45.000Z',
+        },
+        parentUid: 100,
+        projectUid: 1,
+        position: 5,
+        integrationUid: 2,
+      }
+
+      const result = await client.createFolder('TEST_PROJECT', folderToCreate)
+
+      expect(result).toMatchObject({
+        uid: 150,
+        name: 'New Test Folder',
+        slug: 'new-test-folder',
+        source: 'junit-xml',
+        externalId: 'new_folder_001',
+        parentUid: 100,
+        customFields: {
+          time: 0.005,
+          tests: 10,
+          errors: 0,
+          skipped: 0,
+          failures: 0,
+        },
+        projectUid: 1,
+        entityTypes: ['cases'],
+        systemType: 'folder',
+        position: 5,
+        path: '100.150',
+        integrationUid: 2,
+        description: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        aggregates: {},
+        createdBy: null,
+      })
+    })
+
+    it('should create folder with minimal required fields', async () => {
+      const folderToCreate = {
+        name: 'Minimal Folder',
+        parentUid: 0,
+        projectUid: 1,
+      }
+
+      const result = await client.createFolder('TEST_PROJECT', folderToCreate)
+
+      expect(result).toMatchObject({
+        uid: 150,
+        name: 'Minimal Folder',
+        slug: 'minimal-folder',
+        source: null,
+        externalId: null,
+        parentUid: 0,
+        customFields: null,
+        projectUid: 1,
+        entityTypes: ['cases'],
+        systemType: 'folder',
+        position: null,
+        path: '0.150',
+        integrationUid: null,
+        description: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        aggregates: {},
+        createdBy: null,
+      })
+    })
+
+    it('should validate required fields and throw error for invalid input', async () => {
+      const invalidFolder = {
+        parentUid: 100,
+        projectUid: 1,
+      }
+
+      await expect(client.createFolder('TEST_PROJECT', invalidFolder as any))
+        .rejects
+        .toThrow('Invalid folder input')
+    })
+
+    it('should validate parentUid as number and throw error for invalid type', async () => {
+      const invalidFolder = {
+        name: 'Valid Name',
+        parentUid: 'invalid',
+        projectUid: 1,
+      }
+
+      await expect(client.createFolder('TEST_PROJECT', invalidFolder as any))
+        .rejects
+        .toThrow('Invalid folder input')
+    })
+
+    it('should validate projectUid field and throw error when missing', async () => {
+      const invalidFolder = {
+        name: 'Valid Name',
+        parentUid: 100,
+      }
+
+      await expect(client.createFolder('TEST_PROJECT', invalidFolder as any))
+        .rejects
+        .toThrow('Invalid folder input')
+    })
+  })
+
+  describe('deleteFolder', () => {
+    it('should delete a folder successfully', async () => {
+      const result = await client.deleteFolder('TEST_PROJECT', 100)
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle deletion of different folder IDs', async () => {
+      await expect(client.deleteFolder('TEST_PROJECT', 105)).resolves.toBeUndefined()
+      await expect(client.deleteFolder('TEST_PROJECT', 200)).resolves.toBeUndefined()
+    })
+  })
 })

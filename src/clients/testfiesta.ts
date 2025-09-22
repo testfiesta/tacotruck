@@ -1,9 +1,9 @@
 import type { z } from 'zod'
-import type { CreateCaseInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTestRunInput } from '../schemas/testfiesta'
+import type { CreateCaseInput, CreateFolderInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTestRunInput, UpdateFolderInput } from '../schemas/testfiesta'
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
-import { createCaseInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTestRunInputSchema } from '../schemas/testfiesta'
+import { createCaseInputSchema, createFolderInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTestRunInputSchema, updateFolderInputSchema } from '../schemas/testfiesta'
 import { JunitXmlParser } from '../utils/junit-xml-parser'
 import * as networkUtils from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
@@ -35,6 +35,9 @@ interface GetCasesOptions extends PaginationOptions {
 }
 
 interface GetMilestonesOptions extends PaginationOptions {
+}
+
+interface GetFoldersOptions extends PaginationOptions {
 }
 
 export class TestFiestaClient {
@@ -72,6 +75,13 @@ export class TestFiestaClient {
       GET: '/projects/{projectKey}/cases/{uid}',
       CREATE: '/projects/{projectKey}/cases',
     },
+    FOLDERS: {
+      LIST: '/projects/{projectKey}/folders?limit={limit}&offset={offset}',
+      GET: '/projects/{projectKey}/folders/{folderId}',
+      CREATE: '/projects/{projectKey}/folders',
+      UPDATE: '/projects/{projectKey}/folders/{folderId}',
+      DELETE: '/projects/{projectKey}/folders/{folderId}',
+    },
   } as const
 
   private static readonly ROUTE_MAP = {
@@ -80,6 +90,7 @@ export class TestFiestaClient {
     milestones: TestFiestaClient.ROUTES.MILESTONES,
     ingress: TestFiestaClient.ROUTES.INGRESS,
     cases: TestFiestaClient.ROUTES.CASES,
+    folders: TestFiestaClient.ROUTES.FOLDERS,
   } as const
 
   constructor(options: TestFiestaClientOptions) {
@@ -126,6 +137,7 @@ export class TestFiestaClient {
       milestones: TestFiestaClient.ROUTES.MILESTONES,
       ingress: TestFiestaClient.ROUTES.INGRESS,
       cases: TestFiestaClient.ROUTES.CASES,
+      folders: TestFiestaClient.ROUTES.FOLDERS,
     } as const
 
     return getRouteUtil(
@@ -353,6 +365,78 @@ export class TestFiestaClient {
 
   async createCase(projectKey: string, caseData: CreateCaseInput): Promise<any> {
     return this.createCases(projectKey, [caseData])
+  }
+
+  async getFolders(
+    projectKey: string,
+    options: GetFoldersOptions = {},
+  ): Promise<any> {
+    const { limit = 10, offset = 0 } = options
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('folders', 'list', { projectKey }, {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        }),
+      )
+    }, 'Get folders')
+  }
+
+  async getFolder(
+    projectKey: string,
+    folderId: number,
+  ): Promise<any> {
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('folders', 'get', { projectKey, folderId: folderId.toString() }),
+      )
+    }, 'Get folder')
+  }
+
+  async createFolder(
+    projectKey: string,
+    createFolderDTO: CreateFolderInput,
+  ): Promise<any> {
+    const folder = this.validateData(createFolderInputSchema, createFolderDTO, 'folder')
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('folders', 'create', { projectKey }),
+        { body: folder },
+      )
+    }, 'Create folder')
+  }
+
+  async updateFolder(
+    projectKey: string,
+    folderId: number,
+    updateFolderInput: UpdateFolderInput,
+  ): Promise<any> {
+    const folder = this.validateData(updateFolderInputSchema, updateFolderInput, 'folder')
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processPutRequest(
+        this.authOptions,
+        this.getRoute('folders', 'update', { projectKey, folderId: folderId.toString() }),
+        { body: folder },
+      )
+    }, 'Update folder')
+  }
+
+  async deleteFolder(
+    projectKey: string,
+    folderId: number,
+  ): Promise<void> {
+    return this.executeWithErrorHandling(async () => {
+      await networkUtils.processDeleteRequest(
+        this.authOptions,
+        this.getRoute('folders', 'delete', { projectKey, folderId: folderId.toString() }),
+      )
+    }, 'Delete folder')
   }
 
   async submitTestResults(

@@ -50,8 +50,32 @@ export const createCaseInputSchema = z.object({
   customFields: z.record(z.string(), z.any()).default({}).optional(),
 })
 
+export const createFolderInputSchema = z.object({
+  name: z.string().min(1),
+  externalId: z.string().optional(),
+  source: z.string().optional(),
+  customFields: z.record(z.string(), z.any()).optional(),
+  parentUid: z.number(),
+  projectUid: z.number(),
+  position: z.number().optional(),
+  integrationUid: z.number().optional(),
+})
+
+export const updateFolderInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  externalId: z.string().optional(),
+  source: z.string().optional(),
+  customFields: z.record(z.string(), z.any()).optional(),
+  parentUid: z.number().optional(),
+  projectUid: z.number().optional(),
+  position: z.number().optional(),
+  integrationUid: z.number().optional(),
+})
+
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>
 export type CreateProjectOutput = z.infer<typeof createProjectOutputSchema>
 export type CreateTestRunInput = z.infer<typeof createTestRunInputSchema>
 export type CreateMilestoneInput = z.infer<typeof createMilestoneInputSchema>
 export type CreateCaseInput = z.infer<typeof createCaseInputSchema>
+export type CreateFolderInput = z.infer<typeof createFolderInputSchema>
+export type UpdateFolderInput = z.infer<typeof updateFolderInputSchema>
