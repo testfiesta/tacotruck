@@ -72,6 +72,19 @@ export const updateFolderInputSchema = z.object({
   integrationUid: z.number().optional(),
 })
 
+export const createTagInputSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  entityTypes: z.array(z.string()).optional(),
+})
+
+export const updateTagInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  entityTypes: z.array(z.string()).optional(),
+  archived: z.boolean().optional(),
+})
+
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>
 export type CreateProjectOutput = z.infer<typeof createProjectOutputSchema>
 export type CreateTestRunInput = z.infer<typeof createTestRunInputSchema>
@@ -79,3 +92,5 @@ export type CreateMilestoneInput = z.infer<typeof createMilestoneInputSchema>
 export type CreateCaseInput = z.infer<typeof createCaseInputSchema>
 export type CreateFolderInput = z.infer<typeof createFolderInputSchema>
 export type UpdateFolderInput = z.infer<typeof updateFolderInputSchema>
+export type CreateTagInput = z.infer<typeof createTagInputSchema>
+export type UpdateTagInput = z.infer<typeof updateTagInputSchema>

@@ -1,9 +1,9 @@
 import type { z } from 'zod'
-import type { CreateCaseInput, CreateFolderInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTestRunInput, UpdateFolderInput } from '../schemas/testfiesta'
+import type { CreateCaseInput, CreateFolderInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTagInput, CreateTestRunInput, UpdateFolderInput, UpdateTagInput } from '../schemas/testfiesta'
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
-import { createCaseInputSchema, createFolderInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTestRunInputSchema, updateFolderInputSchema } from '../schemas/testfiesta'
+import { createCaseInputSchema, createFolderInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTagInputSchema, createTestRunInputSchema, updateFolderInputSchema, updateTagInputSchema } from '../schemas/testfiesta'
 import { JunitXmlParser } from '../utils/junit-xml-parser'
 import * as networkUtils from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
@@ -38,6 +38,9 @@ interface GetMilestonesOptions extends PaginationOptions {
 }
 
 interface GetFoldersOptions extends PaginationOptions {
+}
+
+interface GetTagsOptions extends PaginationOptions {
 }
 
 export class TestFiestaClient {
@@ -82,6 +85,13 @@ export class TestFiestaClient {
       UPDATE: '/projects/{projectKey}/folders/{folderId}',
       DELETE: '/projects/{projectKey}/folders/{folderId}',
     },
+    TAGS: {
+      LIST: '/tags?limit={limit}&offset={offset}',
+      CREATE: '/tags',
+      GET: '/tags/{tagId}',
+      UPDATE: '/tags/{tagId}',
+      DELETE: '/tags/{tagId}',
+    },
   } as const
 
   private static readonly ROUTE_MAP = {
@@ -91,6 +101,7 @@ export class TestFiestaClient {
     ingress: TestFiestaClient.ROUTES.INGRESS,
     cases: TestFiestaClient.ROUTES.CASES,
     folders: TestFiestaClient.ROUTES.FOLDERS,
+    tags: TestFiestaClient.ROUTES.TAGS,
   } as const
 
   constructor(options: TestFiestaClientOptions) {
@@ -138,6 +149,7 @@ export class TestFiestaClient {
       ingress: TestFiestaClient.ROUTES.INGRESS,
       cases: TestFiestaClient.ROUTES.CASES,
       folders: TestFiestaClient.ROUTES.FOLDERS,
+      tags: TestFiestaClient.ROUTES.TAGS,
     } as const
 
     return getRouteUtil(
@@ -437,6 +449,73 @@ export class TestFiestaClient {
         this.getRoute('folders', 'delete', { projectKey, folderId: folderId.toString() }),
       )
     }, 'Delete folder')
+  }
+
+  async getTags(
+    options: GetTagsOptions = {},
+  ): Promise<any> {
+    const { limit = 10, offset = 0 } = options
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('tags', 'list', {}, {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        }),
+      )
+    }, 'Get tags')
+  }
+
+  async getTag(
+    tagId: number,
+  ): Promise<any> {
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('tags', 'get', { tagId: tagId.toString() }),
+      )
+    }, 'Get tag')
+  }
+
+  async createTag(
+    createTagInput: CreateTagInput,
+  ): Promise<any> {
+    const tag = this.validateData(createTagInputSchema, createTagInput, 'tag')
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('tags', 'create'),
+        { body: tag },
+      )
+    }, 'Create tag')
+  }
+
+  async updateTag(
+    tagId: number,
+    updateTagInput: UpdateTagInput,
+  ): Promise<any> {
+    const tag = this.validateData(updateTagInputSchema, updateTagInput, 'tag')
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processPutRequest(
+        this.authOptions,
+        this.getRoute('tags', 'update', { tagId: tagId.toString() }),
+        { body: tag },
+      )
+    }, 'Update tag')
+  }
+
+  async deleteTag(
+    tagId: number,
+  ): Promise<void> {
+    return this.executeWithErrorHandling(async () => {
+      await networkUtils.processDeleteRequest(
+        this.authOptions,
+        this.getRoute('tags', 'delete', { tagId: tagId.toString() }),
+      )
+    }, 'Delete tag')
   }
 
   async submitTestResults(

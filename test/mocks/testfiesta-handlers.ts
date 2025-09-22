@@ -252,6 +252,31 @@ const mockFolder = {
   createdBy: null,
 }
 
+const mockTag = {
+  uid: 1,
+  name: 'automated',
+  description: null,
+  entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+  parentUid: null,
+  projectUid: null,
+  createdAt: '2025-08-21T04:56:52.720Z',
+  updatedAt: '2025-08-21T04:56:52.720Z',
+  archivedAt: null,
+  deletedAt: null,
+  systemType: 'tag',
+  slug: null,
+  customFields: null,
+  externalCreatedAt: null,
+  externalUpdatedAt: null,
+  externalId: null,
+  source: null,
+  integrationUid: null,
+  position: null,
+  path: null,
+  aggregates: {},
+  createdBy: null,
+}
+
 const BASE_URL = 'https://api.testfiesta.com/v1/:handle'
 
 export const testfiestaHandlers = [
@@ -573,6 +598,106 @@ export const testfiestaHandlers = [
     return HttpResponse.json({
       success: true,
       message: `Folder ${folderUid} deleted successfully`,
+    })
+  }),
+
+  http.get(`${BASE_URL}/tags`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = Number.parseInt(url.searchParams.get('limit') || '10')
+    const offset = Number.parseInt(url.searchParams.get('offset') || '0')
+
+    const tagNames = ['automated', 'unit', 'functional', 'exploratory']
+    const totalTags = 4
+    const actualItemCount = Math.min(limit, Math.max(0, totalTags - offset))
+    const items = Array.from({ length: actualItemCount }).map((_, i) => ({
+      ...mockTag,
+      uid: offset + i + 1,
+      name: tagNames[offset + i] || `tag-${offset + i + 1}`,
+      slug: null,
+      description: null,
+      updatedAt: '2025-08-21T04:56:52.720Z',
+    }))
+
+    return HttpResponse.json({
+      count: totalTags,
+      items,
+      nextOffset: offset + actualItemCount < totalTags ? offset + actualItemCount : null,
+    })
+  }),
+
+  http.get(`${BASE_URL}/tags/:tagId`, ({ params }) => {
+    const { tagId } = params
+    const tagUid = Number.parseInt(tagId as string)
+
+    const tagNames = ['automated', 'unit', 'functional', 'exploratory']
+    const tagName = tagNames[tagUid - 1] || `tag-${tagUid}`
+
+    return HttpResponse.json({
+      ...mockTag,
+      uid: tagUid,
+      name: tagName,
+      slug: null,
+      description: null,
+      updatedAt: '2025-08-21T04:56:52.720Z',
+    })
+  }),
+
+  http.post(`${BASE_URL}/tags`, async ({ request }) => {
+    const tagData = await request.json() as any
+
+    return HttpResponse.json({
+      uid: 200,
+      name: tagData.name,
+      slug: null,
+      description: tagData.description || null,
+      entityTypes: tagData.entityTypes || ['cases', 'executions', 'runs', 'plans', 'milestones'],
+      parentUid: null,
+      projectUid: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      archivedAt: null,
+      deletedAt: null,
+      systemType: 'tag',
+      customFields: null,
+      externalCreatedAt: null,
+      externalUpdatedAt: null,
+      externalId: null,
+      source: null,
+      integrationUid: null,
+      position: null,
+      path: null,
+      aggregates: {},
+      createdBy: null,
+    })
+  }),
+
+  http.put(`${BASE_URL}/tags/:tagId`, async ({ request, params }) => {
+    const { tagId } = params
+    const tagUid = Number.parseInt(tagId as string)
+    const updateData = await request.json() as any
+
+    // Create a merged object that properly handles partial updates
+    const updatedTag = {
+      ...mockTag,
+      uid: tagUid,
+      name: updateData.name !== undefined ? updateData.name : mockTag.name,
+      slug: null,
+      description: updateData.description !== undefined ? updateData.description : mockTag.description,
+      entityTypes: updateData.entityTypes !== undefined ? updateData.entityTypes : mockTag.entityTypes,
+      archivedAt: updateData.archived !== undefined ? (updateData.archived ? new Date().toISOString() : null) : mockTag.archivedAt,
+      updatedAt: new Date().toISOString(),
+    }
+
+    return HttpResponse.json(updatedTag)
+  }),
+
+  http.delete(`${BASE_URL}/tags/:tagId`, ({ params }) => {
+    const { tagId } = params
+    const tagUid = Number.parseInt(tagId as string)
+
+    return HttpResponse.json({
+      success: true,
+      message: `Tag ${tagUid} deleted successfully`,
     })
   }),
 ]

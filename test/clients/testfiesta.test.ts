@@ -1030,4 +1030,294 @@ describe('testFiestaClient', () => {
       await expect(client.deleteFolder('TEST_PROJECT', 200)).resolves.toBeUndefined()
     })
   })
+
+  describe('getTags', () => {
+    it('should fetch tags with pagination', async () => {
+      const result = await client.getTags({ limit: 5, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 4,
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            uid: expect.any(Number),
+            name: expect.stringMatching(/^(automated|unit|functional|exploratory)$/),
+            systemType: 'tag',
+            slug: null,
+            description: null,
+            entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+            parentUid: null,
+            projectUid: null,
+            customFields: null,
+            externalCreatedAt: null,
+            externalUpdatedAt: null,
+            externalId: null,
+            source: null,
+            integrationUid: null,
+            position: null,
+            path: null,
+            aggregates: {},
+            createdBy: null,
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+            archivedAt: null,
+            deletedAt: null,
+          }),
+        ]),
+        nextOffset: null,
+      })
+    })
+
+    it('should use default pagination when no options provided', async () => {
+      const result = await client.getTags()
+
+      expect(result).toMatchObject({
+        count: 4,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return null nextOffset when reaching end of tags', async () => {
+      const result = await client.getTags({ limit: 10, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 4,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return different tag names for different items', async () => {
+      const result = await client.getTags({ limit: 3, offset: 0 })
+
+      expect(result.items).toHaveLength(3)
+      expect(result.items[0].name).toBe('automated')
+      expect(result.items[1].name).toBe('unit')
+      expect(result.items[2].name).toBe('functional')
+    })
+  })
+
+  describe('getTag', () => {
+    it('should fetch a single tag by ID', async () => {
+      const result = await client.getTag(1)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'automated',
+        slug: null,
+        description: null,
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        parentUid: null,
+        projectUid: null,
+        customFields: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        externalId: null,
+        source: null,
+        integrationUid: null,
+        position: null,
+        path: null,
+        aggregates: {},
+        createdBy: null,
+        systemType: 'tag',
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+      })
+    })
+
+    it('should fetch different tags with different IDs', async () => {
+      const result = await client.getTag(2)
+
+      expect(result).toMatchObject({
+        uid: 2,
+        name: 'unit',
+        slug: null,
+        description: null,
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        systemType: 'tag',
+      })
+    })
+
+    it('should return original tag name for base ID', async () => {
+      const result = await client.getTag(1)
+
+      expect(result.name).toBe('automated')
+      expect(result.name).not.toContain('Tag 1')
+    })
+  })
+
+  describe('createTag', () => {
+    it('should create a tag successfully', async () => {
+      const tagToCreate = {
+        name: 'New Test Tag',
+        description: 'A new test tag for automation',
+        entityTypes: ['cases', 'runs'],
+      }
+
+      const result = await client.createTag(tagToCreate)
+
+      expect(result).toMatchObject({
+        uid: 200,
+        name: 'New Test Tag',
+        slug: null,
+        description: 'A new test tag for automation',
+        entityTypes: ['cases', 'runs'],
+        parentUid: null,
+        projectUid: null,
+        customFields: null,
+        systemType: 'tag',
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        externalId: null,
+        source: null,
+        integrationUid: null,
+        position: null,
+        path: null,
+        aggregates: {},
+        createdBy: null,
+      })
+    })
+
+    it('should create tag with minimal required fields', async () => {
+      const tagToCreate = {
+        name: 'Minimal Tag',
+      }
+
+      const result = await client.createTag(tagToCreate)
+
+      expect(result).toMatchObject({
+        uid: 200,
+        name: 'Minimal Tag',
+        slug: null,
+        description: null,
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        parentUid: null,
+        projectUid: null,
+        customFields: null,
+        systemType: 'tag',
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        externalId: null,
+        source: null,
+        integrationUid: null,
+        position: null,
+        path: null,
+        aggregates: {},
+        createdBy: null,
+      })
+    })
+
+    it('should validate required fields and throw error for invalid input', async () => {
+      const invalidTag = {
+        // Missing required 'name' field
+        description: 'Invalid tag',
+      }
+
+      await expect(client.createTag(invalidTag as any))
+        .rejects
+        .toThrow('Invalid tag input')
+    })
+
+    it('should validate name field and throw error when missing', async () => {
+      const invalidTag = {
+        name: '', // Empty name should fail validation
+        description: 'Valid description',
+      }
+
+      await expect(client.createTag(invalidTag as any))
+        .rejects
+        .toThrow('Invalid tag input')
+    })
+  })
+
+  describe('updateTag', () => {
+    it('should update a tag successfully', async () => {
+      const updateData = {
+        name: 'Updated Tag Name',
+        description: 'Updated description',
+        entityTypes: ['cases', 'executions'],
+        archived: false,
+      }
+
+      const result = await client.updateTag(1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Updated Tag Name',
+        slug: null,
+        description: 'Updated description',
+        entityTypes: ['cases', 'executions'],
+        archivedAt: null,
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should update tag with partial data', async () => {
+      const updateData = {
+        name: 'Partially Updated Tag',
+      }
+
+      const result = await client.updateTag(1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Partially Updated Tag',
+        slug: null,
+        description: null, // Should remain unchanged
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should archive a tag successfully', async () => {
+      const updateData = {
+        archived: true,
+      }
+
+      const result = await client.updateTag(1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'automated',
+        slug: null,
+        description: null,
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        archivedAt: expect.any(String),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should validate update data and throw error for invalid input', async () => {
+      const invalidUpdate = {
+        name: '', // Empty name should fail validation
+      }
+
+      await expect(client.updateTag(1, invalidUpdate as any))
+        .rejects
+        .toThrow('Invalid tag input')
+    })
+  })
+
+  describe('deleteTag', () => {
+    it('should delete a tag successfully', async () => {
+      const result = await client.deleteTag(1)
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle deletion of different tag IDs', async () => {
+      await expect(client.deleteTag(5)).resolves.toBeUndefined()
+      await expect(client.deleteTag(10)).resolves.toBeUndefined()
+    })
+  })
 })
