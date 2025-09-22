@@ -39,7 +39,19 @@ export const createMilestoneInputSchema = z.object({
   tagUids: z.array(z.number()).optional(),
 })
 
+export const createCaseInputSchema = z.object({
+  name: z.string().min(1),
+  projectId: z.string().min(1),
+  source: z.string().min(1),
+  parentId: z.number(),
+  steps: z.array(z.any()).default([]).optional(),
+  repoUID: z.string().default('').optional(),
+  externalId: z.string().optional(),
+  customFields: z.record(z.string(), z.any()).default({}).optional(),
+})
+
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>
 export type CreateProjectOutput = z.infer<typeof createProjectOutputSchema>
 export type CreateTestRunInput = z.infer<typeof createTestRunInputSchema>
 export type CreateMilestoneInput = z.infer<typeof createMilestoneInputSchema>
+export type CreateCaseInput = z.infer<typeof createCaseInputSchema>
