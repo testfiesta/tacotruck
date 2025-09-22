@@ -3,7 +3,6 @@ import type { CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, Cre
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
-// import { randomUUID } from 'node:crypto'
 import { createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTestRunInputSchema } from '../schemas/testfiesta'
 import { JunitXmlParser } from '../utils/junit-xml-parser'
 import * as networkUtils from '../utils/network'
@@ -32,6 +31,12 @@ interface GetProjectsOptions extends PaginationOptions {
 interface GetRunsOptions extends PaginationOptions {
 }
 
+interface GetCasesOptions extends PaginationOptions {
+}
+
+interface GetMilestonesOptions extends PaginationOptions {
+}
+
 export class TestFiestaClient {
   protected authOptions: AuthOptions
   protected routes: Record<string, Record<string, string>> = {}
@@ -49,18 +54,22 @@ export class TestFiestaClient {
       DELETE: '/delete_project/{project_id}',
     },
     RUNS: {
-      LIST: '/projects/{projectKey}/runs',
+      LIST: '/projects/{projectKey}/runs?limit={limit}&offset={offset}',
       CREATE: '/projects/{projectKey}/runs',
       GET: '/projects/{projectKey}/runs/{runId}',
       UPDATE: '/projects/{projectKey}/runs/{runId}',
       DELETE: '/projects/{projectKey}/runs/{runId}',
     },
     MILESTONES: {
-      LIST: '/projects/{projectKey}/milestones',
+      LIST: '/projects/{projectKey}/milestones?limit={limit}&offset={offset}',
       CREATE: '/projects/{projectKey}/milestones',
       GET: '/projects/{projectKey}/milestones/{milestoneId}',
       UPDATE: '/projects/{projectKey}/milestones/{milestoneId}',
       DELETE: '/projects/{projectKey}/milestones/{milestoneId}',
+    },
+    CASES: {
+      LIST: '/projects/{projectKey}/cases?limit={limit}&offset={offset}',
+      GET: '/projects/{projectKey}/cases/{uid}',
     },
   } as const
 
@@ -69,6 +78,7 @@ export class TestFiestaClient {
     runs: TestFiestaClient.ROUTES.RUNS,
     milestones: TestFiestaClient.ROUTES.MILESTONES,
     ingress: TestFiestaClient.ROUTES.INGRESS,
+    cases: TestFiestaClient.ROUTES.CASES,
   } as const
 
   constructor(options: TestFiestaClientOptions) {
@@ -114,6 +124,7 @@ export class TestFiestaClient {
       runs: TestFiestaClient.ROUTES.RUNS,
       milestones: TestFiestaClient.ROUTES.MILESTONES,
       ingress: TestFiestaClient.ROUTES.INGRESS,
+      cases: TestFiestaClient.ROUTES.CASES,
     } as const
 
     return getRouteUtil(
@@ -202,25 +213,25 @@ export class TestFiestaClient {
 
   async getRun(
     projectKey: string,
-    runId: string,
+    runId: number,
   ): Promise<any> {
     return this.executeWithErrorHandling(async () => {
       return await networkUtils.processGetRequest(
         this.authOptions,
-        this.getRoute('runs', 'get', { projectKey, runId }),
+        this.getRoute('runs', 'get', { projectKey, runId: runId.toString() }),
       )
     }, 'Get run')
   }
 
   async updateRun(
     projectKey: string,
-    runId: string,
+    runId: number,
     updateData: any,
   ): Promise<void> {
     return this.executeWithErrorHandling(async () => {
       await networkUtils.processPutRequest(
         this.authOptions,
-        this.getRoute('runs', 'update', { projectKey, runId }),
+        this.getRoute('runs', 'update', { projectKey, runId: runId.toString() }),
         { body: updateData },
       )
     }, 'Update run')
@@ -243,36 +254,42 @@ export class TestFiestaClient {
 
   async getMilestones(
     projectKey: string,
+    options: GetMilestonesOptions = {},
   ): Promise<any> {
+    const { limit = 10, offset = 0 } = options
+
     return this.executeWithErrorHandling(async () => {
       return await networkUtils.processGetRequest(
         this.authOptions,
-        this.getRoute('milestones', 'list', { projectKey }),
+        this.getRoute('milestones', 'list', { projectKey }, {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        }),
       )
     }, 'Get milestones')
   }
 
   async getMilestone(
     projectKey: string,
-    milestoneId: string,
+    milestoneId: number,
   ): Promise<any> {
     return this.executeWithErrorHandling(async () => {
       return await networkUtils.processGetRequest(
         this.authOptions,
-        this.getRoute('milestones', 'get', { projectKey, milestoneId }),
+        this.getRoute('milestones', 'get', { projectKey, milestoneId: milestoneId.toString() }),
       )
     }, 'Get milestone')
   }
 
   async updateMilestone(
     projectKey: string,
-    milestoneId: string,
+    milestoneId: number,
     updateData: any,
   ): Promise<void> {
     return this.executeWithErrorHandling(async () => {
       await networkUtils.processPutRequest(
         this.authOptions,
-        this.getRoute('milestones', 'update', { projectKey, milestoneId }),
+        this.getRoute('milestones', 'update', { projectKey, milestoneId: milestoneId.toString() }),
         { body: updateData },
       )
     }, 'Update milestone')
@@ -280,14 +297,43 @@ export class TestFiestaClient {
 
   async deleteMilestone(
     projectKey: string,
-    milestoneId: string,
+    milestoneId: number,
   ): Promise<void> {
     return this.executeWithErrorHandling(async () => {
       await networkUtils.processDeleteRequest(
         this.authOptions,
-        this.getRoute('milestones', 'delete', { projectKey, milestoneId }),
+        this.getRoute('milestones', 'delete', { projectKey, milestoneId: milestoneId.toString() }),
       )
     }, 'Delete milestone')
+  }
+
+  async getCases(
+    projectKey: string,
+    options: GetCasesOptions = {},
+  ): Promise<any> {
+    const { limit = 10, offset = 0 } = options
+
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('cases', 'list', { projectKey }, {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        }),
+      )
+    }, 'Get cases')
+  }
+
+  async getCase(
+    projectKey: string,
+    uid: number,
+  ): Promise<any> {
+    return this.executeWithErrorHandling(async () => {
+      return await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('cases', 'get', { projectKey, uid: uid.toString() }),
+      )
+    }, 'Get case')
   }
 
   async submitTestResults(
