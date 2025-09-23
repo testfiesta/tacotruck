@@ -890,4 +890,204 @@ export const testfiestaHandlers = [
       message: `Template ${templateUid} deleted successfully`,
     })
   }),
+
+  // Custom Fields handlers
+  http.get(`${BASE_URL}/projects/:projectKey/customFields`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = Number.parseInt(url.searchParams.get('limit') || '10')
+    const offset = Number.parseInt(url.searchParams.get('offset') || '0')
+
+    const mockCustomFields = [
+      {
+        uid: 'cf-001',
+        name: 'Priority',
+        description: 'Test priority level',
+        type: 'dropdown',
+        slug: 'priority',
+        options: ['Low', 'Medium', 'High', 'Critical'],
+        source: 'manual',
+        externalId: 'ext-priority-001',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+      {
+        uid: 'cf-002',
+        name: 'Environment',
+        description: 'Test environment field',
+        type: 'text',
+        slug: 'environment',
+        options: null,
+        source: 'manual',
+        externalId: 'ext-environment-002',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+      {
+        uid: 'cf-003',
+        name: 'Browser',
+        description: 'Browser selection field',
+        type: 'multi',
+        slug: 'browser',
+        options: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+        source: 'manual',
+        externalId: 'ext-browser-003',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+      {
+        uid: 'cf-004',
+        name: 'Test Type',
+        description: 'Type of test being performed',
+        type: 'radio',
+        slug: 'test-type',
+        options: ['Functional', 'Integration', 'Unit', 'E2E'],
+        source: 'manual',
+        externalId: 'ext-test-type-004',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+      {
+        uid: 'cf-005',
+        name: 'Automation Level',
+        description: 'Level of automation for the test',
+        type: 'integer',
+        slug: 'automation-level',
+        options: null,
+        source: 'manual',
+        externalId: 'ext-automation-level-005',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+    ]
+
+    const totalCount = mockCustomFields.length
+    const startIndex = offset
+    const endIndex = Math.min(startIndex + limit, totalCount)
+    const items = mockCustomFields.slice(startIndex, endIndex)
+    const nextOffset = endIndex < totalCount ? endIndex : null
+
+    return HttpResponse.json({
+      count: totalCount,
+      items,
+      nextOffset,
+    })
+  }),
+
+  http.get(`${BASE_URL}/projects/:projectKey/customFields/:customFieldId`, ({ params }) => {
+    const { projectKey: _projectKey, customFieldId } = params
+    const fieldUid = customFieldId as string
+
+    const mockCustomField = {
+      uid: fieldUid,
+      name: fieldUid === 'cf-001' ? 'Priority' : fieldUid === 'cf-002' ? 'Environment' : 'Browser',
+      description: fieldUid === 'cf-001' ? 'Test priority level' : fieldUid === 'cf-002' ? 'Test environment field' : 'Browser selection field',
+      type: fieldUid === 'cf-001' ? 'dropdown' : fieldUid === 'cf-002' ? 'text' : 'multi',
+      slug: fieldUid === 'cf-001' ? 'priority' : fieldUid === 'cf-002' ? 'environment' : 'browser',
+      options: fieldUid === 'cf-001' ? ['Low', 'Medium', 'High', 'Critical'] : fieldUid === 'cf-002' ? null : ['Chrome', 'Firefox', 'Safari', 'Edge'],
+      source: 'manual',
+      externalId: fieldUid === 'cf-001' ? 'ext-priority-001' : fieldUid === 'cf-002' ? 'ext-environment-002' : 'ext-browser-003',
+      ownerUid: 'user-001',
+      ownerType: 'user',
+      projectUid: 1,
+      entityTypes: fieldUid === 'cf-001' ? ['testCase', 'testResult'] : fieldUid === 'cf-002' ? ['testCase'] : ['testCase', 'testResult'],
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z',
+      deletedAt: null,
+    }
+
+    return HttpResponse.json(mockCustomField)
+  }),
+
+  http.post(`${BASE_URL}/projects/:projectKey/customFields`, async ({ request, params }) => {
+    const { projectKey: _projectKey } = params
+    const createData = await request.json() as any
+
+    const newCustomField = {
+      uid: `cf-${Math.floor(Math.random() * 1000) + 100}`,
+      name: createData.name,
+      description: createData.description || null,
+      type: createData.type || null,
+      slug: createData.name?.toLowerCase().replace(/\s+/g, '-') || null,
+      options: createData.options || null,
+      source: createData.source || 'manual',
+      externalId: `ext-${createData.name?.toLowerCase().replace(/\s+/g, '-')}-${Math.floor(Math.random() * 1000)}` || null,
+      ownerUid: 'user-001',
+      ownerType: 'user',
+      projectUid: 1,
+      entityTypes: createData.entityTypes || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    }
+
+    return HttpResponse.json(newCustomField)
+  }),
+
+  http.put(`${BASE_URL}/projects/:projectKey/customFields/:customFieldId`, async ({ request, params }) => {
+    const { projectKey: _projectKey, customFieldId } = params
+    const fieldUid = customFieldId as string
+    const updateData = await request.json() as any
+
+    const originalField = {
+      uid: fieldUid,
+      name: fieldUid === 'cf-001' ? 'Priority' : fieldUid === 'cf-002' ? 'Environment' : 'Browser',
+      description: fieldUid === 'cf-001' ? 'Test priority level' : fieldUid === 'cf-002' ? 'Test environment field' : 'Browser selection field',
+      type: fieldUid === 'cf-001' ? 'dropdown' : fieldUid === 'cf-002' ? 'text' : 'multi',
+      slug: fieldUid === 'cf-001' ? 'priority' : fieldUid === 'cf-002' ? 'environment' : 'browser',
+      options: fieldUid === 'cf-001' ? ['Low', 'Medium', 'High', 'Critical'] : fieldUid === 'cf-002' ? null : ['Chrome', 'Firefox', 'Safari', 'Edge'],
+      source: 'manual',
+      externalId: fieldUid === 'cf-001' ? 'ext-priority-001' : fieldUid === 'cf-002' ? 'ext-environment-002' : 'ext-browser-003',
+      ownerUid: 'user-001',
+      ownerType: 'user',
+      projectUid: 1,
+      entityTypes: fieldUid === 'cf-001' ? ['testCase', 'testResult'] : fieldUid === 'cf-002' ? ['testCase'] : ['testCase', 'testResult'],
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z',
+      deletedAt: null,
+    }
+
+    // Apply updates to the original field
+    const updatedField = {
+      ...originalField,
+      ...updateData,
+      updatedAt: new Date().toISOString(),
+    }
+
+    return HttpResponse.json(updatedField)
+  }),
+
+  http.delete(`${BASE_URL}/projects/:projectKey/customFields/:customFieldId`, ({ params }) => {
+    const { projectKey: _projectKey, customFieldId } = params
+    const fieldUid = customFieldId as string
+
+    return HttpResponse.json({
+      success: true,
+      message: `Custom field ${fieldUid} deleted successfully`,
+    })
+  }),
 ]

@@ -1,9 +1,9 @@
 import type { z } from 'zod'
-import type { CreateCaseInput, CreateFolderInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTagInput, CreateTemplateInput, CreateTestRunInput, TemplateListResponse, TemplateResponse, UpdateFolderInput, UpdateTagInput, UpdateTemplateInput } from '../schemas/testfiesta'
+import type { CreateCaseInput, CreateCustomFieldInput, CreateFolderInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTagInput, CreateTemplateInput, CreateTestRunInput, CustomFieldListResponse, CustomFieldResponse, TemplateListResponse, TemplateResponse, UpdateCustomFieldInput, UpdateFolderInput, UpdateTagInput, UpdateTemplateInput } from '../schemas/testfiesta'
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
-import { createCaseInputSchema, createFolderInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTagInputSchema, createTemplateInputSchema, createTestRunInputSchema, templateListResponseSchema, templateResponseSchema, updateFolderInputSchema, updateTagInputSchema, updateTemplateInputSchema } from '../schemas/testfiesta'
+import { createCaseInputSchema, createCustomFieldInputSchema, createFolderInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTagInputSchema, createTemplateInputSchema, createTestRunInputSchema, customFieldListResponseSchema, customFieldResponseSchema, templateListResponseSchema, templateResponseSchema, updateCustomFieldInputSchema, updateFolderInputSchema, updateTagInputSchema, updateTemplateInputSchema } from '../schemas/testfiesta'
 import { JunitXmlParser } from '../utils/junit-xml-parser'
 import * as networkUtils from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
@@ -102,6 +102,13 @@ export class TestFiestaClient {
       UPDATE: '/projects/{projectKey}/templates/{templateId}',
       DELETE: '/projects/{projectKey}/templates/{templateId}',
     },
+    CUSTOM_FIELDS: {
+      LIST: '/projects/{projectKey}/customFields?limit={limit}&offset={offset}',
+      GET: '/projects/{projectKey}/customFields/{customFieldId}',
+      CREATE: '/projects/{projectKey}/customFields',
+      UPDATE: '/projects/{projectKey}/customFields/{customFieldId}',
+      DELETE: '/projects/{projectKey}/customFields/{customFieldId}',
+    },
   } as const
 
   private static readonly ROUTE_MAP = {
@@ -113,6 +120,7 @@ export class TestFiestaClient {
     folders: TestFiestaClient.ROUTES.FOLDERS,
     tags: TestFiestaClient.ROUTES.TAGS,
     templates: TestFiestaClient.ROUTES.TEMPLATES,
+    customFields: TestFiestaClient.ROUTES.CUSTOM_FIELDS,
   } as const
 
   constructor(options: TestFiestaClientOptions) {
@@ -162,6 +170,7 @@ export class TestFiestaClient {
       folders: TestFiestaClient.ROUTES.FOLDERS,
       tags: TestFiestaClient.ROUTES.TAGS,
       templates: TestFiestaClient.ROUTES.TEMPLATES,
+      customFields: TestFiestaClient.ROUTES.CUSTOM_FIELDS,
     } as const
 
     return getRouteUtil(
@@ -604,6 +613,82 @@ export class TestFiestaClient {
         this.getRoute('templates', 'delete', { projectKey, templateId: templateId.toString() }),
       )
     }, 'Delete template')
+  }
+
+  async getCustomFields(
+    projectKey: string,
+    options: PaginationOptions = {},
+  ): Promise<CustomFieldListResponse> {
+    const { limit = 10, offset = 0 } = options
+
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('customFields', 'list', { projectKey }, {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        }),
+      )
+      return this.validateData(customFieldListResponseSchema, response, 'custom field list response')
+    }, 'Get custom fields')
+  }
+
+  async getCustomField(
+    projectKey: string,
+    customFieldId: string,
+  ): Promise<CustomFieldResponse> {
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('customFields', 'get', { projectKey, customFieldId }),
+      )
+      return this.validateData(customFieldResponseSchema, response, 'custom field response')
+    }, 'Get custom field')
+  }
+
+  async createCustomField(
+    projectKey: string,
+    createCustomFieldInput: CreateCustomFieldInput,
+  ): Promise<CustomFieldResponse> {
+    const customField = this.validateData(createCustomFieldInputSchema, createCustomFieldInput, 'custom field')
+
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('customFields', 'create', { projectKey }),
+        { body: customField },
+      )
+      return this.validateData(customFieldResponseSchema, response, 'custom field response')
+    }, 'Create custom field')
+  }
+
+  async updateCustomField(
+    projectKey: string,
+    customFieldId: string,
+    updateCustomFieldInput: UpdateCustomFieldInput,
+  ): Promise<CustomFieldResponse> {
+    const customField = this.validateData(updateCustomFieldInputSchema, updateCustomFieldInput, 'custom field')
+
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processPutRequest(
+        this.authOptions,
+        this.getRoute('customFields', 'update', { projectKey, customFieldId }),
+        { body: customField },
+      )
+      return this.validateData(customFieldResponseSchema, response, 'custom field response')
+    }, 'Update custom field')
+  }
+
+  async deleteCustomField(
+    projectKey: string,
+    customFieldId: string,
+  ): Promise<void> {
+    return this.executeWithErrorHandling(async () => {
+      await networkUtils.processDeleteRequest(
+        this.authOptions,
+        this.getRoute('customFields', 'delete', { projectKey, customFieldId }),
+      )
+    }, 'Delete custom field')
   }
 
   async submitTestResults(

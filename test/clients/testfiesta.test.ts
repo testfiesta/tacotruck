@@ -1683,4 +1683,299 @@ describe('testFiestaClient', () => {
       await expect(client.deleteTemplate('TEST_PROJECT', 999)).resolves.toBeUndefined()
     })
   })
+
+  describe('getCustomFields', () => {
+    it('should fetch custom fields with pagination', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 5,
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            uid: expect.any(String),
+            name: expect.any(String),
+            description: expect.any(String),
+            type: expect.any(String),
+            slug: expect.any(String),
+            options: expect.any(Array),
+            source: expect.any(String),
+            externalId: expect.any(String),
+            ownerUid: expect.any(String),
+            ownerType: expect.any(String),
+            projectUid: expect.any(Number),
+            entityTypes: expect.any(Array),
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+            deletedAt: null,
+          }),
+        ]),
+        nextOffset: expect.any(Number),
+      })
+    })
+
+    it('should use default pagination when no options provided', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT')
+
+      expect(result).toMatchObject({
+        count: 5,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return null nextOffset when reaching end of custom fields', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT', { limit: 10, offset: 10 })
+
+      expect(result).toMatchObject({
+        count: 5,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return different custom field names for different items', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items[0].name).toBe('Priority')
+      expect(result.items[1].name).toBe('Environment')
+      expect(result.items[2].name).toBe('Browser')
+    })
+
+    it('should return progressive data types for different custom fields', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items[0].type).toBe('dropdown')
+      expect(result.items[1].type).toBe('text')
+      expect(result.items[2].type).toBe('multi')
+    })
+  })
+
+  describe('getCustomField', () => {
+    it('should fetch a single custom field by ID', async () => {
+      const result = await client.getCustomField('TEST_PROJECT', 'cf-001')
+
+      expect(result).toMatchObject({
+        uid: 'cf-001',
+        name: 'Priority',
+        description: 'Test priority level',
+        type: 'dropdown',
+        slug: 'priority',
+        options: ['Low', 'Medium', 'High', 'Critical'],
+        source: 'manual',
+        externalId: 'ext-priority-001',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should fetch different custom fields with different IDs', async () => {
+      const result1 = await client.getCustomField('TEST_PROJECT', 'cf-001')
+      const result2 = await client.getCustomField('TEST_PROJECT', 'cf-002')
+
+      expect(result1.name).toBe('Priority')
+      expect(result2.name).toBe('Environment')
+      expect(result1.type).toBe('dropdown')
+      expect(result2.type).toBe('text')
+    })
+
+    it('should return custom field with correct entity types', async () => {
+      const result = await client.getCustomField('TEST_PROJECT', 'cf-003')
+
+      expect(result.entityTypes).toEqual(['testCase', 'testResult'])
+      expect(result.name).toBe('Browser')
+    })
+  })
+
+  describe('createCustomField', () => {
+    it('should create a new custom field successfully', async () => {
+      const createData = {
+        name: 'Test Field',
+        type: 'text',
+        source: 'manual',
+        options: ['option1', 'option2'],
+        entityTypes: ['testCase'],
+      }
+
+      const result = await client.createCustomField('TEST_PROJECT', createData)
+
+      expect(result).toMatchObject({
+        uid: expect.any(String),
+        name: 'Test Field',
+        description: null,
+        type: 'text',
+        slug: 'test-field',
+        options: ['option1', 'option2'],
+        source: 'manual',
+        externalId: expect.any(String),
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should create custom field with minimal required fields', async () => {
+      const createData = {
+        name: 'Minimal Field',
+        type: 'integer',
+      }
+
+      const result = await client.createCustomField('TEST_PROJECT', createData)
+
+      expect(result).toMatchObject({
+        uid: expect.any(String),
+        name: 'Minimal Field',
+        description: null,
+        type: 'integer',
+        slug: 'minimal-field',
+        options: null,
+        source: 'manual',
+        externalId: expect.any(String),
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: [],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should create custom field with select data type and options', async () => {
+      const createData = {
+        name: 'Status Field',
+        type: 'dropdown',
+        source: 'manual',
+        options: ['Passed', 'Failed', 'Skipped'],
+        entityTypes: ['testCase', 'testResult'],
+      }
+
+      const result = await client.createCustomField('TEST_PROJECT', createData)
+
+      expect(result).toMatchObject({
+        uid: expect.any(String),
+        name: 'Status Field',
+        description: null,
+        type: 'dropdown',
+        slug: 'status-field',
+        options: ['Passed', 'Failed', 'Skipped'],
+        source: 'manual',
+        externalId: expect.any(String),
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+  })
+
+  describe('updateCustomField', () => {
+    it('should update a custom field successfully', async () => {
+      const updateData = {
+        name: 'Updated Field Name',
+        description: 'Updated description',
+      }
+
+      const result = await client.updateCustomField('TEST_PROJECT', 'cf-001', updateData)
+
+      expect(result).toMatchObject({
+        uid: 'cf-001',
+        name: 'Updated Field Name',
+        description: 'Updated description',
+        type: 'dropdown',
+        slug: 'priority',
+        options: ['Low', 'Medium', 'High', 'Critical'],
+        source: 'manual',
+        externalId: 'ext-priority-001',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should update custom field with partial data', async () => {
+      const updateData = {
+        name: 'Partially Updated',
+      }
+
+      const result = await client.updateCustomField('TEST_PROJECT', 'cf-002', updateData)
+
+      expect(result).toMatchObject({
+        uid: 'cf-002',
+        name: 'Partially Updated',
+        description: 'Test environment field',
+        type: 'text',
+        slug: 'environment',
+        options: null,
+        source: 'manual',
+        externalId: 'ext-environment-002',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should update custom field options', async () => {
+      const updateData = {
+        options: ['New Option 1', 'New Option 2', 'New Option 3'],
+        entityTypes: ['testCase', 'testResult'],
+      }
+
+      const result = await client.updateCustomField('TEST_PROJECT', 'cf-003', updateData)
+
+      expect(result).toMatchObject({
+        uid: 'cf-003',
+        name: 'Browser',
+        description: 'Browser selection field',
+        type: 'multi',
+        slug: 'browser',
+        options: ['New Option 1', 'New Option 2', 'New Option 3'],
+        source: 'manual',
+        externalId: 'ext-browser-003',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+  })
+
+  describe('deleteCustomField', () => {
+    it('should delete a custom field successfully', async () => {
+      const result = await client.deleteCustomField('TEST_PROJECT', 'cf-001')
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle deletion of different custom field IDs', async () => {
+      await expect(client.deleteCustomField('TEST_PROJECT', 'cf-002')).resolves.toBeUndefined()
+      await expect(client.deleteCustomField('TEST_PROJECT', 'cf-003')).resolves.toBeUndefined()
+    })
+
+    it('should handle deletion of non-existent custom field', async () => {
+      await expect(client.deleteCustomField('TEST_PROJECT', 'cf-999')).resolves.toBeUndefined()
+    })
+  })
 })

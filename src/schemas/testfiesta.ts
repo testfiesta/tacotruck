@@ -134,6 +134,66 @@ export const templateListResponseSchema = z.object({
   nextOffset: z.number().nullable().optional(),
 })
 
+// Custom Field Types and Entity Types enums
+export const customFieldTypesSchema = z.enum([
+  'multi',
+  'radio',
+  'link',
+  'text',
+  'checkbox',
+  'date',
+  'file',
+  'step',
+  'dropdown',
+  'integer',
+])
+
+export const customFieldEntityTypesSchema = z.enum([
+  'testCase',
+  'testResult',
+])
+
+export const createCustomFieldInputSchema = z.object({
+  name: z.string().min(1),
+  type: customFieldTypesSchema.optional(),
+  source: z.string().optional(),
+  options: z.array(z.string()).optional(),
+  entityTypes: z.array(customFieldEntityTypesSchema).optional(),
+})
+
+export const updateCustomFieldInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  type: customFieldTypesSchema.optional(),
+  source: z.string().optional(),
+  options: z.array(z.string()).optional(),
+  entityTypes: z.array(customFieldEntityTypesSchema).optional(),
+})
+
+export const customFieldResponseSchema = z.object({
+  uid: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  type: customFieldTypesSchema.nullable(),
+  slug: z.string().nullable(),
+  options: z.array(z.string()).nullable(),
+  source: z.string().nullable(),
+  externalId: z.string().nullable(),
+  ownerUid: z.string().nullable(),
+  ownerType: z.string().nullable(),
+  projectUid: z.number(),
+  entityTypes: z.array(customFieldEntityTypesSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  deletedAt: z.string().nullable(),
+})
+
+export const customFieldListResponseSchema = z.object({
+  count: z.number(),
+  items: z.array(customFieldResponseSchema),
+  nextOffset: z.number().nullable().optional(),
+})
+
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>
 export type CreateProjectOutput = z.infer<typeof createProjectOutputSchema>
 export type CreateTestRunInput = z.infer<typeof createTestRunInputSchema>
@@ -149,3 +209,9 @@ export type CreateTemplateInput = z.infer<typeof createTemplateInputSchema>
 export type UpdateTemplateInput = z.infer<typeof updateTemplateInputSchema>
 export type TemplateResponse = z.infer<typeof templateResponseSchema>
 export type TemplateListResponse = z.infer<typeof templateListResponseSchema>
+export type CustomFieldTypes = z.infer<typeof customFieldTypesSchema>
+export type CustomFieldEntityTypes = z.infer<typeof customFieldEntityTypesSchema>
+export type CreateCustomFieldInput = z.infer<typeof createCustomFieldInputSchema>
+export type UpdateCustomFieldInput = z.infer<typeof updateCustomFieldInputSchema>
+export type CustomFieldResponse = z.infer<typeof customFieldResponseSchema>
+export type CustomFieldListResponse = z.infer<typeof customFieldListResponseSchema>
