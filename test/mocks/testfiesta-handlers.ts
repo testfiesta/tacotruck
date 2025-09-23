@@ -277,6 +277,34 @@ const mockTag = {
   createdBy: null,
 }
 
+const mockTemplate = {
+  uid: 1,
+  name: 'Automated Tests',
+  createdBy: '330e99db-9e6a-4921-96c6-3cb856b7ae5f',
+  customFields: {
+    templateFields: [
+      {
+        name: 'repository',
+        dataType: 'text',
+      },
+      {
+        name: 'sha',
+        dataType: 'text',
+      },
+    ],
+  },
+  projectUid: 1,
+  createdAt: '2025-08-21T04:57:35.307Z',
+  updatedAt: '2025-08-21T04:57:35.307Z',
+  deletedAt: null,
+  isDefault: false,
+  entityType: 'testCase',
+  rules: [],
+  externalId: null,
+  source: null,
+  integrationUid: null,
+}
+
 const BASE_URL = 'https://api.testfiesta.com/v1/:handle'
 
 export const testfiestaHandlers = [
@@ -698,6 +726,168 @@ export const testfiestaHandlers = [
     return HttpResponse.json({
       success: true,
       message: `Tag ${tagUid} deleted successfully`,
+    })
+  }),
+
+  // Template handlers
+  http.get(`${BASE_URL}/projects/:projectKey/templates`, ({ request, params }) => {
+    const url = new URL(request.url)
+    const limit = Number.parseInt(url.searchParams.get('limit') || '10')
+    const offset = Number.parseInt(url.searchParams.get('offset') || '0')
+    const { projectKey: _projectKey } = params
+
+    const templateNames = ['Automated Tests', 'Simple', 'Exploratory']
+    const totalTemplates = 3
+    const actualItemCount = Math.min(limit, Math.max(0, totalTemplates - offset))
+    const items = Array.from({ length: actualItemCount }).map((_, i) => {
+      const templateIndex = offset + i
+      const templateName = templateNames[templateIndex] || `Template ${templateIndex + 1}`
+
+      return {
+        ...mockTemplate,
+        uid: templateIndex + 1,
+        name: templateName,
+        isDefault: templateIndex === 1, // Simple template is default
+        customFields: {
+          templateFields: templateIndex === 0
+            ? [
+                { name: 'repository', dataType: 'text' },
+                { name: 'sha', dataType: 'text' },
+              ]
+            : templateIndex === 1
+              ? [
+                  { name: 'Pre-condition', dataType: 'text' },
+                  { name: 'Steps', dataType: 'text' },
+                  { name: 'Expected Result', dataType: 'text' },
+                ]
+              : [
+                  { name: 'Title', dataType: 'text' },
+                  { name: 'Charter', dataType: 'text' },
+                  { name: 'Time Limit', dataType: 'text' },
+                ],
+        },
+        createdAt: new Date(Date.now() - (templateIndex * 1000)).toISOString(),
+        updatedAt: new Date(Date.now() - (templateIndex * 1000)).toISOString(),
+      }
+    })
+
+    return HttpResponse.json({
+      count: totalTemplates,
+      items,
+      nextOffset: offset + actualItemCount < totalTemplates ? offset + actualItemCount : null,
+    })
+  }),
+
+  http.get(`${BASE_URL}/projects/:projectKey/templates/:templateId`, ({ params }) => {
+    const { projectKey: _projectKey, templateId } = params
+    const templateUid = Number.parseInt(templateId as string)
+
+    const templateNames = ['Automated Tests', 'Simple', 'Exploratory']
+    const templateName = templateNames[templateUid - 1] || `Template ${templateUid}`
+    const isDefault = templateUid === 2
+
+    return HttpResponse.json({
+      ...mockTemplate,
+      uid: templateUid,
+      name: templateName,
+      isDefault,
+      customFields: {
+        templateFields: templateUid === 1
+          ? [
+              { name: 'repository', dataType: 'text' },
+              { name: 'sha', dataType: 'text' },
+            ]
+          : templateUid === 2
+            ? [
+                { name: 'Pre-condition', dataType: 'text' },
+                { name: 'Steps', dataType: 'text' },
+                { name: 'Expected Result', dataType: 'text' },
+              ]
+            : [
+                { name: 'Title', dataType: 'text' },
+                { name: 'Charter', dataType: 'text' },
+                { name: 'Time Limit', dataType: 'text' },
+              ],
+      },
+      createdAt: new Date(Date.now() - ((templateUid - 1) * 1000)).toISOString(),
+      updatedAt: new Date(Date.now() - ((templateUid - 1) * 1000)).toISOString(),
+    })
+  }),
+
+  http.post(`${BASE_URL}/projects/:projectKey/templates`, async ({ request, params }) => {
+    const { projectKey: _projectKey } = params
+    const templateData = await request.json() as any
+
+    return HttpResponse.json({
+      uid: 4,
+      name: templateData.name,
+      createdBy: randomUUID(),
+      customFields: {
+        templateFields: templateData.templateFields || [],
+      },
+      projectUid: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      isDefault: false,
+      entityType: 'testCase',
+      rules: [],
+      externalId: null,
+      source: null,
+      integrationUid: null,
+    })
+  }),
+
+  http.put(`${BASE_URL}/projects/:projectKey/templates/:templateId`, async ({ request, params }) => {
+    const { projectKey: _projectKey, templateId } = params
+    const templateUid = Number.parseInt(templateId as string)
+    const updateData = await request.json() as any
+
+    // Get the original template data based on template ID
+    const templateNames = ['Automated Tests', 'Simple', 'Exploratory']
+    const originalName = templateNames[templateUid - 1] || `Template ${templateUid}`
+    const isDefault = templateUid === 2
+
+    const originalTemplateFields = templateUid === 1
+      ? [
+          { name: 'repository', dataType: 'text' },
+          { name: 'sha', dataType: 'text' },
+        ]
+      : templateUid === 2
+        ? [
+            { name: 'Pre-condition', dataType: 'text' },
+            { name: 'Steps', dataType: 'text' },
+            { name: 'Expected Result', dataType: 'text' },
+          ]
+        : [
+            { name: 'Title', dataType: 'text' },
+            { name: 'Charter', dataType: 'text' },
+            { name: 'Time Limit', dataType: 'text' },
+          ]
+
+    // Create a merged object that properly handles partial updates
+    const updatedTemplate = {
+      ...mockTemplate,
+      uid: templateUid,
+      name: updateData.name !== undefined ? updateData.name : originalName,
+      isDefault,
+      customFields: {
+        templateFields: updateData.templateFields !== undefined ? updateData.templateFields : originalTemplateFields,
+      },
+      createdAt: new Date(Date.now() - ((templateUid - 1) * 1000)).toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    return HttpResponse.json(updatedTemplate)
+  }),
+
+  http.delete(`${BASE_URL}/projects/:projectKey/templates/:templateId`, ({ params }) => {
+    const { projectKey: _projectKey, templateId } = params
+    const templateUid = Number.parseInt(templateId as string)
+
+    return HttpResponse.json({
+      success: true,
+      message: `Template ${templateUid} deleted successfully`,
     })
   }),
 ]

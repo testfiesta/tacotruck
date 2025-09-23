@@ -85,6 +85,55 @@ export const updateTagInputSchema = z.object({
   archived: z.boolean().optional(),
 })
 
+export const templateFieldSchema = z.object({
+  name: z.string().min(1),
+  dataType: z.string().min(1),
+})
+
+export const ruleSchema = z.object({
+  ruleId: z.string(),
+  name: z.string(),
+  statusIds: z.array(z.union([z.string(), z.number()])),
+  manageTags: z.boolean(),
+  createDefects: z.boolean(),
+  isTemplateRule: z.boolean().optional(),
+})
+
+export const createTemplateInputSchema = z.object({
+  name: z.string().min(1),
+  templateFields: z.array(templateFieldSchema).optional(),
+})
+
+export const updateTemplateInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  templateFields: z.array(templateFieldSchema).optional(),
+})
+
+export const templateResponseSchema = z.object({
+  uid: z.number(),
+  name: z.string(),
+  createdBy: z.string(),
+  customFields: z.object({
+    templateFields: z.array(templateFieldSchema).optional(),
+  }).optional(),
+  projectUid: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  deletedAt: z.string().nullable(),
+  isDefault: z.boolean(),
+  entityType: z.string(),
+  rules: z.array(ruleSchema),
+  externalId: z.string().nullable(),
+  source: z.string().nullable(),
+  integrationUid: z.number().nullable(),
+})
+
+export const templateListResponseSchema = z.object({
+  count: z.number(),
+  items: z.array(templateResponseSchema),
+  nextOffset: z.number().nullable().optional(),
+})
+
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>
 export type CreateProjectOutput = z.infer<typeof createProjectOutputSchema>
 export type CreateTestRunInput = z.infer<typeof createTestRunInputSchema>
@@ -94,3 +143,9 @@ export type CreateFolderInput = z.infer<typeof createFolderInputSchema>
 export type UpdateFolderInput = z.infer<typeof updateFolderInputSchema>
 export type CreateTagInput = z.infer<typeof createTagInputSchema>
 export type UpdateTagInput = z.infer<typeof updateTagInputSchema>
+export type TemplateField = z.infer<typeof templateFieldSchema>
+export type Rule = z.infer<typeof ruleSchema>
+export type CreateTemplateInput = z.infer<typeof createTemplateInputSchema>
+export type UpdateTemplateInput = z.infer<typeof updateTemplateInputSchema>
+export type TemplateResponse = z.infer<typeof templateResponseSchema>
+export type TemplateListResponse = z.infer<typeof templateListResponseSchema>

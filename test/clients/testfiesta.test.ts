@@ -1320,4 +1320,367 @@ describe('testFiestaClient', () => {
       await expect(client.deleteTag(10)).resolves.toBeUndefined()
     })
   })
+
+  describe('getTemplates', () => {
+    it('should fetch templates with pagination', async () => {
+      const result = await client.getTemplates('TEST_PROJECT', { limit: 5, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 3,
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            uid: expect.any(Number),
+            name: expect.stringContaining('Automated Tests'),
+            createdBy: expect.any(String),
+            customFields: expect.objectContaining({
+              templateFields: expect.arrayContaining([
+                expect.objectContaining({
+                  name: expect.any(String),
+                  dataType: expect.any(String),
+                }),
+              ]),
+            }),
+            projectUid: expect.any(Number),
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+            deletedAt: null,
+            isDefault: expect.any(Boolean),
+            entityType: 'testCase',
+            rules: expect.any(Array),
+            externalId: null,
+            source: null,
+            integrationUid: null,
+          }),
+        ]),
+        nextOffset: null, // All 3 templates are returned, so no more items
+      })
+    })
+
+    it('should use default pagination when no options provided', async () => {
+      const result = await client.getTemplates('TEST_PROJECT')
+
+      expect(result).toMatchObject({
+        count: 3,
+        items: expect.any(Array),
+        nextOffset: null, // Default limit is 10, so all 3 templates are returned
+      })
+    })
+
+    it('should return null nextOffset when no more items', async () => {
+      const result = await client.getTemplates('TEST_PROJECT', { limit: 10, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 3,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should handle different template types correctly', async () => {
+      const result = await client.getTemplates('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items).toHaveLength(3)
+      expect(result.items[0].name).toBe('Automated Tests')
+      expect(result.items[1].name).toBe('Simple')
+      expect(result.items[2].name).toBe('Exploratory')
+      expect(result.items[1].isDefault).toBe(true)
+    })
+  })
+
+  describe('getTemplate', () => {
+    it('should fetch a specific template by ID', async () => {
+      const result = await client.getTemplate('TEST_PROJECT', 1)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Automated Tests',
+        createdBy: expect.any(String),
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'repository',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'sha',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+        projectUid: 1,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        isDefault: false,
+        entityType: 'testCase',
+        rules: expect.any(Array),
+        externalId: null,
+        source: null,
+        integrationUid: null,
+      })
+    })
+
+    it('should fetch Simple template with correct fields', async () => {
+      const result = await client.getTemplate('TEST_PROJECT', 2)
+
+      expect(result).toMatchObject({
+        uid: 2,
+        name: 'Simple',
+        isDefault: true,
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Pre-condition',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Steps',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Expected Result',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+      })
+    })
+
+    it('should fetch Exploratory template with correct fields', async () => {
+      const result = await client.getTemplate('TEST_PROJECT', 3)
+
+      expect(result).toMatchObject({
+        uid: 3,
+        name: 'Exploratory',
+        isDefault: false,
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Title',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Charter',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Time Limit',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+      })
+    })
+  })
+
+  describe('createTemplate', () => {
+    it('should create a template successfully', async () => {
+      const templateToCreate = {
+        name: 'New Test Template',
+        templateFields: [
+          {
+            name: 'Test Field 1',
+            dataType: 'text',
+          },
+          {
+            name: 'Test Field 2',
+            dataType: 'number',
+          },
+        ],
+      }
+
+      const result = await client.createTemplate('TEST_PROJECT', templateToCreate)
+
+      expect(result).toMatchObject({
+        uid: 4,
+        name: 'New Test Template',
+        createdBy: expect.any(String),
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Test Field 1',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Test Field 2',
+              dataType: 'number',
+            }),
+          ]),
+        }),
+        projectUid: 1,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        isDefault: false,
+        entityType: 'testCase',
+        rules: expect.any(Array),
+        externalId: null,
+        source: null,
+        integrationUid: null,
+      })
+    })
+
+    it('should create a template with minimal data', async () => {
+      const templateToCreate = {
+        name: 'Minimal Template',
+      }
+
+      const result = await client.createTemplate('TEST_PROJECT', templateToCreate)
+
+      expect(result).toMatchObject({
+        uid: 4,
+        name: 'Minimal Template',
+        createdBy: expect.any(String),
+        customFields: expect.objectContaining({
+          templateFields: [],
+        }),
+        projectUid: 1,
+        isDefault: false,
+        entityType: 'testCase',
+      })
+    })
+
+    it('should handle template creation with empty templateFields', async () => {
+      const templateToCreate = {
+        name: 'Empty Fields Template',
+        templateFields: [],
+      }
+
+      const result = await client.createTemplate('TEST_PROJECT', templateToCreate)
+
+      expect(result).toMatchObject({
+        uid: 4,
+        name: 'Empty Fields Template',
+        customFields: expect.objectContaining({
+          templateFields: [],
+        }),
+      })
+    })
+  })
+
+  describe('updateTemplate', () => {
+    it('should update a template successfully', async () => {
+      const updateData = {
+        name: 'Updated Template Name',
+        templateFields: [
+          {
+            name: 'Updated Field 1',
+            dataType: 'text',
+          },
+          {
+            name: 'Updated Field 2',
+            dataType: 'boolean',
+          },
+        ],
+      }
+
+      const result = await client.updateTemplate('TEST_PROJECT', 1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Updated Template Name',
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Updated Field 1',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Updated Field 2',
+              dataType: 'boolean',
+            }),
+          ]),
+        }),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should update only template name', async () => {
+      const updateData = {
+        name: 'Only Name Updated',
+      }
+
+      const result = await client.updateTemplate('TEST_PROJECT', 1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Only Name Updated',
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'repository',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should update only template fields', async () => {
+      const updateData = {
+        templateFields: [
+          {
+            name: 'New Field Only',
+            dataType: 'text',
+          },
+        ],
+      }
+
+      const result = await client.updateTemplate('TEST_PROJECT', 1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Automated Tests', // Original name preserved
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'New Field Only',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should handle partial updates correctly', async () => {
+      const updateData = {
+        name: 'Partially Updated',
+      }
+
+      const result = await client.updateTemplate('TEST_PROJECT', 2, updateData)
+
+      expect(result).toMatchObject({
+        uid: 2,
+        name: 'Partially Updated',
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Pre-condition',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+        updatedAt: expect.any(String),
+      })
+    })
+  })
+
+  describe('deleteTemplate', () => {
+    it('should delete a template successfully', async () => {
+      const result = await client.deleteTemplate('TEST_PROJECT', 1)
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle deletion of different template IDs', async () => {
+      await expect(client.deleteTemplate('TEST_PROJECT', 2)).resolves.toBeUndefined()
+      await expect(client.deleteTemplate('TEST_PROJECT', 3)).resolves.toBeUndefined()
+    })
+
+    it('should handle deletion of non-existent template', async () => {
+      await expect(client.deleteTemplate('TEST_PROJECT', 999)).resolves.toBeUndefined()
+    })
+  })
 })

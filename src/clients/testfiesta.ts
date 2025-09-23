@@ -1,9 +1,9 @@
 import type { z } from 'zod'
-import type { CreateCaseInput, CreateFolderInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTagInput, CreateTestRunInput, UpdateFolderInput, UpdateTagInput } from '../schemas/testfiesta'
+import type { CreateCaseInput, CreateFolderInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTagInput, CreateTemplateInput, CreateTestRunInput, TemplateListResponse, TemplateResponse, UpdateFolderInput, UpdateTagInput, UpdateTemplateInput } from '../schemas/testfiesta'
 import type { TestFiestaClientOptions } from '../types/type'
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
-import { createCaseInputSchema, createFolderInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTagInputSchema, createTestRunInputSchema, updateFolderInputSchema, updateTagInputSchema } from '../schemas/testfiesta'
+import { createCaseInputSchema, createFolderInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTagInputSchema, createTemplateInputSchema, createTestRunInputSchema, templateListResponseSchema, templateResponseSchema, updateFolderInputSchema, updateTagInputSchema, updateTemplateInputSchema } from '../schemas/testfiesta'
 import { JunitXmlParser } from '../utils/junit-xml-parser'
 import * as networkUtils from '../utils/network'
 import { getRoute as getRouteUtil } from '../utils/route'
@@ -41,6 +41,9 @@ interface GetFoldersOptions extends PaginationOptions {
 }
 
 interface GetTagsOptions extends PaginationOptions {
+}
+
+interface GetTemplatesOptions extends PaginationOptions {
 }
 
 export class TestFiestaClient {
@@ -92,6 +95,13 @@ export class TestFiestaClient {
       UPDATE: '/tags/{tagId}',
       DELETE: '/tags/{tagId}',
     },
+    TEMPLATES: {
+      LIST: '/projects/{projectKey}/templates?limit={limit}&offset={offset}',
+      GET: '/projects/{projectKey}/templates/{templateId}',
+      CREATE: '/projects/{projectKey}/templates',
+      UPDATE: '/projects/{projectKey}/templates/{templateId}',
+      DELETE: '/projects/{projectKey}/templates/{templateId}',
+    },
   } as const
 
   private static readonly ROUTE_MAP = {
@@ -102,6 +112,7 @@ export class TestFiestaClient {
     cases: TestFiestaClient.ROUTES.CASES,
     folders: TestFiestaClient.ROUTES.FOLDERS,
     tags: TestFiestaClient.ROUTES.TAGS,
+    templates: TestFiestaClient.ROUTES.TEMPLATES,
   } as const
 
   constructor(options: TestFiestaClientOptions) {
@@ -150,6 +161,7 @@ export class TestFiestaClient {
       cases: TestFiestaClient.ROUTES.CASES,
       folders: TestFiestaClient.ROUTES.FOLDERS,
       tags: TestFiestaClient.ROUTES.TAGS,
+      templates: TestFiestaClient.ROUTES.TEMPLATES,
     } as const
 
     return getRouteUtil(
@@ -516,6 +528,82 @@ export class TestFiestaClient {
         this.getRoute('tags', 'delete', { tagId: tagId.toString() }),
       )
     }, 'Delete tag')
+  }
+
+  async getTemplates(
+    projectKey: string,
+    options: GetTemplatesOptions = {},
+  ): Promise<TemplateListResponse> {
+    const { limit = 10, offset = 0 } = options
+
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('templates', 'list', { projectKey }, {
+          limit: limit.toString(),
+          offset: offset.toString(),
+        }),
+      )
+      return this.validateData(templateListResponseSchema, response, 'template list response')
+    }, 'Get templates')
+  }
+
+  async getTemplate(
+    projectKey: string,
+    templateId: number,
+  ): Promise<TemplateResponse> {
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processGetRequest(
+        this.authOptions,
+        this.getRoute('templates', 'get', { projectKey, templateId: templateId.toString() }),
+      )
+      return this.validateData(templateResponseSchema, response, 'template response')
+    }, 'Get template')
+  }
+
+  async createTemplate(
+    projectKey: string,
+    createTemplateInput: CreateTemplateInput,
+  ): Promise<TemplateResponse> {
+    const template = this.validateData(createTemplateInputSchema, createTemplateInput, 'template')
+
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('templates', 'create', { projectKey }),
+        { body: template },
+      )
+      return this.validateData(templateResponseSchema, response, 'template response')
+    }, 'Create template')
+  }
+
+  async updateTemplate(
+    projectKey: string,
+    templateId: number,
+    updateTemplateInput: UpdateTemplateInput,
+  ): Promise<TemplateResponse> {
+    const template = this.validateData(updateTemplateInputSchema, updateTemplateInput, 'template')
+
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processPutRequest(
+        this.authOptions,
+        this.getRoute('templates', 'update', { projectKey, templateId: templateId.toString() }),
+        { body: template },
+      )
+      return this.validateData(templateResponseSchema, response, 'template response')
+    }, 'Update template')
+  }
+
+  async deleteTemplate(
+    projectKey: string,
+    templateId: number,
+  ): Promise<void> {
+    return this.executeWithErrorHandling(async () => {
+      await networkUtils.processDeleteRequest(
+        this.authOptions,
+        this.getRoute('templates', 'delete', { projectKey, templateId: templateId.toString() }),
+      )
+    }, 'Delete template')
   }
 
   async submitTestResults(
