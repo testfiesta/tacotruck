@@ -49,7 +49,7 @@ interface GetTemplatesOptions extends PaginationOptions {
 export class TestFiestaClient {
   protected authOptions: AuthOptions
   protected routes: Record<string, Record<string, string>> = {}
-  protected domain: string = ''
+  protected baseUrl: string = ''
   protected organizationHandle: string = ''
 
   private static readonly BASE_PATH = '/v1/{handle}'
@@ -130,12 +130,12 @@ export class TestFiestaClient {
       key: 'Authorization',
       payload: `Bearer ${options.apiKey}`,
     }
-    this.domain = options.domain
+    this.baseUrl = options.baseUrl
     this.organizationHandle = options.organizationHandle
   }
 
   private buildRoute(route: string, params: Record<string, string> = {}, queryParams: Record<string, string> = {}): string {
-    const fullRoute = `${this.domain}${TestFiestaClient.BASE_PATH}${route}`
+    const fullRoute = `${this.baseUrl}${TestFiestaClient.BASE_PATH}${route}`
     return substituteUrlStrict(fullRoute, { ...params, ...queryParams, handle: this.organizationHandle })
   }
 

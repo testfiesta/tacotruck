@@ -39,12 +39,11 @@ import { TestFiestaClient, TestRailClient } from 'tacotruck'
 const tfClient = new TestFiestaClient({
   apiKey: '<YOUR_TF_API_KEY>',
   organizationHandle: '<YOUR_TF_ORGANIZATION_HANDLE>',
-  domain: 'http://api.testfiesta.com',
+  baseUrl: 'http://api.testfiesta.com',
 })
 
 const trClient = new TestRailClient({
-  username: '<YOUR_TR_USERNAME>',
-  password: '<YOUR_TR_PASSWORD>',
+  apiKey: '<YOUR_TR_USERNAME>:<YOUR_TR_PASSWORD>',
   baseUrl: 'http://<username>.testrails.com',
 })
 

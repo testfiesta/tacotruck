@@ -1,11 +1,10 @@
 export interface TestRailClientOptions {
   baseUrl: string
-  username: string
-  password: string
+  apiKey: string
 }
 export interface TestFiestaClientOptions {
   apiKey: string
-  domain: string
+  baseUrl: string
   organizationHandle: string
   projectKey?: string
 }

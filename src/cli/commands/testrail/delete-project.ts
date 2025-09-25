@@ -6,8 +6,7 @@ import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 
 interface DeleteProjectArgs extends BaseArgs {
   projectId: string
-  email: string
-  password: string
+  token: string
   verbose?: boolean
   force?: boolean
 }
@@ -16,8 +15,7 @@ export function deleteProjectCommand() {
   const deleteProjectCommand = new Commander.Command('project:delete')
     .description('Delete a project in TestRail')
     .requiredOption('-i, --project-id <id>', 'TestRail project ID to delete')
-    .requiredOption('-e, --email <email>', 'TestRail email/username')
-    .requiredOption('-p, --password <password>', 'TestRail password or api key')
+    .requiredOption('-t, --token <token>', 'TestRail API token. Use username:password format')
     .requiredOption('-u, --url <url>', 'TestRail instance URL (e.g., https://example.testrail.io)')
     .option('-f, --force', 'Skip confirmation prompt')
     .option('-v, --verbose', 'Enable verbose logging')
@@ -52,8 +50,7 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   try {
     const testRailClient = new TestRailClient({
       baseUrl: args.url,
-      username: args.email,
-      password: args.password,
+      apiKey: args.token,
     })
 
     await testRailClient.deleteProject({

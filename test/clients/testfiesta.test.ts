@@ -4,7 +4,7 @@ import { TestFiestaClient } from '../../src/clients/testfiesta'
 describe('testFiestaClient', () => {
   const mockOptions = {
     apiKey: 'test-api-key',
-    domain: 'https://api.testfiesta.com',
+    baseUrl: 'https://api.testfiesta.com',
     organizationHandle: 'test-org',
   }
 

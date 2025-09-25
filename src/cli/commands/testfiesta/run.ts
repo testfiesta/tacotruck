@@ -41,7 +41,7 @@ export function submitRunCommand() {
 export async function run(args: SubmitRunArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    domain: args.url,
+    baseUrl: args.url,
     organizationHandle: args.organization,
   })
 
