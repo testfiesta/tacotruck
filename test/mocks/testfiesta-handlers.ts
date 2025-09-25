@@ -220,6 +220,91 @@ const mockCase = {
   ],
 }
 
+const mockFolder = {
+  uid: 100,
+  name: 'Test Cases Folder',
+  description: null,
+  entityTypes: ['cases'],
+  parentUid: 5,
+  projectUid: 1,
+  createdAt: '2025-09-22T06:50:45.516Z',
+  updatedAt: '2025-09-22T06:50:45.392Z',
+  archivedAt: null,
+  deletedAt: null,
+  systemType: 'folder',
+  slug: null,
+  customFields: {
+    time: 0.004178,
+    tests: 25,
+    errors: 0,
+    skipped: 0,
+    failures: 0,
+    testcases: [],
+  },
+  externalCreatedAt: '2025-09-22T06:50:45.000Z',
+  externalUpdatedAt: '2025-09-22T06:50:45.000Z',
+  externalId: 'ts_42f7ae138512de96',
+  source: 'junit-xml',
+  integrationUid: null,
+  position: null,
+  path: null,
+  aggregates: {},
+  createdBy: null,
+}
+
+const mockTag = {
+  uid: 1,
+  name: 'automated',
+  description: null,
+  entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+  parentUid: null,
+  projectUid: null,
+  createdAt: '2025-08-21T04:56:52.720Z',
+  updatedAt: '2025-08-21T04:56:52.720Z',
+  archivedAt: null,
+  deletedAt: null,
+  systemType: 'tag',
+  slug: null,
+  customFields: null,
+  externalCreatedAt: null,
+  externalUpdatedAt: null,
+  externalId: null,
+  source: null,
+  integrationUid: null,
+  position: null,
+  path: null,
+  aggregates: {},
+  createdBy: null,
+}
+
+const mockTemplate = {
+  uid: 1,
+  name: 'Automated Tests',
+  createdBy: '330e99db-9e6a-4921-96c6-3cb856b7ae5f',
+  customFields: {
+    templateFields: [
+      {
+        name: 'repository',
+        dataType: 'text',
+      },
+      {
+        name: 'sha',
+        dataType: 'text',
+      },
+    ],
+  },
+  projectUid: 1,
+  createdAt: '2025-08-21T04:57:35.307Z',
+  updatedAt: '2025-08-21T04:57:35.307Z',
+  deletedAt: null,
+  isDefault: false,
+  entityType: 'testCase',
+  rules: [],
+  externalId: null,
+  source: null,
+  integrationUid: null,
+}
+
 const BASE_URL = 'https://api.testfiesta.com/v1/:handle'
 
 export const testfiestaHandlers = [
@@ -419,6 +504,590 @@ export const testfiestaHandlers = [
         },
       },
       updatedAt: new Date().toISOString(),
+    })
+  }),
+
+  http.get(`${BASE_URL}/projects/:projectKey/folders`, ({ request, params }) => {
+    const url = new URL(request.url)
+    const limit = Number.parseInt(url.searchParams.get('limit') || '10')
+    const offset = Number.parseInt(url.searchParams.get('offset') || '0')
+    const { projectKey: _projectKey } = params
+
+    const totalFolders = 217
+    const actualItemCount = Math.min(limit, Math.max(0, totalFolders - offset))
+    const items = Array.from({ length: actualItemCount }).map((_, i) => ({
+      ...mockFolder,
+      uid: offset + i + 100,
+      name: i === 0 ? mockFolder.name : `Test Folder ${offset + i + 1}`,
+      externalId: `folder-${randomUUID().substring(0, 8)}`,
+      customFields: {
+        time: 0.004178 + (i * 0.001),
+        tests: 25 + (i * 5),
+        errors: 0,
+        skipped: 0,
+        failures: 0,
+        testcases: [],
+      },
+      externalCreatedAt: new Date().toISOString(),
+      externalUpdatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }))
+
+    return HttpResponse.json({
+      count: totalFolders,
+      items,
+      nextOffset: offset + limit < totalFolders ? offset + limit : null,
+    })
+  }),
+
+  http.get(`${BASE_URL}/projects/:projectKey/folders/:folderId`, ({ params }) => {
+    const { projectKey: _projectKey, folderId } = params
+    const folderUid = Number.parseInt(folderId as string)
+
+    return HttpResponse.json({
+      ...mockFolder,
+      uid: folderUid,
+      name: folderUid === 100 ? mockFolder.name : `Test Folder ${folderUid}`,
+      externalId: `folder-${randomUUID().substring(0, 8)}`,
+      customFields: {
+        time: 0.004178 + ((folderUid - 100) * 0.001),
+        tests: 25 + ((folderUid - 100) * 5),
+        errors: 0,
+        skipped: 0,
+        failures: 0,
+        testcases: [],
+      },
+      externalCreatedAt: new Date().toISOString(),
+      externalUpdatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  }),
+
+  http.post(`${BASE_URL}/projects/:projectKey/folders`, async ({ request, params }) => {
+    const { projectKey: _projectKey } = params
+    const folderData = await request.json() as any
+
+    return HttpResponse.json({
+      uid: 150,
+      name: folderData.name,
+      slug: folderData.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''),
+      source: folderData.source || null,
+      externalId: folderData.externalId || null,
+      parentUid: folderData.parentUid !== undefined ? folderData.parentUid : null,
+      customFields: folderData.customFields || null,
+      projectUid: folderData.projectUid,
+      entityTypes: ['cases'],
+      systemType: 'folder',
+      position: folderData.position || null,
+      path: `${folderData.parentUid !== undefined ? folderData.parentUid : 5}.150`,
+      integrationUid: folderData.integrationUid || null,
+      description: folderData.description || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      archivedAt: null,
+      deletedAt: null,
+      externalCreatedAt: null,
+      externalUpdatedAt: null,
+      aggregates: {},
+      createdBy: null,
+    })
+  }),
+
+  http.put(`${BASE_URL}/projects/:projectKey/folders/:folderId`, async ({ request, params }) => {
+    const { projectKey: _projectKey, folderId } = params
+    const folderUid = Number.parseInt(folderId as string)
+    const updateData = await request.json() as any
+
+    // Create a merged object that properly handles partial updates
+    const updatedFolder = {
+      ...mockFolder,
+      uid: folderUid,
+      name: updateData.name !== undefined ? updateData.name : mockFolder.name,
+      description: updateData.description !== undefined ? updateData.description : mockFolder.description,
+      parentUid: updateData.parentUid !== undefined ? updateData.parentUid : mockFolder.parentUid,
+      projectUid: updateData.projectUid !== undefined ? updateData.projectUid : mockFolder.projectUid,
+      customFields: updateData.customFields !== undefined ? updateData.customFields : mockFolder.customFields,
+      externalId: updateData.externalId !== undefined ? updateData.externalId : mockFolder.externalId,
+      source: updateData.source !== undefined ? updateData.source : mockFolder.source,
+      integrationUid: updateData.integrationUid !== undefined ? updateData.integrationUid : mockFolder.integrationUid,
+      position: updateData.position !== undefined ? updateData.position : mockFolder.position,
+      externalCreatedAt: new Date().toISOString(),
+      externalUpdatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    return HttpResponse.json(updatedFolder)
+  }),
+
+  http.delete(`${BASE_URL}/projects/:projectKey/folders/:folderId`, ({ params }) => {
+    const { projectKey: _projectKey, folderId } = params
+    const folderUid = Number.parseInt(folderId as string)
+
+    return HttpResponse.json({
+      success: true,
+      message: `Folder ${folderUid} deleted successfully`,
+    })
+  }),
+
+  http.get(`${BASE_URL}/tags`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = Number.parseInt(url.searchParams.get('limit') || '10')
+    const offset = Number.parseInt(url.searchParams.get('offset') || '0')
+
+    const tagNames = ['automated', 'unit', 'functional', 'exploratory']
+    const totalTags = 4
+    const actualItemCount = Math.min(limit, Math.max(0, totalTags - offset))
+    const items = Array.from({ length: actualItemCount }).map((_, i) => ({
+      ...mockTag,
+      uid: offset + i + 1,
+      name: tagNames[offset + i] || `tag-${offset + i + 1}`,
+      slug: null,
+      description: null,
+      updatedAt: '2025-08-21T04:56:52.720Z',
+    }))
+
+    return HttpResponse.json({
+      count: totalTags,
+      items,
+      nextOffset: offset + actualItemCount < totalTags ? offset + actualItemCount : null,
+    })
+  }),
+
+  http.get(`${BASE_URL}/tags/:tagId`, ({ params }) => {
+    const { tagId } = params
+    const tagUid = Number.parseInt(tagId as string)
+
+    const tagNames = ['automated', 'unit', 'functional', 'exploratory']
+    const tagName = tagNames[tagUid - 1] || `tag-${tagUid}`
+
+    return HttpResponse.json({
+      ...mockTag,
+      uid: tagUid,
+      name: tagName,
+      slug: null,
+      description: null,
+      updatedAt: '2025-08-21T04:56:52.720Z',
+    })
+  }),
+
+  http.post(`${BASE_URL}/tags`, async ({ request }) => {
+    const tagData = await request.json() as any
+
+    return HttpResponse.json({
+      uid: 200,
+      name: tagData.name,
+      slug: null,
+      description: tagData.description || null,
+      entityTypes: tagData.entityTypes || ['cases', 'executions', 'runs', 'plans', 'milestones'],
+      parentUid: null,
+      projectUid: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      archivedAt: null,
+      deletedAt: null,
+      systemType: 'tag',
+      customFields: null,
+      externalCreatedAt: null,
+      externalUpdatedAt: null,
+      externalId: null,
+      source: null,
+      integrationUid: null,
+      position: null,
+      path: null,
+      aggregates: {},
+      createdBy: null,
+    })
+  }),
+
+  http.put(`${BASE_URL}/tags/:tagId`, async ({ request, params }) => {
+    const { tagId } = params
+    const tagUid = Number.parseInt(tagId as string)
+    const updateData = await request.json() as any
+
+    // Create a merged object that properly handles partial updates
+    const updatedTag = {
+      ...mockTag,
+      uid: tagUid,
+      name: updateData.name !== undefined ? updateData.name : mockTag.name,
+      slug: null,
+      description: updateData.description !== undefined ? updateData.description : mockTag.description,
+      entityTypes: updateData.entityTypes !== undefined ? updateData.entityTypes : mockTag.entityTypes,
+      archivedAt: updateData.archived !== undefined ? (updateData.archived ? new Date().toISOString() : null) : mockTag.archivedAt,
+      updatedAt: new Date().toISOString(),
+    }
+
+    return HttpResponse.json(updatedTag)
+  }),
+
+  http.delete(`${BASE_URL}/tags/:tagId`, ({ params }) => {
+    const { tagId } = params
+    const tagUid = Number.parseInt(tagId as string)
+
+    return HttpResponse.json({
+      success: true,
+      message: `Tag ${tagUid} deleted successfully`,
+    })
+  }),
+
+  // Template handlers
+  http.get(`${BASE_URL}/projects/:projectKey/templates`, ({ request, params }) => {
+    const url = new URL(request.url)
+    const limit = Number.parseInt(url.searchParams.get('limit') || '10')
+    const offset = Number.parseInt(url.searchParams.get('offset') || '0')
+    const { projectKey: _projectKey } = params
+
+    const templateNames = ['Automated Tests', 'Simple', 'Exploratory']
+    const totalTemplates = 3
+    const actualItemCount = Math.min(limit, Math.max(0, totalTemplates - offset))
+    const items = Array.from({ length: actualItemCount }).map((_, i) => {
+      const templateIndex = offset + i
+      const templateName = templateNames[templateIndex] || `Template ${templateIndex + 1}`
+
+      return {
+        ...mockTemplate,
+        uid: templateIndex + 1,
+        name: templateName,
+        isDefault: templateIndex === 1, // Simple template is default
+        customFields: {
+          templateFields: templateIndex === 0
+            ? [
+                { name: 'repository', dataType: 'text' },
+                { name: 'sha', dataType: 'text' },
+              ]
+            : templateIndex === 1
+              ? [
+                  { name: 'Pre-condition', dataType: 'text' },
+                  { name: 'Steps', dataType: 'text' },
+                  { name: 'Expected Result', dataType: 'text' },
+                ]
+              : [
+                  { name: 'Title', dataType: 'text' },
+                  { name: 'Charter', dataType: 'text' },
+                  { name: 'Time Limit', dataType: 'text' },
+                ],
+        },
+        createdAt: new Date(Date.now() - (templateIndex * 1000)).toISOString(),
+        updatedAt: new Date(Date.now() - (templateIndex * 1000)).toISOString(),
+      }
+    })
+
+    return HttpResponse.json({
+      count: totalTemplates,
+      items,
+      nextOffset: offset + actualItemCount < totalTemplates ? offset + actualItemCount : null,
+    })
+  }),
+
+  http.get(`${BASE_URL}/projects/:projectKey/templates/:templateId`, ({ params }) => {
+    const { projectKey: _projectKey, templateId } = params
+    const templateUid = Number.parseInt(templateId as string)
+
+    const templateNames = ['Automated Tests', 'Simple', 'Exploratory']
+    const templateName = templateNames[templateUid - 1] || `Template ${templateUid}`
+    const isDefault = templateUid === 2
+
+    return HttpResponse.json({
+      ...mockTemplate,
+      uid: templateUid,
+      name: templateName,
+      isDefault,
+      customFields: {
+        templateFields: templateUid === 1
+          ? [
+              { name: 'repository', dataType: 'text' },
+              { name: 'sha', dataType: 'text' },
+            ]
+          : templateUid === 2
+            ? [
+                { name: 'Pre-condition', dataType: 'text' },
+                { name: 'Steps', dataType: 'text' },
+                { name: 'Expected Result', dataType: 'text' },
+              ]
+            : [
+                { name: 'Title', dataType: 'text' },
+                { name: 'Charter', dataType: 'text' },
+                { name: 'Time Limit', dataType: 'text' },
+              ],
+      },
+      createdAt: new Date(Date.now() - ((templateUid - 1) * 1000)).toISOString(),
+      updatedAt: new Date(Date.now() - ((templateUid - 1) * 1000)).toISOString(),
+    })
+  }),
+
+  http.post(`${BASE_URL}/projects/:projectKey/templates`, async ({ request, params }) => {
+    const { projectKey: _projectKey } = params
+    const templateData = await request.json() as any
+
+    return HttpResponse.json({
+      uid: 4,
+      name: templateData.name,
+      createdBy: randomUUID(),
+      customFields: {
+        templateFields: templateData.templateFields || [],
+      },
+      projectUid: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      isDefault: false,
+      entityType: 'testCase',
+      rules: [],
+      externalId: null,
+      source: null,
+      integrationUid: null,
+    })
+  }),
+
+  http.put(`${BASE_URL}/projects/:projectKey/templates/:templateId`, async ({ request, params }) => {
+    const { projectKey: _projectKey, templateId } = params
+    const templateUid = Number.parseInt(templateId as string)
+    const updateData = await request.json() as any
+
+    // Get the original template data based on template ID
+    const templateNames = ['Automated Tests', 'Simple', 'Exploratory']
+    const originalName = templateNames[templateUid - 1] || `Template ${templateUid}`
+    const isDefault = templateUid === 2
+
+    const originalTemplateFields = templateUid === 1
+      ? [
+          { name: 'repository', dataType: 'text' },
+          { name: 'sha', dataType: 'text' },
+        ]
+      : templateUid === 2
+        ? [
+            { name: 'Pre-condition', dataType: 'text' },
+            { name: 'Steps', dataType: 'text' },
+            { name: 'Expected Result', dataType: 'text' },
+          ]
+        : [
+            { name: 'Title', dataType: 'text' },
+            { name: 'Charter', dataType: 'text' },
+            { name: 'Time Limit', dataType: 'text' },
+          ]
+
+    // Create a merged object that properly handles partial updates
+    const updatedTemplate = {
+      ...mockTemplate,
+      uid: templateUid,
+      name: updateData.name !== undefined ? updateData.name : originalName,
+      isDefault,
+      customFields: {
+        templateFields: updateData.templateFields !== undefined ? updateData.templateFields : originalTemplateFields,
+      },
+      createdAt: new Date(Date.now() - ((templateUid - 1) * 1000)).toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    return HttpResponse.json(updatedTemplate)
+  }),
+
+  http.delete(`${BASE_URL}/projects/:projectKey/templates/:templateId`, ({ params }) => {
+    const { projectKey: _projectKey, templateId } = params
+    const templateUid = Number.parseInt(templateId as string)
+
+    return HttpResponse.json({
+      success: true,
+      message: `Template ${templateUid} deleted successfully`,
+    })
+  }),
+
+  // Custom Fields handlers
+  http.get(`${BASE_URL}/projects/:projectKey/customFields`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = Number.parseInt(url.searchParams.get('limit') || '10')
+    const offset = Number.parseInt(url.searchParams.get('offset') || '0')
+
+    const mockCustomFields = [
+      {
+        uid: 'cf-001',
+        name: 'Priority',
+        description: 'Test priority level',
+        type: 'dropdown',
+        slug: 'priority',
+        options: ['Low', 'Medium', 'High', 'Critical'],
+        source: 'manual',
+        externalId: 'ext-priority-001',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+      {
+        uid: 'cf-002',
+        name: 'Environment',
+        description: 'Test environment field',
+        type: 'text',
+        slug: 'environment',
+        options: null,
+        source: 'manual',
+        externalId: 'ext-environment-002',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+      {
+        uid: 'cf-003',
+        name: 'Browser',
+        description: 'Browser selection field',
+        type: 'multi',
+        slug: 'browser',
+        options: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+        source: 'manual',
+        externalId: 'ext-browser-003',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+      {
+        uid: 'cf-004',
+        name: 'Test Type',
+        description: 'Type of test being performed',
+        type: 'radio',
+        slug: 'test-type',
+        options: ['Functional', 'Integration', 'Unit', 'E2E'],
+        source: 'manual',
+        externalId: 'ext-test-type-004',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+      {
+        uid: 'cf-005',
+        name: 'Automation Level',
+        description: 'Level of automation for the test',
+        type: 'integer',
+        slug: 'automation-level',
+        options: null,
+        source: 'manual',
+        externalId: 'ext-automation-level-005',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: 1,
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        deletedAt: null,
+      },
+    ]
+
+    const totalCount = mockCustomFields.length
+    const startIndex = offset
+    const endIndex = Math.min(startIndex + limit, totalCount)
+    const items = mockCustomFields.slice(startIndex, endIndex)
+    const nextOffset = endIndex < totalCount ? endIndex : null
+
+    return HttpResponse.json({
+      count: totalCount,
+      items,
+      nextOffset,
+    })
+  }),
+
+  http.get(`${BASE_URL}/projects/:projectKey/customFields/:customFieldId`, ({ params }) => {
+    const { projectKey: _projectKey, customFieldId } = params
+    const fieldUid = customFieldId as string
+
+    const mockCustomField = {
+      uid: fieldUid,
+      name: fieldUid === 'cf-001' ? 'Priority' : fieldUid === 'cf-002' ? 'Environment' : 'Browser',
+      description: fieldUid === 'cf-001' ? 'Test priority level' : fieldUid === 'cf-002' ? 'Test environment field' : 'Browser selection field',
+      type: fieldUid === 'cf-001' ? 'dropdown' : fieldUid === 'cf-002' ? 'text' : 'multi',
+      slug: fieldUid === 'cf-001' ? 'priority' : fieldUid === 'cf-002' ? 'environment' : 'browser',
+      options: fieldUid === 'cf-001' ? ['Low', 'Medium', 'High', 'Critical'] : fieldUid === 'cf-002' ? null : ['Chrome', 'Firefox', 'Safari', 'Edge'],
+      source: 'manual',
+      externalId: fieldUid === 'cf-001' ? 'ext-priority-001' : fieldUid === 'cf-002' ? 'ext-environment-002' : 'ext-browser-003',
+      ownerUid: 'user-001',
+      ownerType: 'user',
+      projectUid: 1,
+      entityTypes: fieldUid === 'cf-001' ? ['testCase', 'testResult'] : fieldUid === 'cf-002' ? ['testCase'] : ['testCase', 'testResult'],
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z',
+      deletedAt: null,
+    }
+
+    return HttpResponse.json(mockCustomField)
+  }),
+
+  http.post(`${BASE_URL}/projects/:projectKey/customFields`, async ({ request, params }) => {
+    const { projectKey: _projectKey } = params
+    const createData = await request.json() as any
+
+    const newCustomField = {
+      uid: `cf-${Math.floor(Math.random() * 1000) + 100}`,
+      name: createData.name,
+      description: createData.description || null,
+      type: createData.type || null,
+      slug: createData.name?.toLowerCase().replace(/\s+/g, '-') || null,
+      options: createData.options || null,
+      source: createData.source || 'manual',
+      externalId: `ext-${createData.name?.toLowerCase().replace(/\s+/g, '-')}-${Math.floor(Math.random() * 1000)}` || null,
+      ownerUid: 'user-001',
+      ownerType: 'user',
+      projectUid: 1,
+      entityTypes: createData.entityTypes || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    }
+
+    return HttpResponse.json(newCustomField)
+  }),
+
+  http.put(`${BASE_URL}/projects/:projectKey/customFields/:customFieldId`, async ({ request, params }) => {
+    const { projectKey: _projectKey, customFieldId } = params
+    const fieldUid = customFieldId as string
+    const updateData = await request.json() as any
+
+    const originalField = {
+      uid: fieldUid,
+      name: fieldUid === 'cf-001' ? 'Priority' : fieldUid === 'cf-002' ? 'Environment' : 'Browser',
+      description: fieldUid === 'cf-001' ? 'Test priority level' : fieldUid === 'cf-002' ? 'Test environment field' : 'Browser selection field',
+      type: fieldUid === 'cf-001' ? 'dropdown' : fieldUid === 'cf-002' ? 'text' : 'multi',
+      slug: fieldUid === 'cf-001' ? 'priority' : fieldUid === 'cf-002' ? 'environment' : 'browser',
+      options: fieldUid === 'cf-001' ? ['Low', 'Medium', 'High', 'Critical'] : fieldUid === 'cf-002' ? null : ['Chrome', 'Firefox', 'Safari', 'Edge'],
+      source: 'manual',
+      externalId: fieldUid === 'cf-001' ? 'ext-priority-001' : fieldUid === 'cf-002' ? 'ext-environment-002' : 'ext-browser-003',
+      ownerUid: 'user-001',
+      ownerType: 'user',
+      projectUid: 1,
+      entityTypes: fieldUid === 'cf-001' ? ['testCase', 'testResult'] : fieldUid === 'cf-002' ? ['testCase'] : ['testCase', 'testResult'],
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z',
+      deletedAt: null,
+    }
+
+    // Apply updates to the original field
+    const updatedField = {
+      ...originalField,
+      ...updateData,
+      updatedAt: new Date().toISOString(),
+    }
+
+    return HttpResponse.json(updatedField)
+  }),
+
+  http.delete(`${BASE_URL}/projects/:projectKey/customFields/:customFieldId`, ({ params }) => {
+    const { projectKey: _projectKey, customFieldId } = params
+    const fieldUid = customFieldId as string
+
+    return HttpResponse.json({
+      success: true,
+      message: `Custom field ${fieldUid} deleted successfully`,
     })
   }),
 ]

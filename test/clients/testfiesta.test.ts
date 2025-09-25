@@ -745,4 +745,1237 @@ describe('testFiestaClient', () => {
       expect(result[2].testCaseRef).toBe(1364)
     })
   })
+
+  describe('getFolders', () => {
+    it('should fetch folders with pagination', async () => {
+      const result = await client.getFolders('TEST_PROJECT', { limit: 5, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 217,
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            uid: expect.any(Number),
+            name: expect.stringContaining('Test'),
+            systemType: 'folder',
+            projectUid: expect.any(Number),
+            entityTypes: ['cases'],
+            parentUid: expect.any(Number),
+            customFields: expect.objectContaining({
+              time: expect.any(Number),
+              tests: expect.any(Number),
+              errors: expect.any(Number),
+              skipped: expect.any(Number),
+              failures: expect.any(Number),
+              testcases: expect.any(Array),
+            }),
+            externalCreatedAt: expect.any(String),
+            externalUpdatedAt: expect.any(String),
+            externalId: expect.stringMatching(/^folder-[a-f0-9]{8}$/),
+            source: 'junit-xml',
+            integrationUid: null,
+            position: null,
+            path: null,
+            aggregates: {},
+            createdBy: null,
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+          }),
+        ]),
+        nextOffset: expect.any(Number),
+      })
+    })
+
+    it('should use default pagination when no options provided', async () => {
+      const result = await client.getFolders('TEST_PROJECT')
+
+      expect(result).toMatchObject({
+        count: 217,
+        items: expect.any(Array),
+        nextOffset: expect.any(Number),
+      })
+    })
+
+    it('should return null nextOffset when reaching end of folders', async () => {
+      const result = await client.getFolders('TEST_PROJECT', { limit: 10, offset: 210 })
+
+      expect(result).toMatchObject({
+        count: 217,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return different folder names for different items', async () => {
+      const result = await client.getFolders('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items).toHaveLength(3)
+      expect(result.items[0].name).toBe('Test Cases Folder')
+      expect(result.items[1].name).toContain('Test Folder 2')
+      expect(result.items[2].name).toContain('Test Folder 3')
+    })
+
+    it('should return progressive test counts', async () => {
+      const result = await client.getFolders('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items[0].customFields.tests).toBe(25)
+      expect(result.items[1].customFields.tests).toBe(30)
+      expect(result.items[2].customFields.tests).toBe(35)
+    })
+  })
+
+  describe('getFolder', () => {
+    it('should fetch a single folder by ID', async () => {
+      const result = await client.getFolder('TEST_PROJECT', 100)
+
+      expect(result).toMatchObject({
+        uid: 100,
+        name: 'Test Cases Folder',
+        systemType: 'folder',
+        projectUid: expect.any(Number),
+        description: null,
+        entityTypes: ['cases'],
+        parentUid: 5,
+        archivedAt: null,
+        deletedAt: null,
+        slug: null,
+        customFields: expect.objectContaining({
+          time: 0.004178,
+          tests: 25,
+          errors: 0,
+          skipped: 0,
+          failures: 0,
+          testcases: [],
+        }),
+        externalCreatedAt: expect.any(String),
+        externalUpdatedAt: expect.any(String),
+        externalId: expect.stringMatching(/^folder-[a-f0-9]{8}$/),
+        source: 'junit-xml',
+        integrationUid: null,
+        position: null,
+        path: null,
+        aggregates: {},
+        createdBy: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should fetch different folders with different IDs', async () => {
+      const result = await client.getFolder('TEST_PROJECT', 105)
+
+      expect(result).toMatchObject({
+        uid: 105,
+        name: expect.stringContaining('Test Folder 105'),
+        customFields: expect.objectContaining({
+          tests: expect.any(Number),
+          time: expect.any(Number),
+          testcases: expect.any(Array),
+        }),
+        aggregates: {},
+      })
+    })
+
+    it('should return original folder name for base ID', async () => {
+      const result = await client.getFolder('TEST_PROJECT', 100)
+
+      expect(result.name).toBe('Test Cases Folder')
+      expect(result.name).not.toContain('Folder 100')
+    })
+
+    it('should return different test counts for different folder IDs', async () => {
+      const baseFolder = await client.getFolder('TEST_PROJECT', 100)
+      const nextFolder = await client.getFolder('TEST_PROJECT', 101)
+
+      expect(baseFolder.customFields.tests).toBe(25)
+      expect(nextFolder.customFields.tests).toBe(30)
+      expect(baseFolder.customFields.time).toBe(0.004178)
+      expect(nextFolder.customFields.time).toBe(0.005178)
+    })
+  })
+
+  describe('createFolder', () => {
+    it('should create a folder successfully', async () => {
+      const folderToCreate = {
+        name: 'New Test Folder',
+        externalId: 'new_folder_001',
+        source: 'junit-xml',
+        customFields: {
+          time: 0.005,
+          tests: 10,
+          errors: 0,
+          skipped: 0,
+          failures: 0,
+          priority: 'medium',
+          timestamp: '2025-09-22T06:50:45.000Z',
+        },
+        parentUid: 100,
+        projectUid: 1,
+        position: 5,
+        integrationUid: 2,
+      }
+
+      const result = await client.createFolder('TEST_PROJECT', folderToCreate)
+
+      expect(result).toMatchObject({
+        uid: 150,
+        name: 'New Test Folder',
+        slug: 'new-test-folder',
+        source: 'junit-xml',
+        externalId: 'new_folder_001',
+        parentUid: 100,
+        customFields: {
+          time: 0.005,
+          tests: 10,
+          errors: 0,
+          skipped: 0,
+          failures: 0,
+        },
+        projectUid: 1,
+        entityTypes: ['cases'],
+        systemType: 'folder',
+        position: 5,
+        path: '100.150',
+        integrationUid: 2,
+        description: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        aggregates: {},
+        createdBy: null,
+      })
+    })
+
+    it('should create folder with minimal required fields', async () => {
+      const folderToCreate = {
+        name: 'Minimal Folder',
+        parentUid: 0,
+        projectUid: 1,
+      }
+
+      const result = await client.createFolder('TEST_PROJECT', folderToCreate)
+
+      expect(result).toMatchObject({
+        uid: 150,
+        name: 'Minimal Folder',
+        slug: 'minimal-folder',
+        source: null,
+        externalId: null,
+        parentUid: 0,
+        customFields: null,
+        projectUid: 1,
+        entityTypes: ['cases'],
+        systemType: 'folder',
+        position: null,
+        path: '0.150',
+        integrationUid: null,
+        description: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        aggregates: {},
+        createdBy: null,
+      })
+    })
+
+    it('should validate required fields and throw error for invalid input', async () => {
+      const invalidFolder = {
+        parentUid: 100,
+        projectUid: 1,
+      }
+
+      await expect(client.createFolder('TEST_PROJECT', invalidFolder as any))
+        .rejects
+        .toThrow('Invalid folder input')
+    })
+
+    it('should validate parentUid as number and throw error for invalid type', async () => {
+      const invalidFolder = {
+        name: 'Valid Name',
+        parentUid: 'invalid',
+        projectUid: 1,
+      }
+
+      await expect(client.createFolder('TEST_PROJECT', invalidFolder as any))
+        .rejects
+        .toThrow('Invalid folder input')
+    })
+
+    it('should validate projectUid field and throw error when missing', async () => {
+      const invalidFolder = {
+        name: 'Valid Name',
+        parentUid: 100,
+      }
+
+      await expect(client.createFolder('TEST_PROJECT', invalidFolder as any))
+        .rejects
+        .toThrow('Invalid folder input')
+    })
+  })
+
+  describe('deleteFolder', () => {
+    it('should delete a folder successfully', async () => {
+      const result = await client.deleteFolder('TEST_PROJECT', 100)
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle deletion of different folder IDs', async () => {
+      await expect(client.deleteFolder('TEST_PROJECT', 105)).resolves.toBeUndefined()
+      await expect(client.deleteFolder('TEST_PROJECT', 200)).resolves.toBeUndefined()
+    })
+  })
+
+  describe('getTags', () => {
+    it('should fetch tags with pagination', async () => {
+      const result = await client.getTags({ limit: 5, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 4,
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            uid: expect.any(Number),
+            name: expect.stringMatching(/^(automated|unit|functional|exploratory)$/),
+            systemType: 'tag',
+            slug: null,
+            description: null,
+            entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+            parentUid: null,
+            projectUid: null,
+            customFields: null,
+            externalCreatedAt: null,
+            externalUpdatedAt: null,
+            externalId: null,
+            source: null,
+            integrationUid: null,
+            position: null,
+            path: null,
+            aggregates: {},
+            createdBy: null,
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+            archivedAt: null,
+            deletedAt: null,
+          }),
+        ]),
+        nextOffset: null,
+      })
+    })
+
+    it('should use default pagination when no options provided', async () => {
+      const result = await client.getTags()
+
+      expect(result).toMatchObject({
+        count: 4,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return null nextOffset when reaching end of tags', async () => {
+      const result = await client.getTags({ limit: 10, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 4,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return different tag names for different items', async () => {
+      const result = await client.getTags({ limit: 3, offset: 0 })
+
+      expect(result.items).toHaveLength(3)
+      expect(result.items[0].name).toBe('automated')
+      expect(result.items[1].name).toBe('unit')
+      expect(result.items[2].name).toBe('functional')
+    })
+  })
+
+  describe('getTag', () => {
+    it('should fetch a single tag by ID', async () => {
+      const result = await client.getTag(1)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'automated',
+        slug: null,
+        description: null,
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        parentUid: null,
+        projectUid: null,
+        customFields: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        externalId: null,
+        source: null,
+        integrationUid: null,
+        position: null,
+        path: null,
+        aggregates: {},
+        createdBy: null,
+        systemType: 'tag',
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+      })
+    })
+
+    it('should fetch different tags with different IDs', async () => {
+      const result = await client.getTag(2)
+
+      expect(result).toMatchObject({
+        uid: 2,
+        name: 'unit',
+        slug: null,
+        description: null,
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        systemType: 'tag',
+      })
+    })
+
+    it('should return original tag name for base ID', async () => {
+      const result = await client.getTag(1)
+
+      expect(result.name).toBe('automated')
+      expect(result.name).not.toContain('Tag 1')
+    })
+  })
+
+  describe('createTag', () => {
+    it('should create a tag successfully', async () => {
+      const tagToCreate = {
+        name: 'New Test Tag',
+        description: 'A new test tag for automation',
+        entityTypes: ['cases', 'runs'],
+      }
+
+      const result = await client.createTag(tagToCreate)
+
+      expect(result).toMatchObject({
+        uid: 200,
+        name: 'New Test Tag',
+        slug: null,
+        description: 'A new test tag for automation',
+        entityTypes: ['cases', 'runs'],
+        parentUid: null,
+        projectUid: null,
+        customFields: null,
+        systemType: 'tag',
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        externalId: null,
+        source: null,
+        integrationUid: null,
+        position: null,
+        path: null,
+        aggregates: {},
+        createdBy: null,
+      })
+    })
+
+    it('should create tag with minimal required fields', async () => {
+      const tagToCreate = {
+        name: 'Minimal Tag',
+      }
+
+      const result = await client.createTag(tagToCreate)
+
+      expect(result).toMatchObject({
+        uid: 200,
+        name: 'Minimal Tag',
+        slug: null,
+        description: null,
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        parentUid: null,
+        projectUid: null,
+        customFields: null,
+        systemType: 'tag',
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        archivedAt: null,
+        deletedAt: null,
+        externalCreatedAt: null,
+        externalUpdatedAt: null,
+        externalId: null,
+        source: null,
+        integrationUid: null,
+        position: null,
+        path: null,
+        aggregates: {},
+        createdBy: null,
+      })
+    })
+
+    it('should validate required fields and throw error for invalid input', async () => {
+      const invalidTag = {
+        // Missing required 'name' field
+        description: 'Invalid tag',
+      }
+
+      await expect(client.createTag(invalidTag as any))
+        .rejects
+        .toThrow('Invalid tag input')
+    })
+
+    it('should validate name field and throw error when missing', async () => {
+      const invalidTag = {
+        name: '', // Empty name should fail validation
+        description: 'Valid description',
+      }
+
+      await expect(client.createTag(invalidTag as any))
+        .rejects
+        .toThrow('Invalid tag input')
+    })
+  })
+
+  describe('updateTag', () => {
+    it('should update a tag successfully', async () => {
+      const updateData = {
+        name: 'Updated Tag Name',
+        description: 'Updated description',
+        entityTypes: ['cases', 'executions'],
+        archived: false,
+      }
+
+      const result = await client.updateTag(1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Updated Tag Name',
+        slug: null,
+        description: 'Updated description',
+        entityTypes: ['cases', 'executions'],
+        archivedAt: null,
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should update tag with partial data', async () => {
+      const updateData = {
+        name: 'Partially Updated Tag',
+      }
+
+      const result = await client.updateTag(1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Partially Updated Tag',
+        slug: null,
+        description: null, // Should remain unchanged
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should archive a tag successfully', async () => {
+      const updateData = {
+        archived: true,
+      }
+
+      const result = await client.updateTag(1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'automated',
+        slug: null,
+        description: null,
+        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        archivedAt: expect.any(String),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should validate update data and throw error for invalid input', async () => {
+      const invalidUpdate = {
+        name: '', // Empty name should fail validation
+      }
+
+      await expect(client.updateTag(1, invalidUpdate as any))
+        .rejects
+        .toThrow('Invalid tag input')
+    })
+  })
+
+  describe('deleteTag', () => {
+    it('should delete a tag successfully', async () => {
+      const result = await client.deleteTag(1)
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle deletion of different tag IDs', async () => {
+      await expect(client.deleteTag(5)).resolves.toBeUndefined()
+      await expect(client.deleteTag(10)).resolves.toBeUndefined()
+    })
+  })
+
+  describe('getTemplates', () => {
+    it('should fetch templates with pagination', async () => {
+      const result = await client.getTemplates('TEST_PROJECT', { limit: 5, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 3,
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            uid: expect.any(Number),
+            name: expect.stringContaining('Automated Tests'),
+            createdBy: expect.any(String),
+            customFields: expect.objectContaining({
+              templateFields: expect.arrayContaining([
+                expect.objectContaining({
+                  name: expect.any(String),
+                  dataType: expect.any(String),
+                }),
+              ]),
+            }),
+            projectUid: expect.any(Number),
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+            deletedAt: null,
+            isDefault: expect.any(Boolean),
+            entityType: 'testCase',
+            rules: expect.any(Array),
+            externalId: null,
+            source: null,
+            integrationUid: null,
+          }),
+        ]),
+        nextOffset: null, // All 3 templates are returned, so no more items
+      })
+    })
+
+    it('should use default pagination when no options provided', async () => {
+      const result = await client.getTemplates('TEST_PROJECT')
+
+      expect(result).toMatchObject({
+        count: 3,
+        items: expect.any(Array),
+        nextOffset: null, // Default limit is 10, so all 3 templates are returned
+      })
+    })
+
+    it('should return null nextOffset when no more items', async () => {
+      const result = await client.getTemplates('TEST_PROJECT', { limit: 10, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 3,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should handle different template types correctly', async () => {
+      const result = await client.getTemplates('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items).toHaveLength(3)
+      expect(result.items[0].name).toBe('Automated Tests')
+      expect(result.items[1].name).toBe('Simple')
+      expect(result.items[2].name).toBe('Exploratory')
+      expect(result.items[1].isDefault).toBe(true)
+    })
+  })
+
+  describe('getTemplate', () => {
+    it('should fetch a specific template by ID', async () => {
+      const result = await client.getTemplate('TEST_PROJECT', 1)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Automated Tests',
+        createdBy: expect.any(String),
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'repository',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'sha',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+        projectUid: 1,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        isDefault: false,
+        entityType: 'testCase',
+        rules: expect.any(Array),
+        externalId: null,
+        source: null,
+        integrationUid: null,
+      })
+    })
+
+    it('should fetch Simple template with correct fields', async () => {
+      const result = await client.getTemplate('TEST_PROJECT', 2)
+
+      expect(result).toMatchObject({
+        uid: 2,
+        name: 'Simple',
+        isDefault: true,
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Pre-condition',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Steps',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Expected Result',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+      })
+    })
+
+    it('should fetch Exploratory template with correct fields', async () => {
+      const result = await client.getTemplate('TEST_PROJECT', 3)
+
+      expect(result).toMatchObject({
+        uid: 3,
+        name: 'Exploratory',
+        isDefault: false,
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Title',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Charter',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Time Limit',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+      })
+    })
+  })
+
+  describe('createTemplate', () => {
+    it('should create a template successfully', async () => {
+      const templateToCreate = {
+        name: 'New Test Template',
+        templateFields: [
+          {
+            name: 'Test Field 1',
+            dataType: 'text',
+          },
+          {
+            name: 'Test Field 2',
+            dataType: 'number',
+          },
+        ],
+      }
+
+      const result = await client.createTemplate('TEST_PROJECT', templateToCreate)
+
+      expect(result).toMatchObject({
+        uid: 4,
+        name: 'New Test Template',
+        createdBy: expect.any(String),
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Test Field 1',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Test Field 2',
+              dataType: 'number',
+            }),
+          ]),
+        }),
+        projectUid: 1,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        isDefault: false,
+        entityType: 'testCase',
+        rules: expect.any(Array),
+        externalId: null,
+        source: null,
+        integrationUid: null,
+      })
+    })
+
+    it('should create a template with minimal data', async () => {
+      const templateToCreate = {
+        name: 'Minimal Template',
+      }
+
+      const result = await client.createTemplate('TEST_PROJECT', templateToCreate)
+
+      expect(result).toMatchObject({
+        uid: 4,
+        name: 'Minimal Template',
+        createdBy: expect.any(String),
+        customFields: expect.objectContaining({
+          templateFields: [],
+        }),
+        projectUid: 1,
+        isDefault: false,
+        entityType: 'testCase',
+      })
+    })
+
+    it('should handle template creation with empty templateFields', async () => {
+      const templateToCreate = {
+        name: 'Empty Fields Template',
+        templateFields: [],
+      }
+
+      const result = await client.createTemplate('TEST_PROJECT', templateToCreate)
+
+      expect(result).toMatchObject({
+        uid: 4,
+        name: 'Empty Fields Template',
+        customFields: expect.objectContaining({
+          templateFields: [],
+        }),
+      })
+    })
+  })
+
+  describe('updateTemplate', () => {
+    it('should update a template successfully', async () => {
+      const updateData = {
+        name: 'Updated Template Name',
+        templateFields: [
+          {
+            name: 'Updated Field 1',
+            dataType: 'text',
+          },
+          {
+            name: 'Updated Field 2',
+            dataType: 'boolean',
+          },
+        ],
+      }
+
+      const result = await client.updateTemplate('TEST_PROJECT', 1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Updated Template Name',
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Updated Field 1',
+              dataType: 'text',
+            }),
+            expect.objectContaining({
+              name: 'Updated Field 2',
+              dataType: 'boolean',
+            }),
+          ]),
+        }),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should update only template name', async () => {
+      const updateData = {
+        name: 'Only Name Updated',
+      }
+
+      const result = await client.updateTemplate('TEST_PROJECT', 1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Only Name Updated',
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'repository',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should update only template fields', async () => {
+      const updateData = {
+        templateFields: [
+          {
+            name: 'New Field Only',
+            dataType: 'text',
+          },
+        ],
+      }
+
+      const result = await client.updateTemplate('TEST_PROJECT', 1, updateData)
+
+      expect(result).toMatchObject({
+        uid: 1,
+        name: 'Automated Tests', // Original name preserved
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'New Field Only',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+        updatedAt: expect.any(String),
+      })
+    })
+
+    it('should handle partial updates correctly', async () => {
+      const updateData = {
+        name: 'Partially Updated',
+      }
+
+      const result = await client.updateTemplate('TEST_PROJECT', 2, updateData)
+
+      expect(result).toMatchObject({
+        uid: 2,
+        name: 'Partially Updated',
+        customFields: expect.objectContaining({
+          templateFields: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Pre-condition',
+              dataType: 'text',
+            }),
+          ]),
+        }),
+        updatedAt: expect.any(String),
+      })
+    })
+  })
+
+  describe('deleteTemplate', () => {
+    it('should delete a template successfully', async () => {
+      const result = await client.deleteTemplate('TEST_PROJECT', 1)
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle deletion of different template IDs', async () => {
+      await expect(client.deleteTemplate('TEST_PROJECT', 2)).resolves.toBeUndefined()
+      await expect(client.deleteTemplate('TEST_PROJECT', 3)).resolves.toBeUndefined()
+    })
+
+    it('should handle deletion of non-existent template', async () => {
+      await expect(client.deleteTemplate('TEST_PROJECT', 999)).resolves.toBeUndefined()
+    })
+  })
+
+  describe('getCustomFields', () => {
+    it('should fetch custom fields with pagination', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result).toMatchObject({
+        count: 5,
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            uid: expect.any(String),
+            name: expect.any(String),
+            description: expect.any(String),
+            type: expect.any(String),
+            slug: expect.any(String),
+            options: expect.any(Array),
+            source: expect.any(String),
+            externalId: expect.any(String),
+            ownerUid: expect.any(String),
+            ownerType: expect.any(String),
+            projectUid: expect.any(Number),
+            entityTypes: expect.any(Array),
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+            deletedAt: null,
+          }),
+        ]),
+        nextOffset: expect.any(Number),
+      })
+    })
+
+    it('should use default pagination when no options provided', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT')
+
+      expect(result).toMatchObject({
+        count: 5,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return null nextOffset when reaching end of custom fields', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT', { limit: 10, offset: 10 })
+
+      expect(result).toMatchObject({
+        count: 5,
+        items: expect.any(Array),
+        nextOffset: null,
+      })
+    })
+
+    it('should return different custom field names for different items', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items[0].name).toBe('Priority')
+      expect(result.items[1].name).toBe('Environment')
+      expect(result.items[2].name).toBe('Browser')
+    })
+
+    it('should return progressive data types for different custom fields', async () => {
+      const result = await client.getCustomFields('TEST_PROJECT', { limit: 3, offset: 0 })
+
+      expect(result.items[0].type).toBe('dropdown')
+      expect(result.items[1].type).toBe('text')
+      expect(result.items[2].type).toBe('multi')
+    })
+  })
+
+  describe('getCustomField', () => {
+    it('should fetch a single custom field by ID', async () => {
+      const result = await client.getCustomField('TEST_PROJECT', 'cf-001')
+
+      expect(result).toMatchObject({
+        uid: 'cf-001',
+        name: 'Priority',
+        description: 'Test priority level',
+        type: 'dropdown',
+        slug: 'priority',
+        options: ['Low', 'Medium', 'High', 'Critical'],
+        source: 'manual',
+        externalId: 'ext-priority-001',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should fetch different custom fields with different IDs', async () => {
+      const result1 = await client.getCustomField('TEST_PROJECT', 'cf-001')
+      const result2 = await client.getCustomField('TEST_PROJECT', 'cf-002')
+
+      expect(result1.name).toBe('Priority')
+      expect(result2.name).toBe('Environment')
+      expect(result1.type).toBe('dropdown')
+      expect(result2.type).toBe('text')
+    })
+
+    it('should return custom field with correct entity types', async () => {
+      const result = await client.getCustomField('TEST_PROJECT', 'cf-003')
+
+      expect(result.entityTypes).toEqual(['testCase', 'testResult'])
+      expect(result.name).toBe('Browser')
+    })
+  })
+
+  describe('createCustomField', () => {
+    it('should create a new custom field successfully', async () => {
+      const createData = {
+        name: 'Test Field',
+        type: 'text',
+        source: 'manual',
+        options: ['option1', 'option2'],
+        entityTypes: ['testCase'],
+      }
+
+      const result = await client.createCustomField('TEST_PROJECT', createData)
+
+      expect(result).toMatchObject({
+        uid: expect.any(String),
+        name: 'Test Field',
+        description: null,
+        type: 'text',
+        slug: 'test-field',
+        options: ['option1', 'option2'],
+        source: 'manual',
+        externalId: expect.any(String),
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should create custom field with minimal required fields', async () => {
+      const createData = {
+        name: 'Minimal Field',
+        type: 'integer',
+      }
+
+      const result = await client.createCustomField('TEST_PROJECT', createData)
+
+      expect(result).toMatchObject({
+        uid: expect.any(String),
+        name: 'Minimal Field',
+        description: null,
+        type: 'integer',
+        slug: 'minimal-field',
+        options: null,
+        source: 'manual',
+        externalId: expect.any(String),
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: [],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should create custom field with select data type and options', async () => {
+      const createData = {
+        name: 'Status Field',
+        type: 'dropdown',
+        source: 'manual',
+        options: ['Passed', 'Failed', 'Skipped'],
+        entityTypes: ['testCase', 'testResult'],
+      }
+
+      const result = await client.createCustomField('TEST_PROJECT', createData)
+
+      expect(result).toMatchObject({
+        uid: expect.any(String),
+        name: 'Status Field',
+        description: null,
+        type: 'dropdown',
+        slug: 'status-field',
+        options: ['Passed', 'Failed', 'Skipped'],
+        source: 'manual',
+        externalId: expect.any(String),
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+  })
+
+  describe('updateCustomField', () => {
+    it('should update a custom field successfully', async () => {
+      const updateData = {
+        name: 'Updated Field Name',
+        description: 'Updated description',
+      }
+
+      const result = await client.updateCustomField('TEST_PROJECT', 'cf-001', updateData)
+
+      expect(result).toMatchObject({
+        uid: 'cf-001',
+        name: 'Updated Field Name',
+        description: 'Updated description',
+        type: 'dropdown',
+        slug: 'priority',
+        options: ['Low', 'Medium', 'High', 'Critical'],
+        source: 'manual',
+        externalId: 'ext-priority-001',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should update custom field with partial data', async () => {
+      const updateData = {
+        name: 'Partially Updated',
+      }
+
+      const result = await client.updateCustomField('TEST_PROJECT', 'cf-002', updateData)
+
+      expect(result).toMatchObject({
+        uid: 'cf-002',
+        name: 'Partially Updated',
+        description: 'Test environment field',
+        type: 'text',
+        slug: 'environment',
+        options: null,
+        source: 'manual',
+        externalId: 'ext-environment-002',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+
+    it('should update custom field options', async () => {
+      const updateData = {
+        options: ['New Option 1', 'New Option 2', 'New Option 3'],
+        entityTypes: ['testCase', 'testResult'],
+      }
+
+      const result = await client.updateCustomField('TEST_PROJECT', 'cf-003', updateData)
+
+      expect(result).toMatchObject({
+        uid: 'cf-003',
+        name: 'Browser',
+        description: 'Browser selection field',
+        type: 'multi',
+        slug: 'browser',
+        options: ['New Option 1', 'New Option 2', 'New Option 3'],
+        source: 'manual',
+        externalId: 'ext-browser-003',
+        ownerUid: 'user-001',
+        ownerType: 'user',
+        projectUid: expect.any(Number),
+        entityTypes: ['testCase', 'testResult'],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+      })
+    })
+  })
+
+  describe('deleteCustomField', () => {
+    it('should delete a custom field successfully', async () => {
+      const result = await client.deleteCustomField('TEST_PROJECT', 'cf-001')
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle deletion of different custom field IDs', async () => {
+      await expect(client.deleteCustomField('TEST_PROJECT', 'cf-002')).resolves.toBeUndefined()
+      await expect(client.deleteCustomField('TEST_PROJECT', 'cf-003')).resolves.toBeUndefined()
+    })
+
+    it('should handle deletion of non-existent custom field', async () => {
+      await expect(client.deleteCustomField('TEST_PROJECT', 'cf-999')).resolves.toBeUndefined()
+    })
+  })
 })
