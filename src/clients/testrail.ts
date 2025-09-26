@@ -102,7 +102,7 @@ export class TestRailClient {
       type: 'basic',
       location: 'header',
       key: 'Authorization',
-      payload: `Basic ${Buffer.from(`${options.username}:${options.password}`).toString('base64')}`,
+      payload: `Basic ${Buffer.from(`${options.apiKey}`).toString('base64')}`,
     }
   }
 

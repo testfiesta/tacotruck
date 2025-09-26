@@ -8,11 +8,10 @@ import { loadRunData } from '../../../utils/run-data-loader'
 
 interface SubmitRunArgs extends BaseArgs {
   data: string
-  email: string
-  password: string
+  token: string
+  organization: string
   projectId: string
-  runName: string
-  name?: string
+  name: string
   description?: string
   suiteId?: string
   includeAll?: boolean
@@ -24,11 +23,10 @@ export function submitRunCommand() {
   const submitRunCommand = new Commander.Command('run:submit')
     .description('Submit test run to TestRail')
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
-    .requiredOption('-e, --email <email>', 'TestRail email/username')
-    .requiredOption('-p, --password <password>', 'TestRail password or api key')
+    .requiredOption('-t, --token <token>', 'TestRail API token. Use username:password format')
     .requiredOption('-u, --url <url>', 'TestRail instance URL (e.g., https://example.testrail.io)')
-    .requiredOption('-i, --project-id <id>', 'TestRail project ID')
-    .requiredOption('-n, --run-name <name>', 'Name for the test run')
+    .requiredOption('-p, --project <projectId>', 'TestRail project ID')
+    .requiredOption('-n, --name <name>', 'Name for the test run')
     .option('-D, --x <text>', 'Description for the test run')
     .option('-s, --suite-id <id>', 'TestRail suite ID (required for projects with multiple test suites)')
     .option('-a, --include-all', 'Include all test cases in the run')
@@ -57,8 +55,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
   try {
     const testRailClient = new TestRailClient({
       baseUrl: args.url,
-      username: args.email,
-      password: args.password,
+      apiKey: args.token,
     })
 
     const runData = loadRunData(args.data).match({
@@ -86,7 +83,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       },
     }
 
-    await testRailClient.submitTestResults(runData, { project_id: args.projectId }, args.runName, undefined, callbacks)
+    await testRailClient.submitTestResults(runData, { project_id: args.projectId }, args.name, undefined, callbacks)
     p.log.success('Successfully submitted result to TestRail')
   }
   catch (error) {

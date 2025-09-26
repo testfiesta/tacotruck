@@ -38,7 +38,7 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   try {
     const tfClient = new TestFiestaClient({
       apiKey: args.token,
-      domain: args.url,
+      baseUrl: args.url,
       projectKey: args.projectKey,
       organizationHandle: args.organization,
     })

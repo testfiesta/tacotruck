@@ -20,7 +20,7 @@ export function submitRunCommand() {
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
     .requiredOption('-t, --token <token>', 'Testfiesta API token')
     .requiredOption('-h, --organization <organization>', 'Organization handle')
-    .requiredOption('-p, --project-key <projectKey>', 'Project key')
+    .requiredOption('-p, --project <projectKey>', 'Project key')
     .requiredOption('-n, --name <name>', 'Name for the test run')
     .requiredOption('-u, --url <url>', 'TestFiesta instance URL (e.g., https://api.testfiesta.com)')
     .option('-v, --verbose', 'Enable verbose logging')
@@ -41,7 +41,7 @@ export function submitRunCommand() {
 export async function run(args: SubmitRunArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    domain: args.url,
+    baseUrl: args.url,
     organizationHandle: args.organization,
   })
 

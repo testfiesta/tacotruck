@@ -8,8 +8,8 @@ import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
 interface CreateProjectArgs extends BaseArgs {
   name: string
   key: string
-  email: string
-  password: string
+  token: string
+  url: string
   verbose?: boolean
   suiteMode?: 1 | 2 | 3
 }
@@ -18,9 +18,8 @@ const logger = getLogger()
 export function createProjectCommand() {
   const createProjectCommand = new Commander.Command('project:create')
     .description('Create a new project in TestRail')
-    .requiredOption('-n, --name <n>', 'Project name')
-    .requiredOption('-e, --email <email>', 'TestRail email/username')
-    .requiredOption('-p, --password <password>', 'TestRail password or api key')
+    .requiredOption('-n, --name <name>', 'Project name')
+    .requiredOption('-t, --token <token>', 'TestRail API token. Use username:password format')
     .requiredOption('-u, --url <url>', 'TestRail instance URL (e.g., https://example.testrail.io)')
     .option('-v, --verbose', 'Enable verbose logging')
     .option('-s, --suite-mode <suiteMode>', 'TestRail project structure: 1 (single repository), 2 (single repository with baselines), 3 (multiple test suites)', (value) => {
@@ -84,8 +83,7 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
 
     const testRailClient = new TestRailClient({
       baseUrl: args.url,
-      username: args.email,
-      password: args.password,
+      apiKey: args.token,
     })
 
     await testRailClient.createProject({

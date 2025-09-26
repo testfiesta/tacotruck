@@ -33,7 +33,7 @@ export function getProjectsCommand() {
 export async function runGetProjects(args: GetProjectsArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    domain: args.url,
+    baseUrl: args.url,
     organizationHandle: args.organization,
   })
   const spinner = p.spinner()
