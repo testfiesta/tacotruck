@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import * as cliProgress from 'cli-progress'
+import { shouldShowProgressBars, shouldUseColors } from './tty'
 
 /**
  * Options for creating a progress bar
@@ -25,7 +26,7 @@ export interface ProgressBarOptions {
 export function createProgressBar(options: ProgressBarOptions): cliProgress.SingleBar | undefined {
   const { total, label = 'items', show = true, silent = false, formatFn } = options
 
-  if (!show || silent) {
+  if (!show || silent || !shouldShowProgressBars()) {
     return undefined
   }
 
@@ -57,16 +58,21 @@ export function defaultProgressFormat(options: any, params: any, _payload: any):
   const total = params.total
   const label = _payload?.label || 'items'
 
-  return chalk.cyan('⏳ ')
-    + chalk.magenta('[')
-    + chalk.blue(bar)
-    + chalk.magenta('] ')
-    + chalk.yellow(`${percentage}%`)
-    + chalk.white(' | ')
-    + chalk.green(`${value}`)
-    + chalk.white('/')
-    + chalk.green(`${total}`)
-    + chalk.white(` ${label}`)
+  if (shouldUseColors()) {
+    return chalk.cyan('⏳ ')
+      + chalk.magenta('[')
+      + chalk.blue(bar)
+      + chalk.magenta('] ')
+      + chalk.yellow(`${percentage}%`)
+      + chalk.white(' | ')
+      + chalk.green(`${value}`)
+      + chalk.white('/')
+      + chalk.green(`${total}`)
+      + chalk.white(` ${label}`)
+  }
+  else {
+    return `[${bar}] ${percentage}% | ${value}/${total} ${label}`
+  }
 }
 
 /**

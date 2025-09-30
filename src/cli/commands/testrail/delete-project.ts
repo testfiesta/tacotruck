@@ -3,6 +3,8 @@ import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestRailClient } from '../../../clients/testrail'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
+import { createSpinner } from '../../../utils/spinner'
+import { shouldShowAnimations } from '../../../utils/tty'
 
 interface DeleteProjectArgs extends BaseArgs {
   projectId: string
@@ -33,18 +35,28 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   logger.debug('Deleting project in TestRail', { projectId: args.projectId })
 
   if (!args.force) {
-    const shouldContinue = await p.confirm({
-      message: `Are you sure you want to delete project with ID ${args.projectId}? This action cannot be undone.`,
-      initialValue: false,
-    })
+    if (shouldShowAnimations()) {
+      // Interactive terminal - show confirmation prompt
+      const shouldContinue = await p.confirm({
+        message: `Are you sure you want to delete project with ID ${args.projectId}? This action cannot be undone.`,
+        initialValue: false,
+      })
 
-    if (p.isCancel(shouldContinue) || !shouldContinue) {
-      p.log.info('Project deletion cancelled')
-      return
+      if (p.isCancel(shouldContinue) || !shouldContinue) {
+        p.log.info('Project deletion cancelled')
+        return
+      }
+    }
+    else {
+      // Non-interactive terminal - require --force flag
+      console.warn(`Error: Cannot confirm deletion in non-interactive environment.`)
+      console.warn(`Use --force flag to delete project ${args.projectId} without confirmation.`)
+      console.warn(`Example: tacotruck testrail project:delete --project-id ${args.projectId} --force`)
+      process.exit(1)
     }
   }
 
-  const spinner = p.spinner()
+  const spinner = createSpinner()
   spinner.start(`Deleting TestRail project with ID ${args.projectId}`)
 
   try {

@@ -3,6 +3,7 @@ import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
+import { createSpinner } from '../../../utils/spinner'
 
 interface DeleteProjectArgs extends BaseArgs {
   projectKey: string
@@ -32,7 +33,7 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   const logger = getLogger()
   logger.debug('Deleting project in TestFiesta', { projectKey: args.projectKey })
 
-  const spinner = p.spinner()
+  const spinner = createSpinner()
   spinner.start(`Deleting TestFiesta project with key ${args.projectKey}`)
 
   try {
