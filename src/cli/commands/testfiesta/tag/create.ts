@@ -63,7 +63,7 @@ async function runCreateTag(args: CreateTagArgs): Promise<void> {
     const result = await tfClient.createTag(tagData)
     spinner.stop(cliMessages.TAG_CREATED)
 
-    p.log.success(`Tag "${result.name}" created with ID: ${result.id}`)
+    p.log.success(`Tag "${result.name}" created with ID: ${result.uid}`)
     if (result.color) {
       p.log.info(`Color: ${result.color}`)
     }

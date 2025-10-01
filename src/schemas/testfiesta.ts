@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+export const ENTITY_TYPES = ['roles', 'milestones', 'cases', 'plans', 'runs', 'defects', 'executions', 'results']
+export const CUSTOM_FIELD_ENTITY_TYPES = ['testCase', 'testResult'] as const
+
 export const createProjectInputSchema = z.object({
   name: z.string().min(1),
   key: z.string().min(1),
@@ -75,7 +78,7 @@ export const updateFolderInputSchema = z.object({
 export const createTagInputSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
-  entityTypes: z.array(z.string()).default(['roles', 'milestones', 'cases', 'plans', 'runs', 'defects', 'executions', 'results']),
+  entityTypes: z.array(z.string()).default(ENTITY_TYPES),
 })
 
 export const updateTagInputSchema = z.object({

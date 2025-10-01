@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { TestFiestaClient } from '../../src/clients/testfiesta'
+import { CUSTOM_FIELD_ENTITY_TYPES, ENTITY_TYPES } from '../../src/schemas/testfiesta'
 
 describe('testFiestaClient', () => {
   const mockOptions = {
@@ -758,7 +759,7 @@ describe('testFiestaClient', () => {
             name: expect.stringContaining('Test'),
             systemType: 'folder',
             projectUid: expect.any(Number),
-            entityTypes: ['cases'],
+            entityTypes: ENTITY_TYPES,
             parentUid: expect.any(Number),
             customFields: expect.objectContaining({
               time: expect.any(Number),
@@ -833,7 +834,7 @@ describe('testFiestaClient', () => {
         systemType: 'folder',
         projectUid: expect.any(Number),
         description: null,
-        entityTypes: ['cases'],
+        entityTypes: ENTITY_TYPES,
         parentUid: 5,
         archivedAt: null,
         deletedAt: null,
@@ -1044,7 +1045,7 @@ describe('testFiestaClient', () => {
             systemType: 'tag',
             slug: null,
             description: null,
-            entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+            entityTypes: ENTITY_TYPES,
             parentUid: null,
             projectUid: null,
             customFields: null,
@@ -1106,7 +1107,7 @@ describe('testFiestaClient', () => {
         name: 'automated',
         slug: null,
         description: null,
-        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        entityTypes: ENTITY_TYPES,
         parentUid: null,
         projectUid: null,
         customFields: null,
@@ -1135,7 +1136,7 @@ describe('testFiestaClient', () => {
         name: 'unit',
         slug: null,
         description: null,
-        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        entityTypes: ENTITY_TYPES,
         systemType: 'tag',
       })
     })
@@ -1153,7 +1154,7 @@ describe('testFiestaClient', () => {
       const tagToCreate = {
         name: 'New Test Tag',
         description: 'A new test tag for automation',
-        entityTypes: ['cases', 'runs'],
+        entityTypes: ENTITY_TYPES,
       }
 
       const result = await client.createTag(tagToCreate)
@@ -1163,7 +1164,7 @@ describe('testFiestaClient', () => {
         name: 'New Test Tag',
         slug: null,
         description: 'A new test tag for automation',
-        entityTypes: ['cases', 'runs'],
+        entityTypes: ENTITY_TYPES,
         parentUid: null,
         projectUid: null,
         customFields: null,
@@ -1187,6 +1188,7 @@ describe('testFiestaClient', () => {
     it('should create tag with minimal required fields', async () => {
       const tagToCreate = {
         name: 'Minimal Tag',
+        entityTypes: ENTITY_TYPES,
       }
 
       const result = await client.createTag(tagToCreate)
@@ -1196,7 +1198,7 @@ describe('testFiestaClient', () => {
         name: 'Minimal Tag',
         slug: null,
         description: null,
-        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        entityTypes: ENTITY_TYPES,
         parentUid: null,
         projectUid: null,
         customFields: null,
@@ -1245,7 +1247,7 @@ describe('testFiestaClient', () => {
       const updateData = {
         name: 'Updated Tag Name',
         description: 'Updated description',
-        entityTypes: ['cases', 'executions'],
+        entityTypes: ENTITY_TYPES,
         archived: false,
       }
 
@@ -1256,7 +1258,7 @@ describe('testFiestaClient', () => {
         name: 'Updated Tag Name',
         slug: null,
         description: 'Updated description',
-        entityTypes: ['cases', 'executions'],
+        entityTypes: ENTITY_TYPES,
         archivedAt: null,
         updatedAt: expect.any(String),
       })
@@ -1274,7 +1276,7 @@ describe('testFiestaClient', () => {
         name: 'Partially Updated Tag',
         slug: null,
         description: null, // Should remain unchanged
-        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        entityTypes: ENTITY_TYPES,
         updatedAt: expect.any(String),
       })
     })
@@ -1291,7 +1293,7 @@ describe('testFiestaClient', () => {
         name: 'automated',
         slug: null,
         description: null,
-        entityTypes: ['cases', 'executions', 'runs', 'plans', 'milestones'],
+        entityTypes: ENTITY_TYPES,
         archivedAt: expect.any(String),
         updatedAt: expect.any(String),
       })
@@ -1766,7 +1768,7 @@ describe('testFiestaClient', () => {
         ownerUid: 'user-001',
         ownerType: 'user',
         projectUid: expect.any(Number),
-        entityTypes: ['testCase', 'testResult'],
+        entityTypes: CUSTOM_FIELD_ENTITY_TYPES,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
         deletedAt: null,
@@ -1786,7 +1788,7 @@ describe('testFiestaClient', () => {
     it('should return custom field with correct entity types', async () => {
       const result = await client.getCustomField('TEST_PROJECT', 'cf-003')
 
-      expect(result.entityTypes).toEqual(['testCase', 'testResult'])
+      expect(result.entityTypes).toEqual(CUSTOM_FIELD_ENTITY_TYPES)
       expect(result.name).toBe('Browser')
     })
   })
@@ -1795,10 +1797,10 @@ describe('testFiestaClient', () => {
     it('should create a new custom field successfully', async () => {
       const createData = {
         name: 'Test Field',
-        type: 'text',
+        type: 'text' as const,
         source: 'manual',
         options: ['option1', 'option2'],
-        entityTypes: ['testCase'],
+        entityTypes: ['testCase' as const],
       }
 
       const result = await client.createCustomField('TEST_PROJECT', createData)
@@ -1825,7 +1827,7 @@ describe('testFiestaClient', () => {
     it('should create custom field with minimal required fields', async () => {
       const createData = {
         name: 'Minimal Field',
-        type: 'integer',
+        type: 'integer' as const,
       }
 
       const result = await client.createCustomField('TEST_PROJECT', createData)
@@ -1852,10 +1854,10 @@ describe('testFiestaClient', () => {
     it('should create custom field with select data type and options', async () => {
       const createData = {
         name: 'Status Field',
-        type: 'dropdown',
+        type: 'dropdown' as const,
         source: 'manual',
         options: ['Passed', 'Failed', 'Skipped'],
-        entityTypes: ['testCase', 'testResult'],
+        entityTypes: ['testCase' as const, 'testResult' as const],
       }
 
       const result = await client.createCustomField('TEST_PROJECT', createData)
@@ -1927,7 +1929,7 @@ describe('testFiestaClient', () => {
         ownerUid: 'user-001',
         ownerType: 'user',
         projectUid: expect.any(Number),
-        entityTypes: ['testCase'],
+        entityTypes: CUSTOM_FIELD_ENTITY_TYPES,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
         deletedAt: null,
@@ -1937,7 +1939,7 @@ describe('testFiestaClient', () => {
     it('should update custom field options', async () => {
       const updateData = {
         options: ['New Option 1', 'New Option 2', 'New Option 3'],
-        entityTypes: ['testCase', 'testResult'],
+        entityTypes: ['testCase' as const, 'testResult' as const],
       }
 
       const result = await client.updateCustomField('TEST_PROJECT', 'cf-003', updateData)
