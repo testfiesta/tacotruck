@@ -2,6 +2,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import gradient from 'gradient-string'
 import asyncStorage from '../utils/async-storage'
+import { shouldShowAnimations, shouldUseColors } from '../utils/tty'
 
 export const TACOTRUCK_TITLE = `
 88888888888                    88888888888                        888      
@@ -42,6 +43,11 @@ export function getPackageRoot(): string {
 }
 
 export function renderTitle() {
+  if (!shouldShowAnimations()) {
+    console.warn('TacoTruck - Test/QA data pipeline by TestFiesta')
+    return
+  }
+
   const terminalWidth = process.stdout.columns || 80
   const titleLines = TACOTRUCK_TITLE.split('\n')
   const titleWidth = Math.max(...titleLines.map(line => line.length))
@@ -52,11 +58,21 @@ export function renderTitle() {
     ║  Taco Truck  ║
     ╚══════════════════╝
     `
-    console.warn(
-      gradient(Object.values(catppuccinTheme)).multiline(simplifiedTitle),
-    )
+    if (shouldUseColors()) {
+      console.warn(
+        gradient(Object.values(catppuccinTheme)).multiline(simplifiedTitle),
+      )
+    }
+    else {
+      console.warn(simplifiedTitle)
+    }
   }
   else {
-    console.warn(gradient(Object.values(catppuccinTheme)).multiline(TACOTRUCK_TITLE))
+    if (shouldUseColors()) {
+      console.warn(gradient(Object.values(catppuccinTheme)).multiline(TACOTRUCK_TITLE))
+    }
+    else {
+      console.warn(TACOTRUCK_TITLE)
+    }
   }
 }

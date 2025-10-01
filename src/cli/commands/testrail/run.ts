@@ -5,6 +5,7 @@ import * as Commander from 'commander'
 import { TestRailClient } from '../../../clients/testrail'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
+import { createSpinner } from '../../../utils/spinner'
 
 interface SubmitRunArgs extends BaseArgs {
   data: string
@@ -66,7 +67,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     if (runData === null)
       return
 
-    const spinner = p.spinner()
+    const spinner = createSpinner()
 
     const callbacks: TRProgressCallbacks = {
       onStart: (message) => {

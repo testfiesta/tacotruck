@@ -3,6 +3,7 @@ import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
+import { createSpinner } from '../../../utils/spinner'
 
 interface CreateProjectArgs extends BaseArgs {
   name: string
@@ -36,7 +37,7 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
     baseUrl: args.url,
     organizationHandle: args.organization,
   })
-  const spinner = p.spinner()
+  const spinner = createSpinner()
   try {
     spinner.start('Creating project in TestFiesta')
     const customFields = args.customFields ? JSON.parse(args.customFields) : {}

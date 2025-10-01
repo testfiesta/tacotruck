@@ -3,6 +3,7 @@ import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
+import { createSpinner } from '../../../utils/spinner'
 
 interface SubmitRunArgs {
   data: string
@@ -45,7 +46,7 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     organizationHandle: args.organization,
   })
 
-  const spinner = p.spinner()
+  const spinner = createSpinner()
 
   const hooks: TFHooks = {
     onStart: (message) => {

@@ -3,6 +3,7 @@ import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
+import { createSpinner } from '../../../utils/spinner'
 
 interface GetProjectsArgs extends BaseArgs {
   token: string
@@ -36,7 +37,7 @@ export async function runGetProjects(args: GetProjectsArgs): Promise<void> {
     baseUrl: args.url,
     organizationHandle: args.organization,
   })
-  const spinner = p.spinner()
+  const spinner = createSpinner()
   try {
     spinner.start('Getting projects in TestFiesta')
     await tfClient.getProjects({
