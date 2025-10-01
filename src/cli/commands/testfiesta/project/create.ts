@@ -1,9 +1,10 @@
-import type { BaseArgs } from '../../../types/type'
+import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestFiestaClient } from '../../../clients/testfiesta'
-import { initializeLogger, setVerbose } from '../../../utils/logger'
-import { createSpinner } from '../../../utils/spinner'
+import { TestFiestaClient } from '../../../../clients/testfiesta'
+import { initializeLogger, setVerbose } from '../../../../utils/logger'
+import { createSpinner } from '../../../../utils/spinner'
+import { cliDescriptions, cliOptions } from '../constants'
 
 interface CreateProjectArgs extends BaseArgs {
   name: string
@@ -14,21 +15,19 @@ interface CreateProjectArgs extends BaseArgs {
   customFields?: string
 }
 
-export function createProjectCommand() {
-  const submitRunCommand = new Commander.Command('projects:create')
-    .description('Create a new project in Testfiesta')
-    .requiredOption('-n, --name <name>', 'Project name')
-    .requiredOption('-t, --token <token>', 'Testfiesta API token')
-    .requiredOption('-u, --url <url>', 'TestFiesta instance URL (e.g., https://api.testfiesta.com)')
-    .requiredOption('-h, --organization <organization>', 'Organization handle')
-    .option('-v, --verbose', 'Enable verbose logging')
+export function projectCreateCommand() {
+  return new Commander.Command('project:create')
+    .description(cliDescriptions.PROJECT_CREATE)
+    .requiredOption('-n, --name <name>', cliOptions.PROJECT_NAME)
+    .requiredOption('-t, --token <token>', cliOptions.TOKEN)
+    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .requiredOption('-h, --organization <organization>', cliOptions.ORGANIZATION)
+    .option('-v, --verbose', cliOptions.VERBOSE)
     .action(async (args: CreateProjectArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
       await runCreateProject(args)
     })
-
-  return submitRunCommand
 }
 
 export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
