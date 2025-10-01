@@ -75,7 +75,7 @@ export const updateFolderInputSchema = z.object({
 export const createTagInputSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
-  entityTypes: z.array(z.string()).optional(),
+  entityTypes: z.array(z.string()).default(['roles', 'milestones', 'cases', 'plans', 'runs', 'defects', 'executions', 'results']),
 })
 
 export const updateTagInputSchema = z.object({

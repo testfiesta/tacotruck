@@ -1,32 +1,26 @@
 export const cliDescriptions = {
-  // Main command
   TESTFIESTA_MAIN: 'TestFiesta platform specific commands',
 
-  // Project commands
   PROJECT_CREATE: 'Create a new project in TestFiesta',
   PROJECT_DELETE: 'Delete a project in TestFiesta',
   PROJECT_LIST: 'List projects in TestFiesta',
 
-  // Field commands
   FIELD_CREATE: 'Create a new custom field',
   FIELD_DELETE: 'Delete a custom field',
   FIELD_GET: 'Get a specific custom field by ID',
   FIELD_LIST: 'List custom fields in a project',
   FIELD_UPDATE: 'Update an existing custom field',
 
-  // Tag commands
   TAG_CREATE: 'Create a new tag',
   TAG_DELETE: 'Delete a tag',
   TAG_GET: 'Get a specific tag by ID',
   TAG_LIST: 'List all tags',
   TAG_UPDATE: 'Update an existing tag',
 
-  // Run commands
   RUN_SUBMIT: 'Submit test results to TestFiesta',
 } as const
 
 export const cliOptions = {
-  // Common options
   TOKEN: 'TestFiesta API token',
   URL: 'TestFiesta instance URL (e.g., https://api.testfiesta.com)',
   ORGANIZATION: 'Organization handle',
@@ -34,11 +28,9 @@ export const cliOptions = {
   LIMIT: 'Number of items to retrieve',
   OFFSET: 'Offset for pagination',
 
-  // Project options
   PROJECT_NAME: 'Project name',
   PROJECT_KEY: 'Project key',
 
-  // Field options
   FIELD_NAME: 'Custom field name',
   FIELD_TYPE: 'Custom field type (text, number, boolean, select, multiselect, date)',
   FIELD_DESCRIPTION: 'Custom field description',
@@ -47,19 +39,16 @@ export const cliOptions = {
   FIELD_OPTIONS: 'JSON array of options for select/multiselect fields',
   FIELD_ID: 'Custom field ID',
 
-  // Tag options
   TAG_NAME: 'Tag name',
   TAG_DESCRIPTION: 'Tag description',
   TAG_COLOR: 'Tag color (hex code, e.g., #FF5733)',
   TAG_ID: 'Tag ID',
 
-  // Run options
   DATA_FILE: 'Path to the test data file',
   RUN_NAME: 'Name of the test run',
 } as const
 
 export const cliMessages = {
-  // Success messages
   PROJECT_CREATED: 'Project created successfully',
   PROJECT_DELETED: 'Project deleted successfully',
   PROJECT_FETCHED: 'Projects fetched successfully',
@@ -76,7 +65,6 @@ export const cliMessages = {
   TAG_RETRIEVED: 'Tag retrieved successfully',
   TAGS_RETRIEVED: 'Tags retrieved successfully',
 
-  // Error messages
   PROJECT_CREATE_FAILED: 'Project creation failed',
   PROJECT_DELETE_FAILED: 'Project deletion failed',
   PROJECT_FETCH_FAILED: 'Failed to retrieve projects',
@@ -93,7 +81,6 @@ export const cliMessages = {
   TAG_RETRIEVE_FAILED: 'Failed to retrieve tag',
   TAGS_RETRIEVE_FAILED: 'Failed to retrieve tags',
 
-  // Progress messages
   CREATING_PROJECT: 'Creating project in TestFiesta',
   DELETING_PROJECT: 'Deleting TestFiesta project',
   FETCHING_PROJECTS: 'Fetching projects from TestFiesta',
@@ -110,20 +97,16 @@ export const cliMessages = {
   FETCHING_TAG: 'Fetching tag details',
   FETCHING_TAGS: 'Fetching tags',
 
-  // Validation messages
   INVALID_COLOR_FORMAT: 'Color must be a valid hex code (e.g., #FF5733)',
   INVALID_OPTIONS_FORMAT: 'Options must be a valid JSON array (e.g., ["Option 1", "Option 2"])',
   NO_UPDATES_PROVIDED: 'No fields to update. Provide at least one field to update.',
   NO_PROJECTS_FOUND: 'No projects found',
   NO_FIELDS_FOUND: 'No custom fields found in this project',
   NO_TAGS_FOUND: 'No tags found',
-
-  // Confirmation messages
   CONFIRM_DELETE_FIELD: 'Are you sure you want to delete custom field',
   CONFIRM_DELETE_TAG: 'Are you sure you want to delete tag',
   DELETE_CANCELLED: 'Deletion cancelled',
 
-  // Info messages
   USE_OFFSET: 'Use --offset',
   TO_SEE_MORE: 'to see more results',
 } as const
