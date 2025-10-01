@@ -51,7 +51,7 @@ async function runListTags(args: GetTagArgs): Promise<void> {
       p.log.info(`Found ${result.count} tags (showing ${result.items.length}):`)
       result.items.forEach((tag: any) => {
         const colorIndicator = tag.color ? `🎨 ${tag.color}` : ''
-        p.log.info(`  • ${tag.name} (${tag.id}) ${colorIndicator}`)
+        p.log.info(`  • ${tag.name} (${tag.uid}) ${colorIndicator}`)
         if (tag.description) {
           p.log.info(`    Description: ${tag.description}`)
         }

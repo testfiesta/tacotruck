@@ -43,7 +43,7 @@ async function runGetTag(args: GetTagArgs): Promise<void> {
     spinner.stop(cliMessages.TAG_RETRIEVED)
 
     p.log.info(`Tag Details:`)
-    p.log.info(`  ID: ${result.id}`)
+    p.log.info(`  ID: ${result.uid}`)
     p.log.info(`  Name: ${result.name}`)
     if (result.description) {
       p.log.info(`  Description: ${result.description}`)

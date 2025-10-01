@@ -25,6 +25,7 @@ export const cliOptions = {
   URL: 'TestFiesta instance URL (e.g., https://api.testfiesta.com)',
   ORGANIZATION: 'Organization handle',
   VERBOSE: 'Enable verbose logging',
+  NON_INTERACTIVE: 'Skip confirmation prompts (use with caution)',
   LIMIT: 'Number of items to retrieve',
   OFFSET: 'Offset for pagination',
 
@@ -103,6 +104,7 @@ export const cliMessages = {
   NO_PROJECTS_FOUND: 'No projects found',
   NO_FIELDS_FOUND: 'No custom fields found in this project',
   NO_TAGS_FOUND: 'No tags found',
+  CONFIRM_DELETE_PROJECT: 'Are you sure you want to delete project',
   CONFIRM_DELETE_FIELD: 'Are you sure you want to delete custom field',
   CONFIRM_DELETE_TAG: 'Are you sure you want to delete tag',
   DELETE_CANCELLED: 'Deletion cancelled',

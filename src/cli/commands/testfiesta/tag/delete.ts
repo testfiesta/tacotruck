@@ -12,6 +12,7 @@ interface DeleteTagArgs extends BaseArgs {
   url: string
   organization: string
   verbose?: boolean
+  nonInteractive?: boolean
 }
 
 export function tagDeleteCommand() {
@@ -22,6 +23,7 @@ export function tagDeleteCommand() {
     .requiredOption('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-v, --verbose', cliOptions.VERBOSE)
+    .option('--non-interactive', cliOptions.NON_INTERACTIVE)
     .action(async (args: DeleteTagArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
@@ -38,13 +40,18 @@ async function runDeleteTag(args: DeleteTagArgs): Promise<void> {
 
   const spinner = createSpinner()
   try {
-    const shouldDelete = await p.confirm({
-      message: `${cliMessages.CONFIRM_DELETE_TAG} "${args.tagId}"?`,
-    })
+    if (!args.nonInteractive) {
+      const shouldDelete = await p.confirm({
+        message: `${cliMessages.CONFIRM_DELETE_TAG} "${args.tagId}"?`,
+      })
 
-    if (p.isCancel(shouldDelete) || !shouldDelete) {
-      p.log.info(cliMessages.DELETE_CANCELLED)
-      return
+      if (p.isCancel(shouldDelete) || !shouldDelete) {
+        p.log.info(cliMessages.DELETE_CANCELLED)
+        return
+      }
+    }
+    else {
+      p.log.info(`Deleting tag "${args.tagId}" (non-interactive mode)...`)
     }
 
     spinner.start(cliMessages.DELETING_TAG)

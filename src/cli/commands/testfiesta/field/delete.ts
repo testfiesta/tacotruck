@@ -13,6 +13,7 @@ interface DeleteCustomFieldArgs extends BaseArgs {
   url: string
   organization: string
   verbose?: boolean
+  nonInteractive?: boolean
 }
 
 export function fieldDeleteCommand() {
@@ -24,6 +25,7 @@ export function fieldDeleteCommand() {
     .requiredOption('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-v, --verbose', cliOptions.VERBOSE)
+    .option('--non-interactive', cliOptions.NON_INTERACTIVE)
     .action(async (args: DeleteCustomFieldArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
@@ -40,13 +42,18 @@ async function runDeleteCustomField(args: DeleteCustomFieldArgs): Promise<void> 
 
   const spinner = createSpinner()
   try {
-    const shouldDelete = await p.confirm({
-      message: `${cliMessages.CONFIRM_DELETE_FIELD} "${args.customFieldId}"?`,
-    })
+    if (!args.nonInteractive) {
+      const shouldDelete = await p.confirm({
+        message: `${cliMessages.CONFIRM_DELETE_FIELD} "${args.customFieldId}"?`,
+      })
 
-    if (p.isCancel(shouldDelete) || !shouldDelete) {
-      p.log.info(cliMessages.DELETE_CANCELLED)
-      return
+      if (p.isCancel(shouldDelete) || !shouldDelete) {
+        p.log.info(cliMessages.DELETE_CANCELLED)
+        return
+      }
+    }
+    else {
+      p.log.info(`Deleting custom field "${args.customFieldId}" (non-interactive mode)...`)
     }
 
     spinner.start(cliMessages.DELETING_FIELD)

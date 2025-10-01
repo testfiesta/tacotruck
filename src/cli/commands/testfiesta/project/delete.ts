@@ -4,13 +4,14 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { getLogger, initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliOptions } from '../constants'
+import { cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface DeleteProjectArgs extends BaseArgs {
   projectKey: string
   token: string
   organization: string
   verbose?: boolean
+  nonInteractive?: boolean
 }
 
 export function projectDeleteCommand() {
@@ -20,7 +21,8 @@ export function projectDeleteCommand() {
     .requiredOption('-u, --url <url>', cliOptions.URL)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
     .requiredOption('-h, --organization <organization>', cliOptions.ORGANIZATION)
-    .option('-v, --verbose', 'Enable verbose logging')
+    .option('-v, --verbose', cliOptions.VERBOSE)
+    .option('--non-interactive', cliOptions.NON_INTERACTIVE)
     .action(async (args: DeleteProjectArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
@@ -33,9 +35,23 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   logger.debug('Deleting project in TestFiesta', { projectKey: args.projectKey })
 
   const spinner = createSpinner()
-  spinner.start(`Deleting TestFiesta project with key ${args.projectKey}`)
-
   try {
+    if (!args.nonInteractive) {
+      const shouldDelete = await p.confirm({
+        message: `${cliMessages.CONFIRM_DELETE_PROJECT} "${args.projectKey}"?`,
+      })
+
+      if (p.isCancel(shouldDelete) || !shouldDelete) {
+        p.log.info(cliMessages.DELETE_CANCELLED)
+        return
+      }
+    }
+    else {
+      p.log.info(`Deleting project "${args.projectKey}" (non-interactive mode)...`)
+    }
+
+    spinner.start(cliMessages.DELETING_PROJECT)
+
     const tfClient = new TestFiestaClient({
       apiKey: args.token,
       baseUrl: args.url,
@@ -43,10 +59,10 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
     })
 
     await tfClient.deleteProject(args.projectKey)
-    spinner.stop(`Project ${args.projectKey} deleted successfully`)
+    spinner.stop(cliMessages.PROJECT_DELETED)
   }
   catch (error) {
-    spinner.stop('Project deletion failed')
+    spinner.stop(cliMessages.PROJECT_DELETE_FAILED)
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
   }
 }
