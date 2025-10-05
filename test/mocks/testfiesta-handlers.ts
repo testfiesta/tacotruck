@@ -839,7 +839,7 @@ export const testfiestaHandlers = [
     })
   }),
 
-  http.put(`${BASE_URL}/projects/:projectKey/templates/:templateId`, async ({ request, params }) => {
+  http.patch(`${BASE_URL}/projects/:projectKey/templates/:templateId`, async ({ request, params }) => {
     const { projectKey: _projectKey, templateId } = params
     const templateUid = Number.parseInt(templateId as string)
     const updateData = await request.json() as any
