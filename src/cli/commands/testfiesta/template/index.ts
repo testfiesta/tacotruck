@@ -1,0 +1,5 @@
+export { templateCreateCommand } from './create'
+export { templateDeleteCommand } from './delete'
+export { templateGetCommand } from './get'
+export { templateListCommand } from './list'
+export { templateUpdateCommand } from './update'

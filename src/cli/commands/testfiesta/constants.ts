@@ -17,6 +17,18 @@ export const cliDescriptions = {
   TAG_LIST: 'List all tags',
   TAG_UPDATE: 'Update an existing tag',
 
+  TEMPLATE_CREATE: 'Create a new template',
+  TEMPLATE_DELETE: 'Delete a template',
+  TEMPLATE_GET: 'Get a specific template by ID',
+  TEMPLATE_LIST: 'List templates in a project',
+  TEMPLATE_UPDATE: 'Update an existing template',
+
+  MILESTONE_CREATE: 'Create a new milestone',
+  MILESTONE_DELETE: 'Delete a milestone',
+  MILESTONE_GET: 'Get a specific milestone by ID',
+  MILESTONE_LIST: 'List milestones in a project',
+  MILESTONE_UPDATE: 'Update an existing milestone',
+
   RUN_SUBMIT: 'Submit test results to TestFiesta',
 } as const
 
@@ -45,6 +57,17 @@ export const cliOptions = {
   TAG_COLOR: 'Tag color (hex code, e.g., #FF5733)',
   TAG_ID: 'Tag ID',
 
+  TEMPLATE_NAME: 'Template name',
+  TEMPLATE_DESCRIPTION: 'Template description',
+  TEMPLATE_CONTENT: 'Template content',
+  TEMPLATE_ID: 'Template ID',
+
+  MILESTONE_NAME: 'Milestone name',
+  MILESTONE_DESCRIPTION: 'Milestone description',
+  MILESTONE_START_DATE: 'Milestone start date (YYYY-MM-DD)',
+  MILESTONE_END_DATE: 'Milestone end date (YYYY-MM-DD)',
+  MILESTONE_ID: 'Milestone ID',
+
   DATA_FILE: 'Path to the test data file',
   RUN_NAME: 'Name of the test run',
 } as const
@@ -66,6 +89,18 @@ export const cliMessages = {
   TAG_RETRIEVED: 'Tag retrieved successfully',
   TAGS_RETRIEVED: 'Tags retrieved successfully',
 
+  TEMPLATE_CREATED: 'Template created successfully',
+  TEMPLATE_DELETED: 'Template deleted successfully',
+  TEMPLATE_UPDATED: 'Template updated successfully',
+  TEMPLATE_RETRIEVED: 'Template retrieved successfully',
+  TEMPLATES_RETRIEVED: 'Templates retrieved successfully',
+
+  MILESTONE_CREATED: 'Milestone created successfully',
+  MILESTONE_DELETED: 'Milestone deleted successfully',
+  MILESTONE_UPDATED: 'Milestone updated successfully',
+  MILESTONE_RETRIEVED: 'Milestone retrieved successfully',
+  MILESTONES_RETRIEVED: 'Milestones retrieved successfully',
+
   PROJECT_CREATE_FAILED: 'Project creation failed',
   PROJECT_DELETE_FAILED: 'Project deletion failed',
   PROJECT_FETCH_FAILED: 'Failed to retrieve projects',
@@ -81,6 +116,18 @@ export const cliMessages = {
   TAG_UPDATE_FAILED: 'Tag update failed',
   TAG_RETRIEVE_FAILED: 'Failed to retrieve tag',
   TAGS_RETRIEVE_FAILED: 'Failed to retrieve tags',
+
+  TEMPLATE_CREATE_FAILED: 'Template creation failed',
+  TEMPLATE_DELETE_FAILED: 'Template deletion failed',
+  TEMPLATE_UPDATE_FAILED: 'Template update failed',
+  TEMPLATE_RETRIEVE_FAILED: 'Failed to retrieve template',
+  TEMPLATES_RETRIEVE_FAILED: 'Failed to retrieve templates',
+
+  MILESTONE_CREATE_FAILED: 'Milestone creation failed',
+  MILESTONE_DELETE_FAILED: 'Milestone deletion failed',
+  MILESTONE_UPDATE_FAILED: 'Milestone update failed',
+  MILESTONE_RETRIEVE_FAILED: 'Failed to retrieve milestone',
+  MILESTONES_RETRIEVE_FAILED: 'Failed to retrieve milestones',
 
   CREATING_PROJECT: 'Creating project in TestFiesta',
   DELETING_PROJECT: 'Deleting TestFiesta project',
@@ -98,15 +145,31 @@ export const cliMessages = {
   FETCHING_TAG: 'Fetching tag details',
   FETCHING_TAGS: 'Fetching tags',
 
+  CREATING_TEMPLATE: 'Creating template',
+  DELETING_TEMPLATE: 'Deleting template',
+  UPDATING_TEMPLATE: 'Updating template',
+  FETCHING_TEMPLATE: 'Fetching template details',
+  FETCHING_TEMPLATES: 'Fetching templates',
+
+  CREATING_MILESTONE: 'Creating milestone',
+  DELETING_MILESTONE: 'Deleting milestone',
+  UPDATING_MILESTONE: 'Updating milestone',
+  FETCHING_MILESTONE: 'Fetching milestone details',
+  FETCHING_MILESTONES: 'Fetching milestones',
+
   INVALID_COLOR_FORMAT: 'Color must be a valid hex code (e.g., #FF5733)',
   INVALID_OPTIONS_FORMAT: 'Options must be a valid JSON array (e.g., ["Option 1", "Option 2"])',
   NO_UPDATES_PROVIDED: 'No fields to update. Provide at least one field to update.',
   NO_PROJECTS_FOUND: 'No projects found',
   NO_FIELDS_FOUND: 'No custom fields found in this project',
   NO_TAGS_FOUND: 'No tags found',
+  NO_TEMPLATES_FOUND: 'No templates found in this project',
+  NO_MILESTONES_FOUND: 'No milestones found in this project',
   CONFIRM_DELETE_PROJECT: 'Are you sure you want to delete project',
   CONFIRM_DELETE_FIELD: 'Are you sure you want to delete custom field',
   CONFIRM_DELETE_TAG: 'Are you sure you want to delete tag',
+  CONFIRM_DELETE_TEMPLATE: 'Are you sure you want to delete template',
+  CONFIRM_DELETE_MILESTONE: 'Are you sure you want to delete milestone',
   DELETE_CANCELLED: 'Deletion cancelled',
 
   USE_OFFSET: 'Use --offset',

@@ -287,8 +287,8 @@ export class TestFiestaClient {
     projectKey: string,
     createMilestoneInput: CreateMilestoneInput,
   ): Promise<any> {
+    console.log(`Milestone: ${JSON.stringify(createMilestoneInput)}`)
     const milestone = this.validateData(createMilestoneInputSchema, createMilestoneInput, 'milestone')
-
     return this.executeWithErrorHandling(async () => {
       return await networkUtils.processPostRequest(
         this.authOptions,
@@ -333,7 +333,7 @@ export class TestFiestaClient {
     updateData: any,
   ): Promise<void> {
     return this.executeWithErrorHandling(async () => {
-      await networkUtils.processPutRequest(
+      await networkUtils.processPatchRequest(
         this.authOptions,
         this.getRoute('milestones', 'update', { projectKey, milestoneId: milestoneId.toString() }),
         { body: updateData },
@@ -575,13 +575,15 @@ export class TestFiestaClient {
     createTemplateInput: CreateTemplateInput,
   ): Promise<TemplateResponse> {
     const template = this.validateData(createTemplateInputSchema, createTemplateInput, 'template')
-
+    console.log(`Template: ${JSON.stringify(template)}`)
     return this.executeWithErrorHandling(async () => {
       const response = await networkUtils.processPostRequest(
         this.authOptions,
         this.getRoute('templates', 'create', { projectKey }),
         { body: template },
       )
+      console.log(`Template: ${JSON.stringify(response)}`)
+
       return this.validateData(templateResponseSchema, response, 'template response')
     }, 'Create template')
   }
@@ -594,9 +596,11 @@ export class TestFiestaClient {
     const template = this.validateData(updateTemplateInputSchema, updateTemplateInput, 'template')
 
     return this.executeWithErrorHandling(async () => {
-      const response = await networkUtils.processPutRequest(
+      const url = this.getRoute('templates', 'update', { projectKey, templateId: templateId.toString() })
+
+      const response = await networkUtils.processPatchRequest(
         this.authOptions,
-        this.getRoute('templates', 'update', { projectKey, templateId: templateId.toString() }),
+        url,
         { body: template },
       )
       return this.validateData(templateResponseSchema, response, 'template response')
