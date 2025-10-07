@@ -287,7 +287,6 @@ export class TestFiestaClient {
     projectKey: string,
     createMilestoneInput: CreateMilestoneInput,
   ): Promise<any> {
-    console.log(`Milestone: ${JSON.stringify(createMilestoneInput)}`)
     const milestone = this.validateData(createMilestoneInputSchema, createMilestoneInput, 'milestone')
     return this.executeWithErrorHandling(async () => {
       return await networkUtils.processPostRequest(
@@ -575,15 +574,12 @@ export class TestFiestaClient {
     createTemplateInput: CreateTemplateInput,
   ): Promise<TemplateResponse> {
     const template = this.validateData(createTemplateInputSchema, createTemplateInput, 'template')
-    console.log(`Template: ${JSON.stringify(template)}`)
     return this.executeWithErrorHandling(async () => {
       const response = await networkUtils.processPostRequest(
         this.authOptions,
         this.getRoute('templates', 'create', { projectKey }),
         { body: template },
       )
-      console.log(`Template: ${JSON.stringify(response)}`)
-
       return this.validateData(templateResponseSchema, response, 'template response')
     }, 'Create template')
   }

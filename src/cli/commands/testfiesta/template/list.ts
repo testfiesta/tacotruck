@@ -1,5 +1,6 @@
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
+import Table from 'cli-table3'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
@@ -56,7 +57,34 @@ async function runListTemplates(args: ListTemplatesArgs): Promise<void> {
     }
 
     p.log.info(`Templates for project ${args.project}:`)
-    console.dir(result, { depth: null, colors: true })
+
+    const table = new Table({
+      head: ['ID', 'Name', 'Entity Type', 'Default', 'Fields Count'],
+      style: { head: ['cyan', 'bold'] },
+      colWidths: [10, 30, 15, 10, 15],
+    })
+
+    for (const template of result.items) {
+      let fieldsCount = 0
+      if (template.customFields) {
+        if (Array.isArray(template.customFields)) {
+          fieldsCount = template.customFields.length
+        }
+        else if (template.customFields.templateFields) {
+          fieldsCount = template.customFields.templateFields.length
+        }
+      }
+
+      table.push([
+        template.uid.toString(),
+        template.name,
+        template.entityType || 'N/A',
+        template.isDefault ? 'Yes' : 'No',
+        fieldsCount.toString(),
+      ])
+    }
+
+    console.log(table.toString())
     p.log.info('')
 
     if (result.items.length === limit) {

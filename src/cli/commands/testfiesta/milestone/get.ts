@@ -1,5 +1,6 @@
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
+import Table from 'cli-table3'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
@@ -53,7 +54,33 @@ async function runGetMilestone(args: GetMilestoneArgs): Promise<void> {
     spinner.stop(cliMessages.MILESTONE_RETRIEVED)
 
     p.log.info('Milestone data:')
-    console.dir(result, { depth: null, colors: true })
+
+    const milestoneTable = new Table({
+      head: ['Property', 'Value'],
+      style: { head: ['cyan', 'bold'] },
+      colWidths: [20, 80],
+      wordWrap: true,
+    })
+
+    milestoneTable.push(
+      ['ID', result.uid.toString()],
+      ['Name', result.name],
+      ['Project ID', result.projectUid.toString()],
+      ['Created At', result.createdAt],
+      ['Updated At', result.updatedAt],
+    )
+
+    if (result.description) {
+      milestoneTable.push(['Description', result.description])
+    }
+
+    if (result.customFields && Object.keys(result.customFields).length > 0) {
+      const customFieldsJson = JSON.stringify(result.customFields, null, 2)
+      milestoneTable.push(['Custom Fields', customFieldsJson])
+    }
+
+    console.log(milestoneTable.toString())
+
     p.log.info('')
   }
   catch (error) {

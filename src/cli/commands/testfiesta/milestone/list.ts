@@ -1,5 +1,6 @@
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
+import Table from 'cli-table3'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
@@ -57,7 +58,28 @@ async function runListMilestones(args: ListMilestonesArgs): Promise<void> {
 
     p.log.info(`Milestones for project ${args.project}:`)
 
-    console.dir(result, { depth: null, colors: true })
+    const table = new Table({
+      head: ['ID', 'Name', 'Custom Fields'],
+      style: { head: ['cyan', 'bold'] },
+      colWidths: [10, 30, 60],
+      wordWrap: true,
+    })
+
+    for (const milestone of result.items) {
+      let customFieldsDisplay = 'None'
+
+      if (milestone.customFields && Object.keys(milestone.customFields).length > 0) {
+        customFieldsDisplay = JSON.stringify(milestone.customFields, null, 2)
+      }
+
+      table.push([
+        milestone.uid.toString(),
+        milestone.name,
+        customFieldsDisplay,
+      ])
+    }
+
+    console.log(table.toString())
     p.log.info('')
 
     if (result.items.length === limit) {

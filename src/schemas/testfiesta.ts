@@ -41,7 +41,16 @@ export const createMilestoneInputSchema = z.object({
   runIds: z.array(z.number()).optional(),
   tagUids: z.array(z.number()).optional(),
 })
-
+export const updateMilestoneInputSchema = z.object({
+  name: z.string().optional(),
+  startDate: z.string().optional(),
+  dueAt: z.string().optional(),
+  status: z.number().optional(),
+  description: z.string().optional(),
+  planIds: z.array(z.number()).optional(),
+  runIds: z.array(z.number()).optional(),
+  tagUids: z.array(z.number()).optional(),
+})
 export const createCaseInputSchema = z.object({
   name: z.string().min(1),
   projectId: z.string().min(1),
@@ -203,6 +212,7 @@ export type CreateProjectInput = z.infer<typeof createProjectInputSchema>
 export type CreateProjectOutput = z.infer<typeof createProjectOutputSchema>
 export type CreateTestRunInput = z.infer<typeof createTestRunInputSchema>
 export type CreateMilestoneInput = z.infer<typeof createMilestoneInputSchema>
+export type UpdateMilestoneInput = z.infer<typeof updateMilestoneInputSchema>
 export type CreateCaseInput = z.infer<typeof createCaseInputSchema>
 export type CreateFolderInput = z.infer<typeof createFolderInputSchema>
 export type UpdateFolderInput = z.infer<typeof updateFolderInputSchema>

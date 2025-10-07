@@ -1,5 +1,6 @@
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
+import Table from 'cli-table3'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
@@ -53,7 +54,46 @@ async function runGetTemplate(args: GetTemplateArgs): Promise<void> {
     spinner.stop(cliMessages.TEMPLATE_RETRIEVED)
 
     p.log.info('Template data:')
-    console.dir(result, { depth: null, colors: true })
+
+    const basicTable = new Table({
+      head: ['Property', 'Value'],
+      style: { head: ['cyan', 'bold'] },
+    })
+
+    basicTable.push(
+      ['ID', result.uid.toString()],
+      ['Name', result.name],
+      ['Project ID', result.projectUid.toString()],
+      ['Entity Type', result.entityType],
+      ['Is Default', result.isDefault ? 'Yes' : 'No'],
+      ['Created By', result.createdBy],
+      ['Created At', result.createdAt],
+      ['Updated At', result.updatedAt],
+    )
+
+    console.log(basicTable.toString())
+
+    if (result.customFields) {
+      const templateFields = Array.isArray(result.customFields)
+        ? result.customFields
+        : result.customFields.templateFields || []
+
+      if (templateFields.length > 0) {
+        p.log.info('\nTemplate Fields:')
+
+        const fieldsTable = new Table({
+          head: ['Field Name', 'Data Type'],
+          style: { head: ['cyan', 'bold'] },
+        })
+
+        for (const field of templateFields) {
+          fieldsTable.push([field.name, field.dataType])
+        }
+
+        console.log(fieldsTable.toString())
+      }
+    }
+
     p.log.info('')
   }
   catch (error) {

@@ -1,3 +1,4 @@
+import type { UpdateTemplateInput } from '../../../../schemas/testfiesta'
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
@@ -61,26 +62,24 @@ async function runUpdateTemplate(args: UpdateTemplateArgs): Promise<void> {
       return
     }
 
-    const templateData: any = {}
+    const templateData: UpdateTemplateInput = {}
 
     if (args.name) {
       templateData.name = args.name
     }
 
     if (args.description || args.content) {
-      templateData.customFields = {
-        templateFields: [],
-      }
+      templateData.templateFields = []
 
       if (args.description) {
-        templateData.customFields.templateFields.push({
+        templateData.templateFields.push({
           name: 'description',
           dataType: 'text',
         })
       }
 
       if (args.content) {
-        templateData.customFields.templateFields.push({
+        templateData.templateFields.push({
           name: 'content',
           dataType: 'text',
         })

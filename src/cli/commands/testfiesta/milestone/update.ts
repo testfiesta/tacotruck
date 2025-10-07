@@ -1,3 +1,4 @@
+import type { UpdateMilestoneInput } from '../../../../schemas/testfiesta'
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
@@ -63,7 +64,7 @@ async function runUpdateMilestone(args: UpdateMilestoneArgs): Promise<void> {
       return
     }
 
-    const milestoneData: any = {}
+    const milestoneData: UpdateMilestoneInput = {}
 
     if (args.name) {
       milestoneData.name = args.name
@@ -78,7 +79,7 @@ async function runUpdateMilestone(args: UpdateMilestoneArgs): Promise<void> {
     }
 
     if (args.endDate) {
-      milestoneData.endDate = args.endDate
+      milestoneData.dueAt = args.endDate
     }
 
     console.log(`Updating milestone ${milestoneId} with data:`, milestoneData)
