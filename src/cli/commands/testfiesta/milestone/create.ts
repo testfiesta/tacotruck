@@ -16,7 +16,7 @@ interface CreateMilestoneArgs extends BaseArgs {
   token: string
   url: string
   organization: string
-  interactive?: boolean
+  nonInteractive?: boolean
   verbose?: boolean
 }
 
@@ -30,7 +30,7 @@ export function milestoneCreateCommand() {
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-s, --start-date <startDate>', cliOptions.MILESTONE_START_DATE)
     .option('-e, --end-date <endDate>', cliOptions.MILESTONE_END_DATE)
-    .option('--interactive', cliOptions.MILESTONE_INTERACTIVE)
+    .option('--no-interactive', cliOptions.MILESTONE_NON_INTERACTIVE)
     .option('-d, --description <description>', cliOptions.MILESTONE_DESCRIPTION)
     .option('-v, --verbose', cliOptions.VERBOSE)
     .action(async (args: CreateMilestoneArgs) => {
@@ -50,7 +50,9 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
   let startDate = args.startDate
   let endDate = args.endDate
 
-  if (args.interactive || (!startDate || !endDate)) {
+  const isInteractive = !args.nonInteractive && (!startDate || !endDate)
+
+  if (isInteractive) {
     p.log.info('Interactive date selection mode')
 
     if (!startDate) {
@@ -125,9 +127,30 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
     }
   }
 
-  if (!startDate || !endDate) {
-    p.log.error('Start date and end date are required')
+  if (!isInteractive && (!startDate || !endDate)) {
+    p.log.error('Start date and end date are required when using --no-interactive')
+    process.exit(1)
     return
+  }
+
+  if (!startDate) {
+    const today = new Date()
+    startDate = new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(today)
+  }
+
+  if (!endDate) {
+    const startDateObj = new Date(startDate)
+    const defaultEndDate = new Date(startDateObj)
+    defaultEndDate.setDate(defaultEndDate.getDate() + 30)
+    endDate = new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(defaultEndDate)
   }
 
   const spinner = createSpinner()
