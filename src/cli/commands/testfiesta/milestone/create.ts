@@ -36,7 +36,11 @@ export function milestoneCreateCommand() {
     .action(async (args: CreateMilestoneArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runCreateMilestone(args)
+      await runCreateMilestone(args).catch((e) => {
+        p.log.error('Failed to create milestone')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -174,7 +178,6 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.MILESTONE_CREATE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }

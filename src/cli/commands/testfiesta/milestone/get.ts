@@ -28,7 +28,11 @@ export function milestoneGetCommand() {
     .action(async (args: GetMilestoneArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runGetMilestone(args)
+      await runGetMilestone(args).catch((e) => {
+        p.log.error('Failed to get milestone')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -85,7 +89,6 @@ async function runGetMilestone(args: GetMilestoneArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.MILESTONE_RETRIEVE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }

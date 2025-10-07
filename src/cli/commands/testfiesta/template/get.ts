@@ -28,7 +28,11 @@ export function templateGetCommand() {
     .action(async (args: GetTemplateArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runGetTemplate(args)
+      await runGetTemplate(args).catch((e) => {
+        p.log.error('Failed to get template')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -98,7 +102,6 @@ async function runGetTemplate(args: GetTemplateArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.TEMPLATE_RETRIEVE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }

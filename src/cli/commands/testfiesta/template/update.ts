@@ -34,7 +34,11 @@ export function templateUpdateCommand() {
     .action(async (args: UpdateTemplateArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runUpdateTemplate(args)
+      await runUpdateTemplate(args).catch((e) => {
+        p.log.error('Failed to update template')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -96,7 +100,6 @@ async function runUpdateTemplate(args: UpdateTemplateArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.TEMPLATE_UPDATE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }

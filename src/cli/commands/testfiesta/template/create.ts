@@ -32,7 +32,11 @@ export function templateCreateCommand() {
     .action(async (args: CreateTemplateArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runCreateTemplate(args)
+      await runCreateTemplate(args).catch((e) => {
+        p.log.error('Failed to create template')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -75,7 +79,6 @@ async function runCreateTemplate(args: CreateTemplateArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.TEMPLATE_CREATE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }

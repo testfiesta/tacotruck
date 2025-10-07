@@ -30,7 +30,11 @@ export function milestoneListCommand() {
     .action(async (args: ListMilestonesArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runListMilestones(args)
+      await runListMilestones(args).catch((e) => {
+        p.log.error('Failed to list milestones')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -88,7 +92,6 @@ async function runListMilestones(args: ListMilestonesArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.MILESTONES_RETRIEVE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }

@@ -36,7 +36,11 @@ export function milestoneUpdateCommand() {
     .action(async (args: UpdateMilestoneArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runUpdateMilestone(args)
+      await runUpdateMilestone(args).catch((e) => {
+        p.log.error('Failed to update milestone')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -90,7 +94,6 @@ async function runUpdateMilestone(args: UpdateMilestoneArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.MILESTONE_UPDATE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }

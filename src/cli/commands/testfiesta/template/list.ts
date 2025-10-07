@@ -30,7 +30,11 @@ export function templateListCommand() {
     .action(async (args: ListTemplatesArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runListTemplates(args)
+      await runListTemplates(args).catch((e) => {
+        p.log.error('Failed to list templates')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -93,7 +97,6 @@ async function runListTemplates(args: ListTemplatesArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.TEMPLATES_RETRIEVE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }

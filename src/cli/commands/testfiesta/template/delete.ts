@@ -29,7 +29,11 @@ export function templateDeleteCommand() {
     .action(async (args: DeleteTemplateArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runDeleteTemplate(args)
+      await runDeleteTemplate(args).catch((e) => {
+        p.log.error('Failed to delete template')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -71,7 +75,6 @@ async function runDeleteTemplate(args: DeleteTemplateArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.TEMPLATE_DELETE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }

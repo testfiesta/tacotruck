@@ -29,7 +29,11 @@ export function milestoneDeleteCommand() {
     .action(async (args: DeleteMilestoneArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runDeleteMilestone(args)
+      await runDeleteMilestone(args).catch((e) => {
+        p.log.error('Failed to delete milestone')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -71,7 +75,6 @@ async function runDeleteMilestone(args: DeleteMilestoneArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.MILESTONE_DELETE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    throw error
   }
 }
