@@ -30,7 +30,7 @@ export function milestoneCreateCommand() {
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-s, --start-date <startDate>', cliOptions.MILESTONE_START_DATE)
     .option('-e, --end-date <endDate>', cliOptions.MILESTONE_END_DATE)
-    .option('--interactive', 'Use interactive mode to select dates')
+    .option('--interactive', cliOptions.MILESTONE_INTERACTIVE)
     .option('-d, --description <description>', cliOptions.MILESTONE_DESCRIPTION)
     .option('-v, --verbose', cliOptions.VERBOSE)
     .action(async (args: CreateMilestoneArgs) => {
@@ -55,7 +55,11 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
 
     if (!startDate) {
       const today = new Date()
-      const defaultDate = today.toISOString().split('T')[0]
+      const defaultDate = new Intl.DateTimeFormat('en-CA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(today)
 
       const startDateInput = await p.text({
         message: 'Enter start date (YYYY-MM-DD):',
@@ -65,6 +69,9 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
             return 'Start date is required'
           if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
             return 'Invalid date format. Use YYYY-MM-DD'
+          const date = new Date(value)
+          if (Number.isNaN(date.getTime()))
+            return 'Invalid date'
         },
       })
 
@@ -80,7 +87,12 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
       const startDateObj = new Date(startDate as string)
       const defaultEndDate = new Date(startDateObj)
       defaultEndDate.setDate(defaultEndDate.getDate() + 30)
-      const defaultEndDateStr = defaultEndDate.toISOString().split('T')[0]
+
+      const defaultEndDateStr = new Intl.DateTimeFormat('en-CA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(defaultEndDate)
 
       const endDateInput = await p.text({
         message: 'Enter end date (YYYY-MM-DD):',
@@ -90,6 +102,10 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
             return 'End date is required'
           if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
             return 'Invalid date format. Use YYYY-MM-DD'
+
+          const end = new Date(value)
+          if (Number.isNaN(end.getTime()))
+            return 'Invalid date'
 
           if (startDate) {
             const start = new Date(startDate)
@@ -120,7 +136,6 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
 
     const milestoneData: CreateMilestoneInput = {
       name: args.name,
-      // TODO: Add dynamic status
       status: 1,
       startDate,
       dueAt: endDate,

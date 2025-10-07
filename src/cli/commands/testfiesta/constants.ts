@@ -67,6 +67,7 @@ export const cliOptions = {
   MILESTONE_START_DATE: 'Milestone start date (YYYY-MM-DD)',
   MILESTONE_END_DATE: 'Milestone end date (YYYY-MM-DD)',
   MILESTONE_ID: 'Milestone ID',
+  MILESTONE_INTERACTIVE: 'Use interactive mode to select dates',
 
   DATA_FILE: 'Path to the test data file',
   RUN_NAME: 'Name of the test run',
