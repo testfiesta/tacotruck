@@ -1,3 +1,4 @@
+import type { CreateMilestoneInput } from '../../../../schemas/testfiesta'
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
@@ -90,7 +91,6 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
           if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
             return 'Invalid date format. Use YYYY-MM-DD'
 
-          // Ensure startDate is defined before using it
           if (startDate) {
             const start = new Date(startDate)
             const end = new Date(value)
@@ -118,7 +118,7 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
   try {
     spinner.start(cliMessages.CREATING_MILESTONE)
 
-    const milestoneData: any = {
+    const milestoneData: CreateMilestoneInput = {
       name: args.name,
       // TODO: Add dynamic status
       status: 1,
@@ -137,5 +137,6 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
   catch (error) {
     spinner.stop(cliMessages.MILESTONE_CREATE_FAILED)
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
   }
 }

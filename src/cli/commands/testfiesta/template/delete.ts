@@ -72,5 +72,6 @@ async function runDeleteTemplate(args: DeleteTemplateArgs): Promise<void> {
   catch (error) {
     spinner.stop(cliMessages.TEMPLATE_DELETE_FAILED)
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
   }
 }

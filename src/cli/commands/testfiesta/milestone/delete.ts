@@ -72,5 +72,6 @@ async function runDeleteMilestone(args: DeleteMilestoneArgs): Promise<void> {
   catch (error) {
     spinner.stop(cliMessages.MILESTONE_DELETE_FAILED)
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
   }
 }

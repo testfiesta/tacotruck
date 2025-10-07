@@ -59,5 +59,6 @@ async function runGetMilestone(args: GetMilestoneArgs): Promise<void> {
   catch (error) {
     spinner.stop(cliMessages.MILESTONE_RETRIEVE_FAILED)
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
   }
 }

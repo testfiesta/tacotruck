@@ -90,5 +90,6 @@ async function runUpdateMilestone(args: UpdateMilestoneArgs): Promise<void> {
   catch (error) {
     spinner.stop(cliMessages.MILESTONE_UPDATE_FAILED)
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
   }
 }

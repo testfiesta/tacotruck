@@ -1,3 +1,4 @@
+import type { CreateTemplateInput } from '../../../../schemas/testfiesta'
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
@@ -46,29 +47,27 @@ async function runCreateTemplate(args: CreateTemplateArgs): Promise<void> {
   try {
     spinner.start(cliMessages.CREATING_TEMPLATE)
 
-    const templateData: any = {
+    const templateData: CreateTemplateInput = {
       name: args.name,
-      customFields: {
-        templateFields: [],
-      },
+      templateFields: [],
     }
 
     if (args.description) {
-      templateData.customFields.templateFields.push({
+      templateData.templateFields!.push({
         name: 'description',
         dataType: 'text',
       })
     }
 
     if (args.content) {
-      templateData.customFields.templateFields.push({
+      templateData.templateFields!.push({
         name: 'content',
         dataType: 'text',
       })
     }
 
-    if (templateData.customFields.templateFields.length === 0) {
-      templateData.customFields = {}
+    if (templateData.templateFields!.length === 0) {
+      templateData.templateFields = []
     }
     const result = await tfClient.createTemplate(args.project, templateData)
     spinner.stop(cliMessages.TEMPLATE_CREATED)
@@ -77,5 +76,6 @@ async function runCreateTemplate(args: CreateTemplateArgs): Promise<void> {
   catch (error) {
     spinner.stop(cliMessages.TEMPLATE_CREATE_FAILED)
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
   }
 }

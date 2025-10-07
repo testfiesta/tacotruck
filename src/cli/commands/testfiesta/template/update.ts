@@ -98,5 +98,6 @@ async function runUpdateTemplate(args: UpdateTemplateArgs): Promise<void> {
   catch (error) {
     spinner.stop(cliMessages.TEMPLATE_UPDATE_FAILED)
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
   }
 }

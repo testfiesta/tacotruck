@@ -66,5 +66,6 @@ async function runListTemplates(args: ListTemplatesArgs): Promise<void> {
   catch (error) {
     spinner.stop(cliMessages.TEMPLATES_RETRIEVE_FAILED)
     p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
   }
 }
