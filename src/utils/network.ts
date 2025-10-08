@@ -104,6 +104,21 @@ export async function processPutRequest<T>(
 }
 
 /**
+ * Process a PATCH request with authentication headers
+ * @param authOptions Authentication options
+ * @param url The URL to request
+ * @param options Additional request options including retry and timeout settings from ETLv2Options
+ * @returns Promise with Result containing response data or error
+ */
+export async function processPatchRequest<T>(
+  authOptions: AuthOptions | null,
+  url: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  return await processRequest<T>(authOptions, url, 'PATCH', options)
+}
+
+/**
  * Process a DELETE request with authentication headers
  * @param authOptions Authentication options
  * @param url The URL to request

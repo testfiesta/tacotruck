@@ -50,6 +50,7 @@
     "@inquirer/prompts": "^7.8.0",
     "chalk": "^5.4.1",
     "cli-progress": "^3.12.0",
+    "cli-table3": "^0.6.5",
     "commander": "^14.0.0",
     "delay": "^6.0.0",
     "fast-xml-parser": "^5.2.5",

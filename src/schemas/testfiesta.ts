@@ -33,15 +33,24 @@ export const createTestRunInputSchema = z.object({
 
 export const createMilestoneInputSchema = z.object({
   name: z.string().min(1),
-  startDate: z.string().min(1),
-  dueAt: z.string().min(1),
-  status: z.number().min(1),
+  startDate: z.string().optional(),
+  dueAt: z.string().optional(),
+  status: z.number().optional(),
   description: z.string().optional(),
   planIds: z.array(z.number()).optional(),
   runIds: z.array(z.number()).optional(),
   tagUids: z.array(z.number()).optional(),
 })
-
+export const updateMilestoneInputSchema = z.object({
+  name: z.string().optional(),
+  startDate: z.string().optional(),
+  dueAt: z.string().optional(),
+  status: z.number().optional(),
+  description: z.string().optional(),
+  planIds: z.array(z.number()).optional(),
+  runIds: z.array(z.number()).optional(),
+  tagUids: z.array(z.number()).optional(),
+})
 export const createCaseInputSchema = z.object({
   name: z.string().min(1),
   projectId: z.string().min(1),
@@ -116,9 +125,12 @@ export const templateResponseSchema = z.object({
   uid: z.number(),
   name: z.string(),
   createdBy: z.string(),
-  customFields: z.object({
-    templateFields: z.array(templateFieldSchema).optional(),
-  }).optional(),
+  customFields: z.union([
+    z.object({
+      templateFields: z.array(templateFieldSchema).optional(),
+    }),
+    z.array(templateFieldSchema),
+  ]).optional(),
   projectUid: z.number(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -137,7 +149,6 @@ export const templateListResponseSchema = z.object({
   nextOffset: z.number().nullable().optional(),
 })
 
-// Custom Field Types and Entity Types enums
 export const customFieldTypesSchema = z.enum([
   'multi',
   'radio',
@@ -201,6 +212,7 @@ export type CreateProjectInput = z.infer<typeof createProjectInputSchema>
 export type CreateProjectOutput = z.infer<typeof createProjectOutputSchema>
 export type CreateTestRunInput = z.infer<typeof createTestRunInputSchema>
 export type CreateMilestoneInput = z.infer<typeof createMilestoneInputSchema>
+export type UpdateMilestoneInput = z.infer<typeof updateMilestoneInputSchema>
 export type CreateCaseInput = z.infer<typeof createCaseInputSchema>
 export type CreateFolderInput = z.infer<typeof createFolderInputSchema>
 export type UpdateFolderInput = z.infer<typeof updateFolderInputSchema>
