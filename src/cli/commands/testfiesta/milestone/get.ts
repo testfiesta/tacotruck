@@ -1,10 +1,10 @@
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
-import Table from 'cli-table3'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
+import { createDetailsTable, formatTableValue } from '../../../../utils/table'
 import { cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface GetMilestoneArgs extends BaseArgs {
@@ -59,12 +59,7 @@ async function runGetMilestone(args: GetMilestoneArgs): Promise<void> {
 
     p.log.info('Milestone data:')
 
-    const milestoneTable = new Table({
-      head: ['Property', 'Value'],
-      style: { head: ['cyan', 'bold'] },
-      colWidths: [20, 80],
-      wordWrap: true,
-    })
+    const milestoneTable = createDetailsTable([20, 80])
 
     milestoneTable.push(
       ['ID', result.uid.toString()],
@@ -79,8 +74,7 @@ async function runGetMilestone(args: GetMilestoneArgs): Promise<void> {
     }
 
     if (result.customFields && Object.keys(result.customFields).length > 0) {
-      const customFieldsJson = JSON.stringify(result.customFields, null, 2)
-      milestoneTable.push(['Custom Fields', customFieldsJson])
+      milestoneTable.push(['Custom Fields', formatTableValue(result.customFields)])
     }
 
     console.log(milestoneTable.toString())

@@ -1,10 +1,10 @@
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
-import Table from 'cli-table3'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
+import { createListTable } from '../../../../utils/table'
 import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface ListTemplatesArgs extends BaseArgs {
@@ -62,11 +62,10 @@ async function runListTemplates(args: ListTemplatesArgs): Promise<void> {
 
     p.log.info(`Templates for project ${args.project}:`)
 
-    const table = new Table({
-      head: ['ID', 'Name', 'Entity Type', 'Default', 'Fields Count'],
-      style: { head: ['cyan', 'bold'] },
-      colWidths: [10, 30, 15, 10, 15],
-    })
+    const table = createListTable(
+      ['ID', 'Name', 'Entity Type', 'Default', 'Fields Count'],
+      [10, 30, 15, 10, 15],
+    )
 
     for (const template of result.items) {
       let fieldsCount = 0

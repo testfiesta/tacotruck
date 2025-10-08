@@ -3,6 +3,7 @@ import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
+import { formatDateYYYYMMDD, promptForDate, validateEndDate } from '../../../../utils/date-input'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
 import { cliDescriptions, cliMessages, cliOptions } from '../constants'
@@ -60,26 +61,7 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
     p.log.info('Interactive date selection mode')
 
     if (!startDate) {
-      const today = new Date()
-      const defaultDate = new Intl.DateTimeFormat('en-CA', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(today)
-
-      const startDateInput = await p.text({
-        message: 'Enter start date (YYYY-MM-DD):',
-        placeholder: defaultDate,
-        validate: (value) => {
-          if (!value)
-            return 'Start date is required'
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
-            return 'Invalid date format. Use YYYY-MM-DD'
-          const date = new Date(value)
-          if (Number.isNaN(date.getTime()))
-            return 'Invalid date'
-        },
-      })
+      const startDateInput = await promptForDate('Enter start date (YYYY-MM-DD):')
 
       if (p.isCancel(startDateInput)) {
         p.cancel('Operation cancelled')
@@ -94,33 +76,11 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
       const defaultEndDate = new Date(startDateObj)
       defaultEndDate.setDate(defaultEndDate.getDate() + 30)
 
-      const defaultEndDateStr = new Intl.DateTimeFormat('en-CA', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(defaultEndDate)
-
-      const endDateInput = await p.text({
-        message: 'Enter end date (YYYY-MM-DD):',
-        placeholder: defaultEndDateStr,
-        validate: (value) => {
-          if (!value)
-            return 'End date is required'
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
-            return 'Invalid date format. Use YYYY-MM-DD'
-
-          const end = new Date(value)
-          if (Number.isNaN(end.getTime()))
-            return 'Invalid date'
-
-          if (startDate) {
-            const start = new Date(startDate)
-            const end = new Date(value)
-            if (end < start)
-              return 'End date must be after start date'
-          }
-        },
-      })
+      const endDateInput = await promptForDate(
+        'Enter end date (YYYY-MM-DD):',
+        defaultEndDate,
+        value => startDate ? validateEndDate(startDate, value) : undefined,
+      )
 
       if (p.isCancel(endDateInput)) {
         p.cancel('Operation cancelled')
@@ -132,29 +92,18 @@ async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
   }
 
   if (!isInteractive && (!startDate || !endDate)) {
-    p.log.error('Start date and end date are required when using --no-interactive')
-    process.exit(1)
-    return
+    throw new Error('Start date and end date are required')
   }
 
   if (!startDate) {
-    const today = new Date()
-    startDate = new Intl.DateTimeFormat('en-CA', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(today)
+    startDate = formatDateYYYYMMDD(new Date())
   }
 
   if (!endDate) {
     const startDateObj = new Date(startDate)
     const defaultEndDate = new Date(startDateObj)
     defaultEndDate.setDate(defaultEndDate.getDate() + 30)
-    endDate = new Intl.DateTimeFormat('en-CA', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(defaultEndDate)
+    endDate = formatDateYYYYMMDD(defaultEndDate)
   }
 
   const spinner = createSpinner()

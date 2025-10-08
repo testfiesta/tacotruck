@@ -1,10 +1,10 @@
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
-import Table from 'cli-table3'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
+import { createDetailsTable, createListTable } from '../../../../utils/table'
 import { cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface GetTemplateArgs extends BaseArgs {
@@ -59,10 +59,7 @@ async function runGetTemplate(args: GetTemplateArgs): Promise<void> {
 
     p.log.info('Template data:')
 
-    const basicTable = new Table({
-      head: ['Property', 'Value'],
-      style: { head: ['cyan', 'bold'] },
-    })
+    const basicTable = createDetailsTable()
 
     basicTable.push(
       ['ID', result.uid.toString()],
@@ -85,10 +82,7 @@ async function runGetTemplate(args: GetTemplateArgs): Promise<void> {
       if (templateFields.length > 0) {
         p.log.info('\nTemplate Fields:')
 
-        const fieldsTable = new Table({
-          head: ['Field Name', 'Data Type'],
-          style: { head: ['cyan', 'bold'] },
-        })
+        const fieldsTable = createListTable(['Field Name', 'Data Type'])
 
         for (const field of templateFields) {
           fieldsTable.push([field.name, field.dataType])

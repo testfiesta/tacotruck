@@ -1,10 +1,10 @@
 import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
-import Table from 'cli-table3'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
+import { createListTable, formatTableValue } from '../../../../utils/table'
 import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface ListMilestonesArgs extends BaseArgs {
@@ -62,18 +62,16 @@ async function runListMilestones(args: ListMilestonesArgs): Promise<void> {
 
     p.log.info(`Milestones for project ${args.project}:`)
 
-    const table = new Table({
-      head: ['ID', 'Name', 'Custom Fields'],
-      style: { head: ['cyan', 'bold'] },
-      colWidths: [10, 30, 60],
-      wordWrap: true,
-    })
+    const table = createListTable(
+      ['ID', 'Name', 'Custom Fields'],
+      [10, 30, 60],
+    )
 
     for (const milestone of result.items) {
       let customFieldsDisplay = 'None'
 
       if (milestone.customFields && Object.keys(milestone.customFields).length > 0) {
-        customFieldsDisplay = JSON.stringify(milestone.customFields, null, 2)
+        customFieldsDisplay = formatTableValue(milestone.customFields)
       }
 
       table.push([
