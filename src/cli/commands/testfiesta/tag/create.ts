@@ -29,7 +29,11 @@ export function tagCreateCommand() {
     .action(async (args: CreateTagArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runCreateTag(args)
+      await runCreateTag(args).catch((e) => {
+        p.log.error('Failed to create tag')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -70,6 +74,6 @@ async function runCreateTag(args: CreateTagArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.TAG_CREATE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }

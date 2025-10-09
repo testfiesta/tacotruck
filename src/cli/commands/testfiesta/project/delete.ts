@@ -26,7 +26,11 @@ export function projectDeleteCommand() {
     .action(async (args: DeleteProjectArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runDeleteProject(args)
+      await runDeleteProject(args).catch((e) => {
+        p.log.error('Failed to delete project')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -63,6 +67,6 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.PROJECT_DELETE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }

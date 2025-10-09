@@ -31,7 +31,11 @@ export function tagUpdateCommand() {
     .action(async (args: UpdateTagArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runUpdateTag(args)
+      await runUpdateTag(args).catch((e) => {
+        p.log.error('Failed to update tag')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -74,6 +78,6 @@ async function runUpdateTag(args: UpdateTagArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.TAG_UPDATE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }

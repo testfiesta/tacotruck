@@ -4,6 +4,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
+import { createListTable } from '../../../../utils/table'
 import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface GetTagArgs extends BaseArgs {
@@ -27,7 +28,11 @@ export function tagListCommand() {
     .action(async (args: GetTagArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runListTags(args)
+      await runListTags(args).catch((e) => {
+        p.log.error('Failed to list tags')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -49,13 +54,22 @@ async function runListTags(args: GetTagArgs): Promise<void> {
 
     if (result.items && result.items.length > 0) {
       p.log.info(`Found ${result.count} tags (showing ${result.items.length}):`)
-      result.items.forEach((tag: any) => {
-        const colorIndicator = tag.color ? `🎨 ${tag.color}` : ''
-        p.log.info(`  • ${tag.name} (${tag.uid}) ${colorIndicator}`)
-        if (tag.description) {
-          p.log.info(`    Description: ${tag.description}`)
-        }
+      const table = createListTable(
+        ['ID', 'Name', 'Color', 'Description'],
+        [10, 30, 15, 40],
+      )
+
+      result.items.forEach((tag: { uid: number, name: string, color?: string, description?: string }) => {
+        table.push([
+          tag.uid.toString(),
+          tag.name,
+          tag.color || '',
+          tag.description || '',
+        ])
       })
+
+      console.log(table.toString())
+      p.log.info('')
 
       if (result.nextOffset) {
         p.log.info(`\nUse --offset ${result.nextOffset} to see more results`)
@@ -67,6 +81,6 @@ async function runListTags(args: GetTagArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.TAGS_RETRIEVE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }

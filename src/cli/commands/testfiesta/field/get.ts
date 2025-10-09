@@ -4,6 +4,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
+import { createDetailsTable } from '../../../../utils/table'
 import { cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface GetCustomFieldArgs extends BaseArgs {
@@ -27,7 +28,11 @@ export function fieldGetCommand() {
     .action(async (args: GetCustomFieldArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runGetCustomField(args)
+      await runGetCustomField(args).catch((e) => {
+        p.log.error('Failed to get custom field')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -44,23 +49,34 @@ async function runGetCustomField(args: GetCustomFieldArgs): Promise<void> {
     const result = await tfClient.getCustomField(args.project, args.customFieldId)
     spinner.stop(cliMessages.FIELD_RETRIEVED)
 
-    p.log.info(`Custom Field Details:`)
-    p.log.info(`  ID: ${result.uid}`)
-    p.log.info(`  Name: ${result.name}`)
-    p.log.info(`  Type: ${result.type}`)
-    p.log.info(`  Slug: ${result.slug}`)
+    p.log.info('Custom Field Details:')
+
+    const table = createDetailsTable()
+
+    table.push(
+      ['ID', result.uid.toString()],
+      ['Name', result.name],
+      ['Type', result.type],
+      ['Slug', result.slug],
+    )
+
     if (result.description) {
-      p.log.info(`  Description: ${result.description}`)
+      table.push(['Description', result.description])
     }
+
     if (result.options && result.options.length > 0) {
-      p.log.info(`  Options: ${result.options.join(', ')}`)
+      table.push(['Options', result.options.join(', ')])
     }
+
     if (result.entityTypes && result.entityTypes.length > 0) {
-      p.log.info(`  Entity Types: ${result.entityTypes.join(', ')}`)
+      table.push(['Entity Types', result.entityTypes.join(', ')])
     }
+
+    console.log(table.toString())
+    p.log.info('')
   }
   catch (error) {
     spinner.stop(cliMessages.FIELD_RETRIEVE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }

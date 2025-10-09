@@ -37,7 +37,11 @@ export function fieldCreateCommand() {
     .action(async (args: CreateCustomFieldArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runCreateCustomField(args)
+      await runCreateCustomField(args).catch((e) => {
+        p.log.error('Failed to create custom field')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -82,6 +86,6 @@ async function runCreateCustomField(args: CreateCustomFieldArgs): Promise<void> 
   }
   catch (error) {
     spinner.stop(cliMessages.FIELD_CREATE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }

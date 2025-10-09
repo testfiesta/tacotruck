@@ -29,7 +29,11 @@ export function fieldDeleteCommand() {
     .action(async (args: DeleteCustomFieldArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runDeleteCustomField(args)
+      await runDeleteCustomField(args).catch((e) => {
+        p.log.error('Failed to delete custom field')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -64,6 +68,6 @@ async function runDeleteCustomField(args: DeleteCustomFieldArgs): Promise<void> 
   }
   catch (error) {
     spinner.stop(cliMessages.FIELD_DELETE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }

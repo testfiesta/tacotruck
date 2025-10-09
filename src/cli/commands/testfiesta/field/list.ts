@@ -4,6 +4,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
+import { createListTable } from '../../../../utils/table'
 import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface GetCustomFieldArgs extends BaseArgs {
@@ -29,7 +30,11 @@ export function fieldListCommand() {
     .action(async (args: GetCustomFieldArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runListCustomFields(args)
+      await runListCustomFields(args).catch((e) => {
+        p.log.error('Failed to list custom fields')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -51,12 +56,22 @@ async function runListCustomFields(args: GetCustomFieldArgs): Promise<void> {
 
     if (result.items && result.items.length > 0) {
       p.log.info(`Found ${result.count} custom fields (showing ${result.items.length}):`)
-      result.items.forEach((field: any) => {
-        p.log.info(`  • ${field.name} (${field.uid}) - Type: ${field.type}`)
-        if (field.description) {
-          p.log.info(`    Description: ${field.description}`)
-        }
+      const table = createListTable(
+        ['ID', 'Name', 'Type', 'Description'],
+        [10, 30, 15, 40],
+      )
+
+      result.items.forEach((field) => {
+        table.push([
+          String(field.uid),
+          field.name,
+          field.type,
+          field.description || '',
+        ])
       })
+
+      console.log(table.toString())
+      p.log.info('')
 
       if (result.nextOffset) {
         p.log.info(`\nUse --offset ${result.nextOffset} to see more results`)
@@ -68,6 +83,6 @@ async function runListCustomFields(args: GetCustomFieldArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.FIELDS_RETRIEVE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }
