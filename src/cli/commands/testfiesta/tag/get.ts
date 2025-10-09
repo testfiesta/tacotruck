@@ -4,6 +4,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
+import { createDetailsTable } from '../../../../utils/table'
 import { cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface GetTagArgs extends BaseArgs {
@@ -25,7 +26,11 @@ export function tagGetCommand() {
     .action(async (args: GetTagArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runGetTag(args)
+      await runGetTag(args).catch((e) => {
+        p.log.error('Failed to get tag')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -42,24 +47,36 @@ async function runGetTag(args: GetTagArgs): Promise<void> {
     const result = await tfClient.getTag(Number.parseInt(args.tagId))
     spinner.stop(cliMessages.TAG_RETRIEVED)
 
-    p.log.info(`Tag Details:`)
-    p.log.info(`  ID: ${result.uid}`)
-    p.log.info(`  Name: ${result.name}`)
+    p.log.info('Tag Details:')
+
+    const table = createDetailsTable()
+
+    table.push(
+      ['ID', result.uid.toString()],
+      ['Name', result.name],
+    )
+
     if (result.description) {
-      p.log.info(`  Description: ${result.description}`)
+      table.push(['Description', result.description])
     }
+
     if (result.color) {
-      p.log.info(`  Color: ${result.color}`)
+      table.push(['Color', result.color])
     }
+
     if (result.createdAt) {
-      p.log.info(`  Created: ${new Date(result.createdAt).toLocaleString()}`)
+      table.push(['Created', new Date(result.createdAt).toLocaleString()])
     }
+
     if (result.updatedAt) {
-      p.log.info(`  Updated: ${new Date(result.updatedAt).toLocaleString()}`)
+      table.push(['Updated', new Date(result.updatedAt).toLocaleString()])
     }
+
+    console.log(table.toString())
+    p.log.info('')
   }
   catch (error) {
     spinner.stop(cliMessages.TAG_RETRIEVE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }

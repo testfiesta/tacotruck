@@ -26,7 +26,11 @@ export function projectCreateCommand() {
     .action(async (args: CreateProjectArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runCreateProject(args)
+      await runCreateProject(args).catch((e) => {
+        p.log.error('Failed to create project')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -49,6 +53,6 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop('Project creation failed')
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }

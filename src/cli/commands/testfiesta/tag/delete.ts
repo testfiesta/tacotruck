@@ -27,7 +27,11 @@ export function tagDeleteCommand() {
     .action(async (args: DeleteTagArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
-      await runDeleteTag(args)
+      await runDeleteTag(args).catch((e) => {
+        p.log.error('Failed to delete tag')
+        p.log.error(`✘ ${String(e)}`)
+        process.exit(1)
+      })
     })
 }
 
@@ -62,6 +66,6 @@ async function runDeleteTag(args: DeleteTagArgs): Promise<void> {
   }
   catch (error) {
     spinner.stop(cliMessages.TAG_DELETE_FAILED)
-    p.log.error(`${error instanceof Error ? error.message : String(error)}`)
+    throw error
   }
 }
