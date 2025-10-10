@@ -33,6 +33,7 @@
   ],
   "scripts": {
     "build": "tsdown",
+    "build:binaries": "bun run scripts/build-cli-bundles.ts",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "typecheck": "tsc --noEmit",
@@ -65,6 +66,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.19.0",
+    "@types/bun": "^1.2.23",
     "@types/cli-progress": "^3.11.6",
     "@types/node": "^24.7.1",
     "@vitest/coverage-v8": "^3.2.4",
