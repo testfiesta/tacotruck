@@ -22,13 +22,31 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Build binaries
+        run: npm run build:binaries
+        env:
+          TACOTRUCK_FULL_CLI_BUNDLES: 'true'
+
+      - name: Make binaries executable
+        run: chmod +x bundles/tacotruck-*
+
       - name: publish
         if: false
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
-      - run: npx changelogithub
+      - name: Create release
+        run: npx changelogithub --assets "bundles/tacotruck-*"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

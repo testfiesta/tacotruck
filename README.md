@@ -19,6 +19,8 @@ Tacotruck exists to make it easy to move quality data to wherever you need it. W
 
 ### Usage as a CLI
 
+#### Using npx (recommended)
+
 ```bash
 npx @testfiesta/tacotruck
 ```
