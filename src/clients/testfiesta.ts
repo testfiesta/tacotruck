@@ -242,7 +242,7 @@ export class TestFiestaClient {
 
   async getRuns(
     projectKey: string,
-     options: GetRunsOptions = {},
+    options: GetRunsOptions = {},
   ): Promise<any> {
     const { limit = 10, offset = 0 } = options
 
