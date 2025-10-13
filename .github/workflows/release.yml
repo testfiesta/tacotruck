@@ -34,8 +34,6 @@ jobs:
 
       - name: Build binaries
         run: npm run build:binaries
-        env:
-          TACOTRUCK_FULL_CLI_BUNDLES: 'true'
 
       - name: Make binaries executable
         run: chmod +x bundles/tacotruck-*
