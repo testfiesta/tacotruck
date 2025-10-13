@@ -5,6 +5,8 @@ import { version } from '../package.json' with { type: 'json' }
 const targets = (() => {
   if (process.env.TACOTRUCK_FULL_CLI_BUNDLES) {
     return [
+      'bun-windows-x64',
+      'bun-windows-x64-baseline',
       'bun-linux-x64',
       'bun-linux-x64-baseline',
       'bun-linux-arm64',
