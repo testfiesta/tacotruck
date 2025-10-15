@@ -7,6 +7,7 @@ import {
   processGetRequest,
   processPostRequest,
 } from '../network'
+import { getUserAgent } from '../version'
 
 vi.mock('../network', async () => {
   const actual = await vi.importActual('../network') as typeof import('../network')
@@ -40,6 +41,7 @@ describe('network utils', () => {
       expect(result).toEqual({
         headers: {
           'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
           'Authorization': 'Bearer token123',
         },
       })
@@ -56,6 +58,7 @@ describe('network utils', () => {
       expect(result).toEqual({
         headers: {
           'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
         },
       })
     })
@@ -68,6 +71,7 @@ describe('network utils', () => {
       expect(result).toEqual({
         headers: {
           'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
         },
       })
     })
