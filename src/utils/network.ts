@@ -4,6 +4,7 @@ import PQueue from 'p-queue'
 import pThrottle from 'p-throttle'
 import { processBatchesWithLimit } from './batch-processor'
 import { createProgressBar, stopProgressBar, updateProgressBar } from './progress-bar'
+import { getUserAgent } from './version'
 
 /**
  * Authentication options interface
@@ -49,14 +50,22 @@ export interface GetResponseData {
 export function createAuthenticatedOptions(
   authOptions: AuthOptions | null,
 ): Record<string, any> {
-  const options = { headers: { 'Content-Type': 'application/json' } }
+  const options = {
+    headers: {
+      'Content-Type': 'application/json',
+      'User-Agent': getUserAgent(),
+    },
+  }
 
   if (!authOptions) {
     return options
   }
 
   if (authOptions.location === 'header') {
-    options.headers = { 'Content-Type': 'application/json' }
+    options.headers = {
+      'Content-Type': 'application/json',
+      'User-Agent': getUserAgent(),
+    }
     if (authOptions.key && authOptions.payload) {
       (options.headers as Record<string, string>)[authOptions.key] = authOptions.payload
     }

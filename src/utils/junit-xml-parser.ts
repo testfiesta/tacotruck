@@ -27,6 +27,7 @@ export interface JunitParserResult {
 interface JunitXmlParserOptions {
   xmlToJsMap?: XmlToJsMap
   statusMap?: StatusMap
+  runId?: string
 }
 
 export interface RootSuite {
@@ -108,7 +109,7 @@ export class JunitXmlParser {
     this.rootSuite = null
     this.xmlToJsMap = options?.xmlToJsMap || this.xmlToJsMap
     this.statusMap = options?.statusMap || this.statusMap
-    this.runId = crypto.randomUUID()
+    this.runId = options?.runId || crypto.randomUUID()
   }
 
   fromXml(xml: string): JunitXmlParser {

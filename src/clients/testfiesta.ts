@@ -1,8 +1,11 @@
 import type { z } from 'zod'
 import type { CreateCaseInput, CreateCustomFieldInput, CreateFolderInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTagInput, CreateTemplateInput, CreateTestRunInput, CustomFieldListResponse, CustomFieldResponse, TemplateListResponse, TemplateResponse, UpdateCustomFieldInput, UpdateFolderInput, UpdateTagInput, UpdateTemplateInput } from '../schemas/testfiesta'
 import type { TestFiestaClientOptions } from '../types/type'
+
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
+import * as crypto from 'node:crypto'
+import { glob } from 'tinyglobby'
 import { createCaseInputSchema, createCustomFieldInputSchema, createFolderInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTagInputSchema, createTemplateInputSchema, createTestRunInputSchema, customFieldListResponseSchema, customFieldResponseSchema, templateListResponseSchema, templateResponseSchema, updateCustomFieldInputSchema, updateFolderInputSchema, updateTagInputSchema, updateTemplateInputSchema } from '../schemas/testfiesta'
 import { JunitXmlParser } from '../utils/junit-xml-parser'
 import * as networkUtils from '../utils/network'
@@ -18,6 +21,7 @@ export interface TFHooks {
 
 interface SubmitResultOptions {
   runName: string
+  source?: string
 }
 
 interface PaginationOptions {
@@ -693,39 +697,72 @@ export class TestFiestaClient {
 
   async submitTestResults(
     projectKey: string,
-    filePath: string,
+    filePathOrPattern: string,
     options: SubmitResultOptions,
     hooks?: TFHooks,
   ): Promise<void> {
-    const { onStart, onSuccess } = hooks || {}
+    const { onStart, onSuccess, onProgress } = hooks || {}
 
     return this.executeWithErrorHandling(async () => {
-      onStart?.('Transforming test data')
-      const junitXmlParser = new JunitXmlParser({
-        xmlToJsMap: {
-          suites: 'root',
-          suite: 'folders',
-          testcase: 'cases',
-        },
+      onStart?.('Resolving file patterns')
+
+      const filePaths = await glob([filePathOrPattern], {
+        onlyFiles: true,
+        absolute: true,
       })
-      const results = junitXmlParser.fromFile(filePath).build()
+
+      if (filePaths.length === 0) {
+        throw new Error(`No files found matching pattern: ${filePathOrPattern}`)
+      }
+
+      onSuccess?.(`Found ${filePaths.length} file(s) to process`)
+
+      const sharedRunId = crypto.randomUUID()
+
+      const combinedResults = {
+        folders: [] as any[],
+        cases: [] as any[],
+        executions: [] as any[],
+      }
+
+      for (let i = 0; i < filePaths.length; i++) {
+        const filePath = filePaths[i]
+        onProgress?.(i + 1, filePaths.length, `Processing ${filePath}`)
+
+        const junitXmlParser = new JunitXmlParser({
+          xmlToJsMap: {
+            suites: 'root',
+            suite: 'folders',
+            testcase: 'cases',
+          },
+          runId: sharedRunId,
+        })
+
+        const results = junitXmlParser.fromFile(filePath).build()
+
+        combinedResults.folders.push(...results.folders)
+        combinedResults.cases.push(...results.cases)
+        combinedResults.executions.push(...results.executions)
+      }
+
       onSuccess?.('Test data transformed successfully')
 
       const payload = {
         entities: {
-          folders: { entries: results.folders },
-          cases: { entries: results.cases },
-          executions: { entries: results.executions },
+          folders: { entries: combinedResults.folders },
+          cases: { entries: combinedResults.cases },
+          executions: { entries: combinedResults.executions },
           runs: { entries: [{
             name: options.runName,
-            source: 'junit-xml',
-            externalId: results.runId,
+            source: options.source || 'junit-xml',
+            externalId: sharedRunId,
             customFields: {
-              externalId: results.runId,
+              externalId: sharedRunId,
             },
           }] },
         },
       }
+
       onStart?.('Submitting test results to TestFiesta')
       await networkUtils.processPostRequest(
         this.authOptions,
