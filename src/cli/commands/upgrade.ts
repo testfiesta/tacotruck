@@ -21,7 +21,6 @@ interface GitHubRelease {
 
 interface UpgradeOptions {
   target?: string
-  method?: 'standalone' | 'npm' | 'bun' | 'pnpm'
   force?: boolean
 }
 
@@ -29,7 +28,6 @@ export function createUpgradeCommand(): Command {
   const command = new Command('upgrade')
     .description('Upgrade TacoTruck CLI to the latest version or a specific version')
     .option('-t, --target <version>', 'Specific version to upgrade to (e.g., 1.0.0-beta.25)')
-    .option('-m, --method <method>', 'Installation method: standalone, npm, bun, or pnpm', 'standalone')
     .option('-f, --force', 'Force upgrade even if already on the latest version')
     .action(async (options: UpgradeOptions) => {
       try {
@@ -99,7 +97,7 @@ async function handleUpgrade(options: UpgradeOptions): Promise<void> {
     }
   }
 
-  const method = options.method || await detectInstallationMethod()
+  const method = await detectInstallationMethod()
 
   p.log.info(`Upgrading to version ${targetVersion} using ${method} method`)
 
