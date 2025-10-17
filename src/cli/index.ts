@@ -3,6 +3,7 @@ import * as pJson from '../../package.json'
 import * as migrate from './commands/migrate'
 import * as testfiesta from './commands/testfiesta'
 import * as testrail from './commands/testrail'
+import { createUpgradeCommand } from './commands/upgrade'
 import { initPackageRoot, renderTitle } from './utils'
 
 initPackageRoot()
@@ -17,5 +18,6 @@ program
 program.addCommand(migrate.createMigrateCommand())
 program.addCommand(testfiesta.createTestfiestaCommand())
 program.addCommand(testrail.createTestrailCommand())
+program.addCommand(createUpgradeCommand())
 
 program.parse()
