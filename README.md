@@ -1,6 +1,7 @@
 # TacoTruck
 
 [![ci](https://github.com/testfiesta/tacotruck/actions/workflows/ci.yml/badge.svg)](https://github.com/testfiesta/tacotruck/actions/workflows/ci.yml)
+![NPM Version](https://img.shields.io/npm/v/%40testfiesta%2Ftacotruck)
 
 Tacotruck exists to make it easy to move quality data to wherever you need it. Whether you are looking to report test results to your various quality systems or trying to migrate historical data between test case management tools, tacotruck provides a simple, easily extendable interface for doing so.
 
@@ -19,14 +20,24 @@ Tacotruck exists to make it easy to move quality data to wherever you need it. W
 
 ### Usage as a CLI
 
-#### Using npx (recommended)
+#### Standalone Installation
+
+##### MacOS & Linux
+
+```bash
+curl -fsSL https://testfiesta.com/install-tacotruck-cli.sh | bash
+```
+
+#### Run instantly using npx
 
 ```bash
 npx @testfiesta/tacotruck
 ```
 
+#### Install globally using npm
+
 ```bash
-npx @testfiesta/tacotruck testfiesta run:submit --data ./results.xml --organization <YOUR_ORG_HANDLE> --token <YOUR_TF_TOKEN> --project <YOUR_PROJECT_KEY>
+npm install -g @testfiesta/tacotruck
 ```
 
 ### Usage as a library
@@ -57,6 +68,8 @@ Check out [tacotruck-examples](https://github.com/testfiesta/tacotruck-examples)
 ## <a name="documentation">📖 Documentation</a>
 
 We highly recommend you take a look at the [Testfiesta docs](https://docs.testfieta.com) for more information.
+
+For CLI-specific documentation, check out the [TacoTruck CLI Getting Started Guide](https://docs.testfiesta.com/automation/tacotruck-cli/get-start).
 
 ## <a name="contribute">💙 Contribute</a>
 
