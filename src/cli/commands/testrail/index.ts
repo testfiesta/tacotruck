@@ -1,6 +1,5 @@
 import * as Commander from 'commander'
-import { deleteProjectCommand } from './delete-project'
-import { createProjectCommand } from './project'
+import { projectCreateCommand, projectDeleteCommand, projectListCommand } from './project'
 import { submitRunCommand } from './run'
 
 export function createTestrailCommand() {
@@ -8,8 +7,9 @@ export function createTestrailCommand() {
     .alias('tr')
     .description('TestRail platform specific commands')
     .addCommand(submitRunCommand())
-    .addCommand(createProjectCommand())
-    .addCommand(deleteProjectCommand())
+    .addCommand(projectCreateCommand())
+    .addCommand(projectDeleteCommand())
+    .addCommand(projectListCommand())
 
   return trCommand
 }
