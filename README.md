@@ -28,6 +28,13 @@ Tacotruck exists to make it easy to move quality data to wherever you need it. W
 curl -fsSL https://testfiesta.com/install-tacotruck-cli.sh | bash
 ```
 
+##### Homebrew
+
+```bash
+brew tap testfiesta/tacotruck
+brew install tacotruck
+```
+
 #### Run instantly using npx
 
 ```bash
