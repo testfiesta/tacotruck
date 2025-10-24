@@ -83,7 +83,7 @@ Here are a few ways you can get involved:
 
 ## <a name="local-development">🏠 Local Development</a>
 
-Follow the docs to [Set Up Your Local Development Environment](https://docs.testfiesta.com/tacotruck/community/contributions#setup) to contribute to the framework and documentation.
+Follow our [Contributing Guide](.github/CONTRIBUTING.md) to set up your local development environment and start contributing to the framework and documentation.
 
 ## <a name="follow-us">🔗 Follow Us</a>
 
