@@ -1,19 +1,20 @@
-import type { BaseArgs } from '../../../types/type'
+import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestRailClient } from '../../../clients/testrail'
-import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
-import { createSpinner } from '../../../utils/spinner'
-import { shouldShowAnimations } from '../../../utils/tty'
+import { TestRailClient } from '../../../../clients/testrail'
+import { getLogger, initializeLogger, setVerbose } from '../../../../utils/logger'
+import { createSpinner } from '../../../../utils/spinner'
+import { shouldShowAnimations } from '../../../../utils/tty'
 
 interface DeleteProjectArgs extends BaseArgs {
   projectId: string
   token: string
+  url: string
   verbose?: boolean
   force?: boolean
 }
 
-export function deleteProjectCommand() {
+export function projectDeleteCommand() {
   const deleteProjectCommand = new Commander.Command('project:delete')
     .description('Delete a project in TestRail')
     .requiredOption('-i, --project-id <id>', 'TestRail project ID to delete')

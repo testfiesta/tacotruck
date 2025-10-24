@@ -1,10 +1,10 @@
-import type { BaseArgs } from '../../../types/type'
+import type { BaseArgs } from '../../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
-import { TestRailClient } from '../../../clients/testrail'
-import { getLogger, initializeLogger, setVerbose } from '../../../utils/logger'
-import { createSpinner } from '../../../utils/spinner'
-import { shouldShowAnimations } from '../../../utils/tty'
+import { TestRailClient } from '../../../../clients/testrail'
+import { getLogger, initializeLogger, setVerbose } from '../../../../utils/logger'
+import { createSpinner } from '../../../../utils/spinner'
+import { shouldShowAnimations } from '../../../../utils/tty'
 
 interface CreateProjectArgs extends BaseArgs {
   name: string
@@ -16,7 +16,7 @@ interface CreateProjectArgs extends BaseArgs {
 }
 const logger = getLogger()
 
-export function createProjectCommand() {
+export function projectCreateCommand() {
   const createProjectCommand = new Commander.Command('project:create')
     .description('Create a new project in TestRail')
     .requiredOption('-n, --name <name>', 'Project name')
@@ -52,7 +52,6 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
 
     if (!suiteMode) {
       if (shouldShowAnimations()) {
-        // Interactive terminal - show selection prompt
         const selectedMode = await p.select({
           message: 'Select TestRail project structure:',
           options: [
@@ -83,7 +82,6 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
         suiteMode = selectedMode as 1 | 2 | 3
       }
       else {
-        // Non-interactive terminal - use default suite mode
         suiteMode = 1
         console.warn('Using default TestRail project structure: Single repository for all cases (recommended)')
         console.warn('To specify a different structure, use the --suite-mode option (1, 2, or 3)')
@@ -96,7 +94,6 @@ export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
       3: 'Multiple test suites to manage cases',
     }
 
-    // Ensure suiteMode is defined (should never be undefined at this point)
     if (!suiteMode) {
       throw new Error('Suite mode is required but not provided')
     }

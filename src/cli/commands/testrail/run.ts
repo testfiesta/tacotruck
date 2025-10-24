@@ -11,7 +11,7 @@ interface SubmitRunArgs extends BaseArgs {
   data: string
   token: string
   organization: string
-  projectId: string
+  project: string
   name: string
   description?: string
   suiteId?: string
@@ -26,7 +26,7 @@ export function submitRunCommand() {
     .requiredOption('-d, --data <path>', 'Path to test run data JSON/XML file')
     .requiredOption('-t, --token <token>', 'TestRail API token. Use username:password format')
     .requiredOption('-u, --url <url>', 'TestRail instance URL (e.g., https://example.testrail.io)')
-    .requiredOption('-p, --project <projectId>', 'TestRail project ID')
+    .requiredOption('-p, --project <project>', 'TestRail project ID')
     .requiredOption('-n, --name <name>', 'Name for the test run')
     .option('-D, --x <text>', 'Description for the test run')
     .option('-s, --suite-id <id>', 'TestRail suite ID (required for projects with multiple test suites)')
@@ -48,46 +48,36 @@ export function submitRunCommand() {
 }
 
 export async function run(args: SubmitRunArgs): Promise<void> {
-  const handleError = (error: Error, context: string): null => {
-    p.log.error(`${context}: ${error.message}`)
-    return null
+  const testRailClient = new TestRailClient({
+    baseUrl: args.url,
+    apiKey: args.token,
+  })
+
+  const runData = loadRunData(args.data).match({
+    ok: data => data,
+    err: (error) => {
+      p.log.error(`Data error: ${error.message}`)
+      throw error
+    },
+  })
+
+  const spinner = createSpinner()
+
+  const callbacks: TRProgressCallbacks = {
+    onStart: (message) => {
+      spinner.start(message)
+    },
+    onSuccess: (message) => {
+      spinner.stop(message)
+    },
+    onError: (message, error) => {
+      spinner.stop(`${message}: ${error?.message || 'Unknown error'}`)
+    },
+    onProgress: (current, total, label) => {
+      spinner.message(`Processing  ${label}: ${current}/${total}`)
+    },
   }
 
-  try {
-    const testRailClient = new TestRailClient({
-      baseUrl: args.url,
-      apiKey: args.token,
-    })
-
-    const runData = loadRunData(args.data).match({
-      ok: data => data,
-      err: error => handleError(error, 'Data error'),
-    })
-
-    if (runData === null)
-      return
-
-    const spinner = createSpinner()
-
-    const callbacks: TRProgressCallbacks = {
-      onStart: (message) => {
-        spinner.start(message)
-      },
-      onSuccess: (message) => {
-        spinner.stop(message)
-      },
-      onError: (message, error) => {
-        spinner.stop(`${message}: ${error?.message || 'Unknown error'}`)
-      },
-      onProgress: (current, total, label) => {
-        spinner.message(`Processing  ${label}: ${current}/${total}`)
-      },
-    }
-
-    await testRailClient.submitTestResults(runData, { project_id: args.projectId }, args.name, undefined, callbacks)
-    p.log.success('Successfully submitted result to TestRail')
-  }
-  catch (error) {
-    handleError(error instanceof Error ? error : new Error(String(error)), 'TestRail API error')
-  }
+  await testRailClient.submitTestResults(runData, { project_id: args.project }, args.name, undefined, callbacks)
+  p.log.success('Successfully submitted result to TestRail')
 }
