@@ -5,13 +5,12 @@ import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
 import { createDetailsTable, formatTableValue } from '../../../../utils/table'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface GetMilestoneArgs extends BaseArgs {
   project: string
   id: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
 }
@@ -22,7 +21,7 @@ export function milestoneGetCommand() {
     .requiredOption('-p, --project <project>', cliOptions.PROJECT_KEY)
     .requiredOption('-i, --id <id>', cliOptions.MILESTONE_ID)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-v, --verbose', cliOptions.VERBOSE)
     .action(async (args: GetMilestoneArgs) => {
@@ -39,7 +38,7 @@ export function milestoneGetCommand() {
 async function runGetMilestone(args: GetMilestoneArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

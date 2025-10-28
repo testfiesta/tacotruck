@@ -4,7 +4,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliOptions } from '../constants'
 
 interface CreateProjectArgs extends BaseArgs {
   name: string
@@ -20,7 +20,7 @@ export function projectCreateCommand() {
     .description(cliDescriptions.PROJECT_CREATE)
     .requiredOption('-n, --name <name>', cliOptions.PROJECT_NAME)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-h, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-v, --verbose', cliOptions.VERBOSE)
     .action(async (args: CreateProjectArgs) => {
@@ -37,7 +37,7 @@ export function projectCreateCommand() {
 export async function runCreateProject(args: CreateProjectArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
   const spinner = createSpinner()

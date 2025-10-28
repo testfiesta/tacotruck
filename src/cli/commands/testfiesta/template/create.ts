@@ -5,7 +5,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface CreateTemplateArgs extends BaseArgs {
   project: string
@@ -13,7 +13,6 @@ interface CreateTemplateArgs extends BaseArgs {
   description?: string
   content?: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
 }
@@ -24,7 +23,7 @@ export function templateCreateCommand() {
     .requiredOption('-p, --project <project>', cliOptions.PROJECT_KEY)
     .requiredOption('-n, --name <n>', cliOptions.TEMPLATE_NAME)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-d, --description <description>', cliOptions.TEMPLATE_DESCRIPTION)
     .option('-c, --content <content>', cliOptions.TEMPLATE_CONTENT)
@@ -43,7 +42,7 @@ export function templateCreateCommand() {
 async function runCreateTemplate(args: CreateTemplateArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

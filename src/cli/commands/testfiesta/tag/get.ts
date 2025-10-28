@@ -5,12 +5,11 @@ import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
 import { createDetailsTable } from '../../../../utils/table'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface GetTagArgs extends BaseArgs {
   tagId: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
 }
@@ -20,7 +19,7 @@ export function tagGetCommand() {
     .description(cliDescriptions.TAG_GET)
     .requiredOption('-i, --tag-id <tagId>', cliOptions.TAG_ID)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-v, --verbose', cliOptions.VERBOSE)
     .action(async (args: GetTagArgs) => {
@@ -37,7 +36,7 @@ export function tagGetCommand() {
 async function runGetTag(args: GetTagArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

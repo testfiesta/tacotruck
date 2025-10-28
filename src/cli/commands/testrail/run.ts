@@ -1,5 +1,4 @@
 import type { TRProgressCallbacks } from '../../../clients/testrail'
-import type { BaseArgs } from '../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestRailClient } from '../../../clients/testrail'
@@ -7,7 +6,7 @@ import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { loadRunData } from '../../../utils/run-data-loader'
 import { createSpinner } from '../../../utils/spinner'
 
-interface SubmitRunArgs extends BaseArgs {
+interface SubmitRunArgs {
   data: string
   token: string
   organization: string
@@ -15,6 +14,7 @@ interface SubmitRunArgs extends BaseArgs {
   name: string
   description?: string
   suiteId?: string
+  url: string
   includeAll?: boolean
   caseIds?: number
   verbose?: boolean

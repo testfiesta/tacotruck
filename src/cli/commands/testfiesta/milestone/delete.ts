@@ -4,13 +4,12 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface DeleteMilestoneArgs extends BaseArgs {
   project: string
   id: string
   token: string
-  url: string
   organization: string
   nonInteractive?: boolean
   verbose?: boolean
@@ -22,7 +21,7 @@ export function milestoneDeleteCommand() {
     .requiredOption('-p, --project <project>', cliOptions.PROJECT_KEY)
     .requiredOption('-i, --id <id>', cliOptions.MILESTONE_ID)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-y, --non-interactive', cliOptions.NON_INTERACTIVE)
     .option('-v, --verbose', cliOptions.VERBOSE)
@@ -40,7 +39,7 @@ export function milestoneDeleteCommand() {
 async function runDeleteMilestone(args: DeleteMilestoneArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

@@ -5,6 +5,7 @@ import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
 import { createListTable } from '../../../../utils/table'
+import { cliDefaults, cliDescriptions, cliOptions } from '../constants'
 
 interface GetProjectsArgs extends BaseArgs {
   token: string
@@ -16,13 +17,13 @@ interface GetProjectsArgs extends BaseArgs {
 
 export function projectListCommand() {
   return new Commander.Command('project:list')
-    .description('List projects in TestFiesta')
-    .requiredOption('-t, --token <token>', 'TestFiesta API token')
-    .requiredOption('-u, --url <url>', 'TestFiesta instance URL (e.g., https://api.testfiesta.com)')
-    .requiredOption('-o, --organization <organization>', 'Organization handle')
-    .option('-l, --limit <limit>', 'Number of items to retrieve', '10')
-    .option('--offset <offset>', 'Offset for pagination', '0')
-    .option('-v, --verbose', 'Enable verbose logging')
+    .description(cliDescriptions.PROJECT_LIST)
+    .requiredOption('-t, --token <token>', cliOptions.TOKEN)
+    .option('-u, --url <url>', cliOptions.URL)
+    .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
+    .option('-l, --limit <limit>', cliOptions.LIMIT, cliDefaults.LIMIT)
+    .option('--offset <offset>', cliOptions.OFFSET, cliDefaults.OFFSET)
+    .option('-v, --verbose', cliOptions.VERBOSE)
     .action(async (args: GetProjectsArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
@@ -37,7 +38,7 @@ export function projectListCommand() {
 export async function runGetProjects(args: GetProjectsArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

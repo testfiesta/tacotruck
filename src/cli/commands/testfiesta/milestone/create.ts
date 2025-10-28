@@ -6,7 +6,7 @@ import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { formatDateYYYYMMDD, promptForDate, validateEndDate } from '../../../../utils/date-input'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface CreateMilestoneArgs extends BaseArgs {
   project: string
@@ -15,7 +15,6 @@ interface CreateMilestoneArgs extends BaseArgs {
   startDate?: string
   endDate?: string
   token: string
-  url: string
   organization: string
   nonInteractive?: boolean
   verbose?: boolean
@@ -27,7 +26,7 @@ export function milestoneCreateCommand() {
     .requiredOption('-p, --project <project>', cliOptions.PROJECT_KEY)
     .requiredOption('-n, --name <n>', cliOptions.MILESTONE_NAME)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-s, --start-date <startDate>', cliOptions.MILESTONE_START_DATE)
     .option('-e, --end-date <endDate>', cliOptions.MILESTONE_END_DATE)
@@ -48,7 +47,7 @@ export function milestoneCreateCommand() {
 async function runCreateMilestone(args: CreateMilestoneArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

@@ -57,6 +57,7 @@ export class TestFiestaClient {
   protected organizationHandle: string = ''
 
   private static readonly BASE_PATH = '/v1/{handle}'
+  private static readonly DEFAULT_BASE_URL = 'https://api.testfiesta.com'
   private static readonly ROUTES = {
     INGRESS: {
       IMPORT: '/projects/{projectKey}/data',
@@ -134,7 +135,7 @@ export class TestFiestaClient {
       key: 'Authorization',
       payload: `Bearer ${options.apiKey}`,
     }
-    this.baseUrl = options.baseUrl
+    this.baseUrl = options.baseUrl || TestFiestaClient.DEFAULT_BASE_URL
     this.organizationHandle = options.organizationHandle
   }
 
@@ -754,7 +755,7 @@ export class TestFiestaClient {
           executions: { entries: combinedResults.executions },
           runs: { entries: [{
             name: options.runName,
-            source: options.source || 'junit-xml',
+            source: options.source,
             externalId: sharedRunId,
             customFields: {
               externalId: sharedRunId,

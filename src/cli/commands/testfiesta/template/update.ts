@@ -5,7 +5,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface UpdateTemplateArgs extends BaseArgs {
   project: string
@@ -14,7 +14,6 @@ interface UpdateTemplateArgs extends BaseArgs {
   description?: string
   content?: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
 }
@@ -25,7 +24,7 @@ export function templateUpdateCommand() {
     .requiredOption('-p, --project <project>', cliOptions.PROJECT_KEY)
     .requiredOption('-i, --id <id>', cliOptions.TEMPLATE_ID)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-n, --name <n>', cliOptions.TEMPLATE_NAME)
     .option('-d, --description <description>', cliOptions.TEMPLATE_DESCRIPTION)
@@ -45,7 +44,7 @@ export function templateUpdateCommand() {
 async function runUpdateTemplate(args: UpdateTemplateArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

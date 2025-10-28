@@ -10,7 +10,6 @@ import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../consta
 interface GetCustomFieldArgs extends BaseArgs {
   project: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
   limit?: number
@@ -22,7 +21,7 @@ export function fieldListCommand() {
     .description(cliDescriptions.FIELD_LIST)
     .requiredOption('-p, --project <project>', cliOptions.PROJECT_KEY)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-l, --limit <limit>', cliOptions.LIMIT, cliDefaults.LIMIT)
     .option('--offset <offset>', cliOptions.OFFSET, cliDefaults.OFFSET)
@@ -41,7 +40,7 @@ export function fieldListCommand() {
 async function runListCustomFields(args: GetCustomFieldArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 
