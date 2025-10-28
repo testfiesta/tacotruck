@@ -8,7 +8,7 @@ param(
   [Switch]$DownloadWithoutCurl = $false
 );
 
-if (-not ((Get-CimInstance Win32_ComputerSystem)).SystemType -match "x64-based") { 
+if (-not ((Get-CimInstance Win32_ComputerSystem)).SystemType -match "x64-based") {
   Write-Output "Install Failed:"
   Write-Output "Tacotruck for Windows is currently only available for x86 64-bit Windows.`n"
   return 1
