@@ -1,17 +1,18 @@
 import type { TFHooks } from '../../../clients/testfiesta'
+import type { BaseArgs } from '../../../types/type'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { createSpinner } from '../../../utils/spinner'
+import { cliDefaults, cliOptions } from './constants'
 
-interface SubmitRunArgs {
+interface SubmitRunArgs extends BaseArgs {
   data: string
   token: string
   organization: string
   name: string
   project: string
-  url: string
   source?: string
   verbose?: boolean
 }
@@ -24,7 +25,7 @@ export function submitRunCommand() {
     .requiredOption('-h, --organization <organization>', 'Organization handle')
     .requiredOption('-p, --project <project>', 'Project key')
     .requiredOption('-n, --name <name>', 'Name for the test run')
-    .requiredOption('-u, --url <url>', 'TestFiesta instance URL (e.g., https://api.testfiesta.com)')
+    .option('-u, --url <url>', cliOptions.URL)
     .option('-s, --source <source>', 'Source identifier for the test run (default: "junit-xml")')
     .option('-v, --verbose', 'Enable verbose logging')
     .action(async (args: SubmitRunArgs) => {
@@ -44,7 +45,7 @@ export function submitRunCommand() {
 export async function run(args: SubmitRunArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

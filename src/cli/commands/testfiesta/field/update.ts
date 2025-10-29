@@ -4,7 +4,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface UpdateCustomFieldArgs extends BaseArgs {
   project: string
@@ -15,7 +15,6 @@ interface UpdateCustomFieldArgs extends BaseArgs {
   defaultValue?: string
   options?: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
 }
@@ -26,7 +25,7 @@ export function fieldUpdateCommand() {
     .requiredOption('-p, --project <project>', cliOptions.PROJECT_KEY)
     .requiredOption('-i, --custom-field-id <customFieldId>', cliOptions.FIELD_ID)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-n, --name <name>', cliOptions.FIELD_NAME)
     .option('-d, --description <description>', cliOptions.FIELD_DESCRIPTION)
@@ -48,7 +47,7 @@ export function fieldUpdateCommand() {
 async function runUpdateCustomField(args: UpdateCustomFieldArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

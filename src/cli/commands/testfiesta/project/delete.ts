@@ -4,7 +4,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { getLogger, initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface DeleteProjectArgs extends BaseArgs {
   projectKey: string
@@ -18,7 +18,7 @@ export function projectDeleteCommand() {
   return new Commander.Command('project:delete')
     .description(cliDescriptions.PROJECT_DELETE)
     .requiredOption('-k, --project-key <key>', cliOptions.PROJECT_KEY)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
     .requiredOption('-h, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-v, --verbose', cliOptions.VERBOSE)
@@ -58,7 +58,7 @@ export async function runDeleteProject(args: DeleteProjectArgs): Promise<void> {
 
     const tfClient = new TestFiestaClient({
       apiKey: args.token,
-      baseUrl: args.url,
+      baseUrl: args.url || cliDefaults.URL,
       organizationHandle: args.organization,
     })
 

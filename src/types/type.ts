@@ -4,11 +4,11 @@ export interface TestRailClientOptions {
 }
 export interface TestFiestaClientOptions {
   apiKey: string
-  baseUrl: string
+  baseUrl?: string
   organizationHandle: string
   projectKey?: string
 }
 
 export interface BaseArgs {
-  url: string
+  url?: string
 }

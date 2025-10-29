@@ -34,7 +34,7 @@ export const cliDescriptions = {
 
 export const cliOptions = {
   TOKEN: 'TestFiesta API token',
-  URL: 'TestFiesta instance URL (e.g., https://api.testfiesta.com)',
+  URL: 'TestFiesta instance URL (default: https://api.testfiesta.com)',
   ORGANIZATION: 'Organization handle',
   VERBOSE: 'Enable verbose logging',
   NON_INTERACTIVE: 'Skip confirmation prompts (use with caution)',
@@ -180,4 +180,5 @@ export const cliMessages = {
 export const cliDefaults = {
   LIMIT: '10',
   OFFSET: '0',
+  URL: 'https://api.testfiesta.com',
 } as const

@@ -9,7 +9,6 @@ import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../consta
 
 interface GetTagArgs extends BaseArgs {
   token: string
-  url: string
   organization: string
   verbose?: boolean
   limit?: number
@@ -20,7 +19,7 @@ export function tagListCommand() {
   return new Commander.Command('tag:list')
     .description(cliDescriptions.TAG_LIST)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-l, --limit <limit>', cliOptions.LIMIT, cliDefaults.LIMIT)
     .option('--offset <offset>', cliOptions.OFFSET, cliDefaults.OFFSET)
@@ -39,7 +38,7 @@ export function tagListCommand() {
 async function runListTags(args: GetTagArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

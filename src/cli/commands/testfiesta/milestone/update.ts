@@ -5,7 +5,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface UpdateMilestoneArgs extends BaseArgs {
   project: string
@@ -15,7 +15,6 @@ interface UpdateMilestoneArgs extends BaseArgs {
   startDate?: string
   endDate?: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
 }
@@ -26,7 +25,7 @@ export function milestoneUpdateCommand() {
     .requiredOption('-p, --project <project>', cliOptions.PROJECT_KEY)
     .requiredOption('-i, --id <id>', cliOptions.MILESTONE_ID)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-n, --name <n>', cliOptions.MILESTONE_NAME)
     .option('-d, --description <description>', cliOptions.MILESTONE_DESCRIPTION)
@@ -47,7 +46,7 @@ export function milestoneUpdateCommand() {
 async function runUpdateMilestone(args: UpdateMilestoneArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

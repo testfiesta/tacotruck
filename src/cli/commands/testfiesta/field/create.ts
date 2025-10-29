@@ -4,7 +4,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface CreateCustomFieldArgs extends BaseArgs {
   project: string
@@ -15,7 +15,6 @@ interface CreateCustomFieldArgs extends BaseArgs {
   defaultValue?: string
   options?: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
 }
@@ -27,7 +26,7 @@ export function fieldCreateCommand() {
     .requiredOption('-n, --name <name>', cliOptions.FIELD_NAME)
     .requiredOption('--type <type>', cliOptions.FIELD_TYPE)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-d, --description <description>', cliOptions.FIELD_DESCRIPTION)
     .option('-r, --required', cliOptions.FIELD_REQUIRED)
@@ -48,7 +47,7 @@ export function fieldCreateCommand() {
 async function runCreateCustomField(args: CreateCustomFieldArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

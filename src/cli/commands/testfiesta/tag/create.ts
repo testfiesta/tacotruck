@@ -4,14 +4,13 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface CreateTagArgs extends BaseArgs {
   name: string
   description?: string
   color?: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
 }
@@ -21,7 +20,7 @@ export function tagCreateCommand() {
     .description(cliDescriptions.TAG_CREATE)
     .requiredOption('-n, --name <name>', cliOptions.TAG_NAME)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-d, --description <description>', cliOptions.TAG_DESCRIPTION)
     .option('-c, --color <color>', cliOptions.TAG_COLOR)
@@ -40,7 +39,7 @@ export function tagCreateCommand() {
 async function runCreateTag(args: CreateTagArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 

@@ -59,7 +59,7 @@ import { TestFiestaClient, TestRailClient } from 'tacotruck'
 const tfClient = new TestFiestaClient({
   apiKey: '<YOUR_TF_API_KEY>',
   organizationHandle: '<YOUR_TF_ORGANIZATION_HANDLE>',
-  baseUrl: 'http://api.testfiesta.com',
+  // baseUrl is optional, defaults to 'https://api.testfiesta.com'
 })
 
 const trClient = new TestRailClient({
@@ -85,7 +85,7 @@ We invite you to contribute and help improve Tacotruck 💙
 Here are a few ways you can get involved:
 
 - **Reporting Bugs:** If you come across any bugs or issues, please check out the [reporting bugs guide](https://docs.testfiesta.com/community/reporting-bugs) to learn how to submit a bug report.
-- **Suggestions:** Have ideas to enhance Tacotruck? We'd love to hear them! Check out the [contribution guide](https://docs.testfiesta.com/tacotruck/community/contributions#guide) to share your suggestions.
+- **Suggestions:** Have ideas to enhance Tacotruck? We'd love to hear them! Check out the [contribution guide](.github/CONTRIBUTING.md) to share your suggestions.
 - **Questions:** If you have questions or need assistance, the [getting help guide](https://docs.testfiesta.com/tacotruck/community/getting-help) provides resources to help you out.
 
 ## <a name="local-development">🏠 Local Development</a>

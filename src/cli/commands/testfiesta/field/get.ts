@@ -5,13 +5,12 @@ import { TestFiestaClient } from '../../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../../utils/logger'
 import { createSpinner } from '../../../../utils/spinner'
 import { createDetailsTable } from '../../../../utils/table'
-import { cliDescriptions, cliMessages, cliOptions } from '../constants'
+import { cliDefaults, cliDescriptions, cliMessages, cliOptions } from '../constants'
 
 interface GetCustomFieldArgs extends BaseArgs {
   project: string
   customFieldId: string
   token: string
-  url: string
   organization: string
   verbose?: boolean
 }
@@ -22,7 +21,7 @@ export function fieldGetCommand() {
     .requiredOption('-p, --project <project>', cliOptions.PROJECT_KEY)
     .requiredOption('-i, --custom-field-id <customFieldId>', cliOptions.FIELD_ID)
     .requiredOption('-t, --token <token>', cliOptions.TOKEN)
-    .requiredOption('-u, --url <url>', cliOptions.URL)
+    .option('-u, --url <url>', cliOptions.URL)
     .requiredOption('-o, --organization <organization>', cliOptions.ORGANIZATION)
     .option('-v, --verbose', cliOptions.VERBOSE)
     .action(async (args: GetCustomFieldArgs) => {
@@ -39,7 +38,7 @@ export function fieldGetCommand() {
 async function runGetCustomField(args: GetCustomFieldArgs): Promise<void> {
   const tfClient = new TestFiestaClient({
     apiKey: args.token,
-    baseUrl: args.url,
+    baseUrl: args.url || cliDefaults.URL,
     organizationHandle: args.organization,
   })
 
