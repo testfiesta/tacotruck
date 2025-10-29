@@ -1,4 +1,5 @@
 # The following script is adapted from the bun.sh install script for PowerShell
+
 # Licensed under the MIT License
 
 param(
