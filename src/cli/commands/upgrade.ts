@@ -114,6 +114,9 @@ async function handleUpgrade(options: UpgradeOptions): Promise<void> {
     case 'pnpm':
       await upgradePackageManager(targetVersion, 'pnpm')
       break
+    case 'homebrew':
+      await upgradeHomebrew(targetVersion)
+      break
     default:
       throw new Error(`Unsupported installation method: ${method}`)
   }
@@ -148,9 +151,22 @@ async function getLatestVersion(): Promise<string> {
   return releases[0].tag_name.replace(/^v/, '')
 }
 
-async function detectInstallationMethod(): Promise<'standalone' | 'npm' | 'bun' | 'pnpm'> {
+async function detectInstallationMethod(): Promise<'standalone' | 'npm' | 'bun' | 'pnpm' | 'homebrew'> {
   try {
     const executablePath = process.argv[1]
+
+    if (executablePath.includes('/opt/homebrew/') || executablePath.includes('/usr/local/')) {
+      try {
+        const result = await execa('brew', ['list', '--formula'], { reject: false })
+        if (result.stdout.includes('tacotruck')) {
+          return 'homebrew'
+        }
+      }
+      catch {
+        // Homebrew not available or error, continue with other checks
+      }
+    }
+
     if (executablePath.includes('node_modules')) {
       const packageManager = await detectPackageManager()
       return packageManager
@@ -395,6 +411,44 @@ function getPlatform(): string {
   }
 
   return target
+}
+
+async function upgradeHomebrew(version: string): Promise<void> {
+  const spinner = createSpinner()
+  spinner.start('Upgrading Homebrew installation...')
+
+  try {
+    spinner.message('Upgrading TacoTruck...')
+    await execa('brew', ['upgrade', 'testfiesta/tacotruck/tacotruck'], {
+      stdio: 'pipe', // Suppress brew output
+    })
+
+    spinner.stop('Homebrew installation upgraded successfully')
+  }
+  catch (error) {
+    spinner.stop('Homebrew upgrade failed')
+
+    let errorMessage = 'Unknown error'
+    if (error instanceof Error) {
+      if (error.message.includes('No available formula')) {
+        errorMessage = `Version ${version} not available in Homebrew tap. The tap may need to be updated.`
+      }
+      else if (error.message.includes('already installed')) {
+        errorMessage = 'TacoTruck is already up to date via Homebrew.'
+      }
+      else if (error.message.includes('ENOTFOUND') || error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.'
+      }
+      else if (error.message.includes('permission') || error.message.includes('EACCES')) {
+        errorMessage = 'Permission denied. Please check your Homebrew permissions.'
+      }
+      else {
+        errorMessage = error.message
+      }
+    }
+
+    throw new Error(`Failed to upgrade Homebrew installation: ${errorMessage}`)
+  }
 }
 
 async function verifyUpgrade(expectedVersion: string): Promise<void> {
