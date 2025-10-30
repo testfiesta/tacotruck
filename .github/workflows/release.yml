@@ -48,3 +48,17 @@ jobs:
         run: npx changelogithub --assets "bundles/tacotruck-*"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Homebrew formula update
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Triggering Homebrew formula update for version: $VERSION"
+
+          gh workflow run update-formula.yml \
+            --repo testfiesta/homebrew-tacotruck \
+            --field version="$VERSION" \
+            --field auto_merge=true
+
+          echo "✅ Successfully triggered Homebrew formula update workflow"
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_UPDATE_TOKEN }}
