@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 import type { CreateCaseInput, CreateCustomFieldInput, CreateFolderInput, CreateMilestoneInput, CreateProjectInput, CreateProjectOutput, CreateTagInput, CreateTemplateInput, CreateTestRunInput, CustomFieldListResponse, CustomFieldResponse, TemplateListResponse, TemplateResponse, UpdateCustomFieldInput, UpdateFolderInput, UpdateTagInput, UpdateTemplateInput } from '../schemas/testfiesta'
-import type { TestFiestaClientOptions } from '../types/type'
+import type { TestFiestaClientOptions } from '../types'
 
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'

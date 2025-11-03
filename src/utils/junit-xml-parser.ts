@@ -1,3 +1,4 @@
+import type { JunitParserResult, JunitXmlParserOptions, RootSuite, StatusMap, TestCase, TestSuite, XmlRoot, XmlToJsMap } from '../types'
 import type { TestCaseIdentifier, TestSuiteIdentifier } from './external-id-generator'
 import type { ExecutionData } from './xml-transform'
 import * as crypto from 'node:crypto'
@@ -5,77 +6,6 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { XMLParser } from 'fast-xml-parser'
 import { externalIdGenerator } from './external-id-generator'
-
-interface XmlToJsMap {
-  suites: string
-  suite: string
-  testcase: string
-}
-
-interface StatusMap {
-  passed: any
-  failed: any
-  blocked: any
-  skipped: any
-  error: any
-}
-
-export interface JunitParserResult {
-  [key: string]: RootSuite | null | TestSuite[] | TestCase[] | any
-}
-
-interface JunitXmlParserOptions {
-  xmlToJsMap?: XmlToJsMap
-  statusMap?: StatusMap
-  runId?: string
-}
-
-export interface RootSuite {
-  name?: string
-  tests?: number
-  errors?: number
-  failures?: number
-  skipped?: number
-  assertions?: number
-  time?: number
-  timestamp?: string
-}
-
-export interface TestCase {
-  name: string
-  classname: string
-  time: number
-  failure?: {
-    message?: string
-    type?: string
-    _text?: string
-  }
-  error?: {
-    message?: string
-    type?: string
-    _text?: string
-  }
-  skipped?: {
-    message?: string
-  }
-  source?: string
-  externalId?: string
-  folderExternalId?: string
-}
-
-export interface TestSuite extends RootSuite {
-  file?: string
-  testcases?: TestCase[]
-  externalId?: string
-  source?: string
-}
-
-interface XmlRoot {
-  testsuites?: {
-    testsuite?: any
-  }
-  testsuite?: any
-}
 
 export class JunitXmlParser {
   private xml: string
@@ -249,6 +179,18 @@ export class JunitXmlParser {
         source: 'junit-xml',
         externalId,
         folderExternalId: parent?.externalId || '',
+      }
+
+      if (tc['system-out'] !== undefined) {
+        testCase['system-out'] = typeof tc['system-out'] === 'string'
+          ? tc['system-out']
+          : tc['system-out']?._text || ''
+      }
+
+      if (tc['system-err'] !== undefined) {
+        testCase['system-err'] = typeof tc['system-err'] === 'string'
+          ? tc['system-err']
+          : tc['system-err']?._text || ''
       }
       const execution: ExecutionData = {
         source: 'junit-xml',
