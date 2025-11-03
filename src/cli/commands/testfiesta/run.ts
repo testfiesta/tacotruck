@@ -61,8 +61,21 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     onProgress: (current, total, label) => {
       spinner.message(`Processing ${label}: ${current}/${total}`)
     },
+    onBeforeRunCreated: (runName) => {
+      p.log.info(`Creating test run: ${runName}`)
+    },
+    onAfterRunCreated: (run) => {
+      p.log.info(`Test run created successfully with ID: ${run.uid}`)
+      const appUrl = 'http://localhost:8082'
+      const url = `${appUrl}/${args.organization}/${args.project}/runs/${run.uid}/folders`
+      p.log.info(`Run URL: ${url}`)
+    },
   }
 
-  await tfClient.submitTestResults(args.project, args.data, { runName: args.name, source: args.source }, hooks)
+  hooks.onBeforeRunCreated?.(args.name)
+  const run = await tfClient.createRun(args.project, { name: args.name, caseUids: [] })
+  hooks.onAfterRunCreated?.(run)
+
+  await tfClient.submitTestResults(args.project, args.data, { runName: args.name, source: args.source, runUid: run.uid }, hooks)
   p.log.success('Test run submitted successfully to TestFiesta')
 }
