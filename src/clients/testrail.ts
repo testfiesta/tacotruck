@@ -12,7 +12,7 @@ import type {
   GetSuitesResponseData,
 
 } from '../schemas/testrail'
-import type { TestRailClientOptions } from '../types/type'
+import type { TestRailClientOptions } from '../types'
 import type { AuthOptions } from '../utils/network'
 import type { RunData } from '../utils/run-data-loader'
 import type { XmlData } from '../utils/xml-transform'

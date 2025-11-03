@@ -1,5 +1,5 @@
 import type { UpdateTemplateInput } from '../../../../schemas/testfiesta'
-import type { BaseArgs } from '../../../../types/type'
+import type { BaseArgs } from '../../../../types'
 import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../../clients/testfiesta'
