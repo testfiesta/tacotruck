@@ -5,6 +5,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { createSpinner } from '../../../utils/spinner'
+import { buildTestRunDashboardUrl } from '../../../utils/url-substitutor'
 import { cliDefaults, cliOptions } from './constants'
 
 interface SubmitRunArgs extends BaseArgs {
@@ -61,8 +62,21 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     onProgress: (current, total, label) => {
       spinner.message(`Processing ${label}: ${current}/${total}`)
     },
+    onBeforeRunCreated: (runName) => {
+      p.log.info(`Creating test run: ${runName}`)
+    },
+    onAfterRunCreated: (run) => {
+      p.log.info(`Test run created successfully with ID: ${run.uid}`)
+      const baseUrl = args.url || cliDefaults.URL
+      const url = buildTestRunDashboardUrl(baseUrl, args.organization, args.project, run.uid)
+      p.log.info(`Run URL: ${url}`)
+    },
   }
 
-  await tfClient.submitTestResults(args.project, args.data, { runName: args.name, source: args.source }, hooks)
+  hooks.onBeforeRunCreated?.(args.name)
+  const run = await tfClient.createRun(args.project, { name: args.name, caseUids: [] })
+  hooks.onAfterRunCreated?.(run)
+
+  await tfClient.submitTestResults(args.project, args.data, { runName: args.name, source: args.source, runUid: run.uid }, hooks)
   p.log.success('Test run submitted successfully to TestFiesta')
 }

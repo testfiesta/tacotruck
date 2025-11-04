@@ -21,7 +21,7 @@ export const createTestRunInputSchema = z.object({
   source: z.string().optional(),
   link: z.string().optional(),
   priority: z.number().optional(),
-  status: z.number().min(1),
+  status: z.number().optional(),
   name: z.string().min(1),
   description: z.string().optional(),
   dueAt: z.string().optional(),

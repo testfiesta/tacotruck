@@ -17,11 +17,14 @@ export interface TFHooks {
   onSuccess?: (message: string) => void
   onError?: (message: string, error?: Error) => void
   onProgress?: (current: number, total: number, label: string) => void
+  onBeforeRunCreated?: (runName: string) => void
+  onAfterRunCreated?: (run: any) => void
 }
 
 interface SubmitResultOptions {
   runName: string
   source?: string
+  runUid?: number
 }
 
 interface PaginationOptions {
@@ -762,6 +765,8 @@ export class TestFiestaClient {
             },
           }] },
         },
+        runId: options.runUid,
+
       }
 
       onStart?.('Submitting test results to TestFiesta')

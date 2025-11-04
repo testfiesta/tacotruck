@@ -27,3 +27,40 @@ export function substituteUrlStrict(template: string, values: Record<string, any
 
   return substituteUrl(template, values)
 }
+
+export function convertApiUrlToDashboardUrl(apiUrl: string): string {
+  try {
+    const url = new URL(apiUrl)
+    const hostname = url.hostname
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `${url.protocol}//${hostname}:8082`
+    }
+
+    if (hostname.includes('staging')) {
+      const newHostname = hostname.replace(/(staging-)?api\./, 'staging.app.')
+      return `${url.protocol}//${newHostname}${url.port ? `:${url.port}` : ''}`
+    }
+
+    const newHostname = hostname.replace(/api\./, 'app.')
+    return `${url.protocol}//${newHostname}${url.port ? `:${url.port}` : ''}`
+  }
+  catch {
+    if (apiUrl.includes('staging')) {
+      return apiUrl.replace(/(staging-)?api\./, 'staging.app.')
+    }
+    return apiUrl.replace(/api\./, 'app.')
+  }
+}
+
+export function buildTestRunDashboardUrl(
+  apiBaseUrl: string,
+  organizationHandle: string,
+  projectKey: string,
+  runId: number | string,
+  pathSuffix: string = 'folders',
+): string {
+  const dashboardBaseUrl = convertApiUrlToDashboardUrl(apiBaseUrl)
+  const cleanBaseUrl = dashboardBaseUrl.replace(/\/$/, '')
+  return `${cleanBaseUrl}/${organizationHandle}/${projectKey}/runs/${runId}/${pathSuffix}`
+}
