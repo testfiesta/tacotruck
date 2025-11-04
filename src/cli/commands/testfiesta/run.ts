@@ -5,6 +5,7 @@ import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
 import { createSpinner } from '../../../utils/spinner'
+import { buildTestRunDashboardUrl } from '../../../utils/url-substitutor'
 import { cliDefaults, cliOptions } from './constants'
 
 interface SubmitRunArgs extends BaseArgs {
@@ -66,8 +67,8 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     },
     onAfterRunCreated: (run) => {
       p.log.info(`Test run created successfully with ID: ${run.uid}`)
-      const appUrl = 'http://localhost:8082'
-      const url = `${appUrl}/${args.organization}/${args.project}/runs/${run.uid}/folders`
+      const baseUrl = args.url || cliDefaults.URL
+      const url = buildTestRunDashboardUrl(baseUrl, args.organization, args.project, run.uid)
       p.log.info(`Run URL: ${url}`)
     },
   }
