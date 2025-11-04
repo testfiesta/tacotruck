@@ -4,6 +4,7 @@ import * as p from '@clack/prompts'
 import * as Commander from 'commander'
 import { TestFiestaClient } from '../../../clients/testfiesta'
 import { initializeLogger, setVerbose } from '../../../utils/logger'
+import { openUrl } from '../../../utils/open-url'
 import { createSpinner } from '../../../utils/spinner'
 import { buildTestRunDashboardUrl } from '../../../utils/url-substitutor'
 import { cliDefaults, cliOptions } from './constants'
@@ -16,6 +17,7 @@ interface SubmitRunArgs extends BaseArgs {
   project: string
   source?: string
   verbose?: boolean
+  open?: boolean
 }
 
 export function submitRunCommand() {
@@ -29,6 +31,7 @@ export function submitRunCommand() {
     .option('-u, --url <url>', cliOptions.URL)
     .option('-s, --source <source>', 'Source identifier for the test run (default: "junit-xml")')
     .option('-v, --verbose', 'Enable verbose logging')
+    .option('-o, --open', 'Open run in default browser')
     .action(async (args: SubmitRunArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
@@ -70,6 +73,12 @@ export async function run(args: SubmitRunArgs): Promise<void> {
       const baseUrl = args.url || cliDefaults.URL
       const url = buildTestRunDashboardUrl(baseUrl, args.organization, args.project, run.uid)
       p.log.info(`Run URL: ${url}`)
+
+      if (args.open) {
+        openUrl(url).then(() => {
+          p.log.info(`Opened: ${url}`)
+        }).catch(() => {})
+      }
     },
   }
 
