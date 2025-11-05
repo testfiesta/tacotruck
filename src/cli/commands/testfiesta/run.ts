@@ -31,7 +31,7 @@ export function submitRunCommand() {
     .option('-u, --url <url>', cliOptions.URL)
     .option('-s, --source <source>', 'Source identifier for the test run (default: "junit-xml")')
     .option('-v, --verbose', 'Enable verbose logging')
-    .option('-o, --open', 'Open run in default browser')
+    .option('-o, --open', 'Automatically open the test run dashboard in your default browser after submission')
     .action(async (args: SubmitRunArgs) => {
       initializeLogger({ verbose: !!args.verbose })
       setVerbose(!!args.verbose)
@@ -68,23 +68,29 @@ export async function run(args: SubmitRunArgs): Promise<void> {
     onBeforeRunCreated: (runName) => {
       p.log.info(`Creating test run: ${runName}`)
     },
-    onAfterRunCreated: (run) => {
+    onAfterRunCreated: async (run) => {
       p.log.info(`Test run created successfully with ID: ${run.uid}`)
       const baseUrl = args.url || cliDefaults.URL
       const url = buildTestRunDashboardUrl(baseUrl, args.organization, args.project, run.uid)
       p.log.info(`Run URL: ${url}`)
 
       if (args.open) {
-        openUrl(url).then(() => {
-          p.log.info(`Opened: ${url}`)
-        }).catch(() => {})
+        try {
+          await openUrl(url)
+          p.log.success(`Opened test run in browser: ${url}`)
+        }
+        catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          p.log.warn(`Could not open browser: ${message}`)
+          p.log.info(`You can manually open: ${url}`)
+        }
       }
     },
   }
 
   hooks.onBeforeRunCreated?.(args.name)
   const run = await tfClient.createRun(args.project, { name: args.name, caseUids: [] })
-  hooks.onAfterRunCreated?.(run)
+  await hooks.onAfterRunCreated?.(run)
 
   await tfClient.submitTestResults(args.project, args.data, { runName: args.name, source: args.source, runUid: run.uid }, hooks)
   p.log.success('Test run submitted successfully to TestFiesta')
