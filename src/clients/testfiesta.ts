@@ -4,6 +4,7 @@ import type { TestFiestaClientOptions } from '../types'
 
 import type { AuthOptions, GetResponseData } from '../utils/network'
 import type { Result } from '../utils/result'
+import { Buffer } from 'node:buffer'
 import * as crypto from 'node:crypto'
 import { glob } from 'tinyglobby'
 import { createCaseInputSchema, createCustomFieldInputSchema, createFolderInputSchema, createMilestoneInputSchema, createProjectInputSchema, createProjectOutputSchema, createTagInputSchema, createTemplateInputSchema, createTestRunInputSchema, customFieldListResponseSchema, customFieldResponseSchema, templateListResponseSchema, templateResponseSchema, updateCustomFieldInputSchema, updateFolderInputSchema, updateTagInputSchema, updateTemplateInputSchema } from '../schemas/testfiesta'
@@ -24,7 +25,7 @@ export interface TFHooks {
 interface SubmitResultOptions {
   runName: string
   source?: string
-  runUid?: number
+  runUid: number
 }
 
 interface PaginationOptions {
@@ -53,6 +54,29 @@ interface GetTagsOptions extends PaginationOptions {
 interface GetTemplatesOptions extends PaginationOptions {
 }
 
+export interface SignedUrlFileDescriptor {
+  fileName: string
+  fileType: string
+  size: number
+  mediaType?: 'attachment'
+  externalId: string
+  runId: number
+}
+
+export interface SignedUrlFileResult {
+  fileName: string
+  signedUrl: string
+  objectUrl: string
+  key: string
+  clientHeaders: Record<string, string>
+  storagePath: string
+  externalId?: string
+}
+
+export interface SignedUrlBatchResponse {
+  files: SignedUrlFileResult[]
+}
+
 export class TestFiestaClient {
   protected authOptions: AuthOptions
   protected routes: Record<string, Record<string, string>> = {}
@@ -64,6 +88,7 @@ export class TestFiestaClient {
   private static readonly ROUTES = {
     INGRESS: {
       IMPORT: '/projects/{projectKey}/data',
+      SIGNED_URL: '/projects/{projectKey}/data/signed-url',
     },
     PROJECTS: {
       LIST: '/projects?limit={limit}&offset={offset}',
@@ -699,6 +724,20 @@ export class TestFiestaClient {
     }, 'Delete custom field')
   }
 
+  async getSignedUrls(
+    projectKey: string,
+    files: SignedUrlFileDescriptor[],
+  ): Promise<SignedUrlBatchResponse> {
+    return this.executeWithErrorHandling(async () => {
+      const response = await networkUtils.processPostRequest(
+        this.authOptions,
+        this.getRoute('ingress', 'signed_url', { projectKey }),
+        { body: { files } },
+      )
+      return response as SignedUrlBatchResponse
+    }, 'Get signed URLs')
+  }
+
   async submitTestResults(
     projectKey: string,
     filePathOrPattern: string,
@@ -728,6 +767,9 @@ export class TestFiestaClient {
         cases: [] as any[],
         executions: [] as any[],
       }
+      const filesToSign: SignedUrlFileDescriptor[] = []
+      const contentByKey = new Map<string, { content: string, fileType: string }>()
+      const makeKey = (externalId: string, fileName: string) => `${externalId}::${fileName}`
 
       for (let i = 0; i < filePaths.length; i++) {
         const filePath = filePaths[i]
@@ -747,11 +789,105 @@ export class TestFiestaClient {
         combinedResults.folders.push(...results.folders)
         combinedResults.cases.push(...results.cases)
         combinedResults.executions.push(...results.executions)
+        if (Array.isArray(results.cases)) {
+          for (const tc of results.cases as any[]) {
+            const caseExternalId: string = tc.externalId || ''
+            if (typeof tc['system-out'] === 'string' && tc['system-out'].length > 0) {
+              filesToSign.push({
+                fileName: 'system-out.txt',
+                fileType: 'text/plain; charset=utf-8',
+                size: Buffer.byteLength(tc['system-out'], 'utf8'),
+                externalId: caseExternalId,
+                mediaType: 'attachment',
+                runId: options.runUid,
+              })
+              contentByKey.set(makeKey(caseExternalId, 'system-out.txt'), { content: tc['system-out'], fileType: 'text/plain; charset=utf-8' })
+            }
+
+            if (typeof tc['system-err'] === 'string' && tc['system-err'].length > 0) {
+              filesToSign.push({
+                fileName: 'system-err.txt',
+                fileType: 'text/plain; charset=utf-8',
+                size: Buffer.byteLength(tc['system-err'], 'utf8'),
+                mediaType: 'attachment',
+                externalId: caseExternalId,
+                runId: options.runUid,
+              })
+              contentByKey.set(makeKey(caseExternalId, 'system-err.txt'), { content: tc['system-err'], fileType: 'text/plain; charset=utf-8' })
+            }
+
+            if (tc.failure && (tc.failure.message || tc.failure.type || tc.failure._text)) {
+              const failureJson = JSON.stringify({
+                message: tc.failure.message || '',
+                type: tc.failure.type || '',
+                text: typeof tc.failure._text === 'string' ? tc.failure._text : '',
+              })
+              filesToSign.push({
+                fileName: 'failure-data.json',
+                fileType: 'application/json; charset=utf-8',
+                size: Buffer.byteLength(failureJson, 'utf8'),
+                mediaType: 'attachment',
+                externalId: caseExternalId,
+                runId: options.runUid,
+              })
+              contentByKey.set(makeKey(caseExternalId, 'failure-data.json'), { content: failureJson, fileType: 'application/json; charset=utf-8' })
+            }
+
+            if (tc.error && (tc.error.message || tc.error.type || tc.error._text)) {
+              const errorJson = JSON.stringify({
+                message: tc.error.message || '',
+                type: tc.error.type || '',
+                text: typeof tc.error._text === 'string' ? tc.error._text : '',
+              })
+              filesToSign.push({
+                fileName: 'error-data.json',
+                fileType: 'application/json; charset=utf-8',
+                size: Buffer.byteLength(errorJson, 'utf8'),
+                mediaType: 'attachment',
+                externalId: caseExternalId,
+                runId: options.runUid,
+              })
+              contentByKey.set(makeKey(caseExternalId, 'error-data.json'), { content: errorJson, fileType: 'application/json; charset=utf-8' })
+            }
+          }
+        }
       }
 
       onSuccess?.('Test data transformed successfully')
 
-      const payload = {
+      if (filesToSign.length > 0) {
+        onStart?.('Uploading attachments to TestFiesta')
+
+        const { files: signedFiles } = await this.getSignedUrls(projectKey, filesToSign)
+
+        for (let i = 0; i < signedFiles.length; i++) {
+          const f: any = signedFiles[i]
+          const keyFromResult = (f.externalId || f.external_id) ? makeKey(f.externalId || f.external_id, f.fileName) : undefined
+          let mapped = keyFromResult ? contentByKey.get(keyFromResult) : undefined
+          if (!mapped) {
+            const candidates = Array.from(contentByKey.entries()).filter(([k]) => k.endsWith(`::${f.fileName}`))
+            if (candidates.length === 1)
+              mapped = candidates[0][1]
+          }
+          if (!mapped)
+            continue
+
+          await networkUtils.processPutRequest<any>(
+            null,
+            f.signedUrl,
+            {
+              body: mapped.content as unknown as any,
+              headers: {
+                ...(f.clientHeaders || {}),
+                'Content-Type': mapped.fileType,
+              },
+            },
+          )
+        }
+        onSuccess?.('Attachments uploaded successfully')
+      }
+
+      const _payload = {
         entities: {
           folders: { entries: combinedResults.folders },
           cases: { entries: combinedResults.cases },
@@ -773,7 +909,7 @@ export class TestFiestaClient {
       await networkUtils.processPostRequest(
         this.authOptions,
         this.getRoute('ingress', 'import', { projectKey }),
-        { body: payload },
+        { body: _payload },
       )
       onSuccess?.('Test results submitted successfully')
     }, 'Submit test results').catch((error) => {
