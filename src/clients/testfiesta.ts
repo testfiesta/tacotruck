@@ -88,7 +88,7 @@ export class TestFiestaClient {
   private static readonly ROUTES = {
     INGRESS: {
       IMPORT: '/projects/{projectKey}/data',
-      SIGNED_URL: '/projects/{projectKey}/data/signed-url',
+      SIGNED_URL: '/projects/{projectKey}/data/url',
     },
     PROJECTS: {
       LIST: '/projects?limit={limit}&offset={offset}',
@@ -871,7 +871,6 @@ export class TestFiestaClient {
           }
           if (!mapped)
             continue
-
           await networkUtils.processPutRequest<any>(
             null,
             f.signedUrl,
