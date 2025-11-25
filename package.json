@@ -1,7 +1,7 @@
 {
   "name": "@testfiesta/tacotruck",
   "type": "module",
-  "version": "1.0.0-beta.33",
+  "version": "1.0.0-beta.34",
   "description": "Test/QA data pipeline by TestFiesta",
   "author": "TestFiesta",
   "license": "MIT",
